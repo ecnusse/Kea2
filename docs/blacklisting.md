@@ -169,3 +169,65 @@ Besides directly locating target elements, you can locate child or sibling eleme
 
 Please avoid using these unsupported methods to ensure your blacklist configurations are applied correctly.
 
+
+## Activity Blacklist and Whitelist Configuration
+
+*(Applicable scenarios: selectively override certain activities or block unnecessary ones.)*
+
+### Activity Whitelist Configuration
+
+1. **Add Activity names**  
+   Write the names of Activities you want to whitelist into `configs/awl.strings`.
+
+   **Example:** 
+  ```
+  it.feio.android.omninotes.MainActivity
+  it.feio.android.omninotes.SettingsActivity
+  ```
+
+   
+  > Note: You do not need to push the whitelist file to device. We will take care of this for you.
+
+
+2. **Add parameter when running tests**  
+
+   Add the following argument to specify the whitelist file:  
+   ```
+   --act-whitelist-file /sdcard/awl.strings
+   ```
+   
+   Example command to run
+   ```
+   kea2 run -s "emulator-5554" -p it.feio.android.omninotes.alpha --agent u2 --running-minutes 10 --throttle 200 --act-whitelist-file /sdcard/awl.strings --driver-name d unittest discover -p quicktest.py
+   ```
+
+### Activity Blacklist Configuration
+
+1. **Add Activity names**  
+   Write the names of Activities you want to blacklist into `configs/abl.strings`, same format as whitelist.
+
+      **Example:** 
+  ```
+  it.feio.android.omninotes.MainActivity
+  it.feio.android.omninotes.SettingsActivity
+  ```
+>Note: You do not need to push the blacklist file to device. We will take care of this for you.
+
+
+2. **Add parameter when running tests**  
+   Add the following argument to specify the blacklist file:  
+   ```
+   --act-blacklist-file /sdcard/abl.strings
+   ```
+   
+   Example command to run
+   ```
+   kea2 run -s "emulator-5554" -p it.feio.android.omninotes.alpha --agent u2 --running-minutes 10 --throttle 200 --act-blacklist-file /sdcard/abl.strings --driver-name d unittest discover -p quicktest.py
+   ```
+
+
+### Important Notes
+- Whitelist and blacklist **cannot be set at the same time**. It follows the principle: either whitelist or blacklist. If a whitelist is set, all activities outside of it are considered blacklisted.
+- Through hook in Fastbot, activity launches and switches are monitored. If a blacklisted activity is about to launch, the launch will be blocked, which makes the UI seem unresponsive to the transition action.
+
+

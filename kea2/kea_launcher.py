@@ -111,6 +111,22 @@ def _set_runner_parser(subparsers: "argparse._SubParsersAction[argparse.Argument
     )
 
     parser.add_argument(
+        "--act-whitelist-file",
+        dest="act_whitelist_file",
+        required=False,
+        type=str,
+        help="Add Activity Whitelist File.",
+    )
+
+    parser.add_argument(
+        "--act-blacklist-file",
+        dest="act_blacklist_file",
+        required=False,
+        type=str,
+        help="Add Activity Blacklist File.",
+    )
+
+    parser.add_argument(
         "extra",
         nargs=argparse.REMAINDER,
         help="Extra args for unittest <args>",
@@ -180,7 +196,9 @@ def run(args=None):
         log_stamp=args.log_stamp,
         profile_period=args.profile_period,
         take_screenshots=args.take_screenshots,
-        device_output_root=args.device_output_root
+        device_output_root=args.device_output_root,
+        act_whitelist_file = args.act_whitelist_file,
+        act_blacklist_file=args.act_blacklist_file
     )
 
     KeaTestRunner.setOptions(options)

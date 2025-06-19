@@ -73,6 +73,22 @@ class FastbotManager:
             device=options.serial
         )
 
+        whitelist = options.act_whitelist_file
+        blacklist = options.act_blacklist_file
+        if bool(whitelist) ^ bool(blacklist):
+            if whitelist:
+                file_to_push = cur_dir.parent / 'configs' / 'awl.strings'
+                remote_path = whitelist
+            else:
+                file_to_push = cur_dir.parent / 'configs' / 'abl.strings'
+                remote_path = blacklist
+
+            push_file(
+                file_to_push,
+                remote_path,
+                device=options.serial,
+            )
+
         t = self._startFastbotService()
         logger.info("Running Fastbot...")
 
@@ -114,6 +130,14 @@ class FastbotManager:
 
         if self.options.profile_period:
             shell_command += ["--profile-period", f"{self.options.profile_period}"]
+
+        whitelist = self.options.act_whitelist_file
+        blacklist = self.options.act_blacklist_file
+        if bool(whitelist) ^ bool(blacklist):
+            if whitelist:
+                shell_command += ["--act-whitelist-file", f"{whitelist}"]
+            else:
+                shell_command += ["--act-blacklist-file", f"{blacklist}"]
 
         shell_command += ["-v", "-v", "-v"]
 

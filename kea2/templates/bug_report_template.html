@@ -711,7 +711,7 @@
                                 stepSize: steps.length > 0 ? Math.max(1, Math.ceil(Math.max(...steps) / 10)) : 1,
                                 callback: function(value) {
                                     if (Number.isInteger(value) && value <= (steps.length > 0 ? Math.max(...steps) : 10)) {
-                                        return value;
+                                    return value;
                                     }
                                     return null;
                                 }

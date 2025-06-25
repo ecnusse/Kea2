@@ -24,7 +24,7 @@ class LogWatcher:
     def watcher(self, poll_interval=3):
         self.last_pos = 0
 
-        with open(self.log_file, "r") as fp:
+        with open(self.log_file, "r", encoding="utf-8") as fp:
             while not self.end_flag:
                 self.read_log(fp)
                 time.sleep(poll_interval)

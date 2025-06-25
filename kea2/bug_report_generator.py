@@ -2,14 +2,14 @@ import json
 import datetime
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Dict, TypedDict, Literal, List
+from typing import Dict, TypedDict
 from collections import deque
 from concurrent.futures import ThreadPoolExecutor
+import concurrent.futures
 
-from PIL import Image, ImageDraw
+import cv2
 from jinja2 import Environment, FileSystemLoader, select_autoescape, PackageLoader
-from .utils import getLogger
-
+from kea2.utils import getLogger, timer
 
 logger = getLogger(__name__)
 
@@ -34,27 +34,18 @@ class BugReportGenerator:
     Generate HTML format bug reports
     """
 
-    def __init__(self, result_dir):
+    def __init__(self, result_dir=None):
         """
         Initialize the bug report generator
 
         Args:
-            result_dir: Directory path containing test results
+            result_dir: Directory path containing test results (optional)
         """
-        self.executor = ThreadPoolExecutor(max_workers=32)
-        self.result_dir = Path(result_dir)
-        self.log_timestamp = self.result_dir.name.split("_", 1)[1]
+        if result_dir is not None:
+            self._setup_paths(result_dir)
 
-        self.data_path: DataPath = DataPath(
-            steps_log=self.result_dir / f"output_{self.log_timestamp}" / "steps.log",
-            result_json=self.result_dir / f"result_{self.log_timestamp}.json",
-            coverage_log=self.result_dir / f"output_{self.log_timestamp}" / "coverage.log",
-            screenshots_dir=self.result_dir / f"output_{self.log_timestamp}" / "screenshots"
-        )
-
-        self.screenshots = deque()
-
-        self.take_screenshots = self._detect_screenshots_setting()
+        # Create thread pool with maximum worker threads
+        self.executor = concurrent.futures.ThreadPoolExecutor(max_workers=32)
 
         # Set up Jinja2 environment
         # First try to load templates from the package
@@ -77,12 +68,48 @@ class BugReportGenerator:
                 autoescape=select_autoescape(['html', 'xml'])
             )
 
+    def _setup_paths(self, result_dir):
+        """
+        Setup paths for a given result directory
 
-    def generate_report(self):
+        Args:
+            result_dir: Directory path containing test results
+        """
+        self.result_dir = Path(result_dir)
+        self.log_timestamp = self.result_dir.name.split("_", 1)[1]
+
+        self.data_path: DataPath = DataPath(
+            steps_log=self.result_dir / f"output_{self.log_timestamp}" / "steps.log",
+            result_json=self.result_dir / f"result_{self.log_timestamp}.json",
+            coverage_log=self.result_dir / f"output_{self.log_timestamp}" / "coverage.log",
+            screenshots_dir=self.result_dir / f"output_{self.log_timestamp}" / "screenshots"
+        )
+
+        self.screenshots = deque()
+        self.take_screenshots = self._detect_screenshots_setting()
+
+    def __del__(self):
+        """Clean up thread pool resources"""
+        if hasattr(self, 'executor'):
+            self.executor.shutdown(wait=True)
+
+    def generate_report(self, result_dir_path=None):
         """
         Generate bug report and save to result directory
+
+        Args:
+            result_dir_path: Directory path containing test results (optional)
+                           If not provided, uses the path from initialization
         """
         try:
+            # Setup paths if result_dir_path is provided
+            if result_dir_path is not None:
+                self._setup_paths(result_dir_path)
+
+            # Check if paths are properly set up
+            if not hasattr(self, 'result_dir') or self.result_dir is None:
+                raise ValueError("No result directory specified. Please provide result_dir_path or initialize with a directory.")
+
             logger.debug("Starting bug report generation")
 
             # Collect test data
@@ -97,9 +124,11 @@ class BugReportGenerator:
                 f.write(html_content)
 
             logger.debug(f"Bug report saved to: {report_path}")
+            return str(report_path)
 
         except Exception as e:
             logger.error(f"Error generating bug report: {e}")
+            raise
 
     def _collect_test_data(self):
         """
@@ -110,135 +139,260 @@ class BugReportGenerator:
             "bugs_found": 0,
             "executed_events": 0,
             "total_testing_time": 0,
-            "first_bug_time": 0,
-            "first_precondition_time": 0,
             "coverage": 0,
             "total_activities": [],
             "tested_activities": [],
             "property_violations": [],
             "property_stats": [],
-            "screenshot_info": {},  # Store detailed information for each screenshot
-            "coverage_trend": []  # Store coverage trend data
+            "screenshot_info": {},
+            "coverage_trend": []
         }
 
-        # Parse steps.log file to get test step numbers and screenshot mappings
-        steps_log_path = self.data_path.steps_log
-        property_violations = {}  # Store multiple violation records for each property
-        relative_path = f"output_{self.log_timestamp}/screenshots"
+        # Use thread pool to read multiple files in parallel
+        future_tasks = {}
 
-        if steps_log_path.exists():
-            with open(steps_log_path, "r", encoding="utf-8") as f:
-                # Track current test state
-                current_property = None
-                current_test = {}
-                monkey_events_count = 0
-                step_index = 0
+        # Submit file reading tasks
+        if self.data_path.steps_log.exists():
+            future_tasks['steps'] = self.executor.submit(self._process_steps_log_parallel)
 
-                for line in f:
-                    step_data = self._parse_step_data(line)
-                    if step_data:
-                        step_index += 1  # Count steps starting from 1
-                        step_type = step_data.get("Type", "")
-                        screenshot = step_data.get("Screenshot", "")
-                        info = step_data.get("Info", {})
+        if self.data_path.result_json.exists():
+            future_tasks['result'] = self.executor.submit(self._read_result_json)
 
-                        # Count Monkey events
-                        if step_type == "Monkey":
-                            monkey_events_count += 1
+        if self.data_path.coverage_log.exists():
+            future_tasks['coverage'] = self.executor.submit(self._get_cov_trend_parallel)
 
-                        # If screenshots are enabled, mark the screenshot
-                        if self.take_screenshots and screenshot:
-                            # self._mark_screenshot(step_data)
-                            self.executor.submit(self._mark_screenshot, step_data)
+        # Wait for all tasks to complete and collect results
+        results = {}
+        for task_name, future in future_tasks.items():
+            try:
+                results[task_name] = future.result()
+            except Exception as e:
+                logger.error(f"Error in {task_name} task: {e}")
+                results[task_name] = None
 
-                        # Collect detailed information for each screenshot
-                        if screenshot and screenshot not in data["screenshot_info"]:
-                            self._add_screenshot_info(screenshot, step_type, info, step_index, relative_path, data)
+        # Process step log results
+        if 'steps' in results and results['steps']:
+            steps_data = results['steps']
+            data.update(steps_data)
 
-                        # Process ScriptInfo for property violations
-                        if step_type == "ScriptInfo":
-                            try:
-                                property_name = info.get("propName", "")
-                                state = info.get("state", "")
-                                current_property, current_test = self._process_script_info(
-                                    property_name, state, step_index, screenshot,
-                                    current_property, current_test, property_violations
-                                )
-                            except Exception as e:
-                                logger.error(f"Error processing ScriptInfo step {step_index}: {e}")
-
-                        # Store first and last step for time calculation
-                        if step_index == 1:
-                            first_step_time = step_data["Time"]
-                        last_step_time = step_data["Time"]
-
-                # Set the monkey events count
-                data["executed_events"] = monkey_events_count
-
-                # Calculate test time
-                if step_index > 0:
-                    try:
-                        data["total_testing_time"] = int((datetime.datetime.strptime(last_step_time,"%Y-%m-%d %H:%M:%S.%f") -
-                                                          datetime.datetime.strptime(first_step_time,"%Y-%m-%d %H:%M:%S.%f")
-                                                         ).total_seconds())
-                    except Exception as e:
-                        logger.error(f"Error calculating test time: {e}")
-
-        # Parse result file
-        result_json_path = self.data_path.result_json
-        
-        if result_json_path.exists():
-            with open(result_json_path, "r", encoding="utf-8") as f:
-                result_data = json.load(f)
-
-            # Calculate bug count directly from result data
-            for property_name, test_result in result_data.items():
-                # Check if failed or error
-                if test_result.get("fail", 0) > 0 or test_result.get("error", 0) > 0:
-                    data["bugs_found"] += 1
-
-            # Store the raw result data for direct use in HTML template
+        # Process result file
+        if 'result' in results and results['result']:
+            result_data = results['result']
+            data["bugs_found"] = sum(1 for test_result in result_data.values()
+                                   if test_result.get("fail", 0) > 0 or test_result.get("error", 0) > 0)
             data["property_stats"] = result_data
 
         # Process coverage data
-        cov_trend, last_line = self._get_cov_trend()
-        if cov_trend:
-            data["coverage_trend"] = cov_trend
-
-        if last_line:
-            try:
-                coverage_data = json.loads(last_line)
-                if coverage_data:
-                    data["coverage"] = coverage_data.get("coverage", 0)
-                    data["total_activities"] = coverage_data.get("totalActivities", [])
-                    data["tested_activities"] = coverage_data.get("testedActivities", [])
-            except Exception as e:
-                logger.error(f"Error parsing final coverage data: {e}")
-
-        # Generate Property Violations list
-        self._generate_property_violations_list(property_violations, data)
+        if 'coverage' in results and results['coverage']:
+            cov_trend, last_coverage = results['coverage']
+            if cov_trend:
+                data["coverage_trend"] = cov_trend
+            if last_coverage:
+                data["coverage"] = last_coverage.get("coverage", 0)
+                data["total_activities"] = last_coverage.get("totalActivities", [])
+                data["tested_activities"] = last_coverage.get("testedActivities", [])
 
         return data
+
+    def _process_steps_log_parallel(self):
+        """Process step log file in parallel"""
+        try:
+            steps_data = {
+                "executed_events": 0,
+                "total_testing_time": 0,
+                "property_violations": [],
+                "screenshot_info": {}
+            }
+
+            steps_log_path = self.data_path.steps_log
+            property_violations = {}
+            relative_path = f"output_{self.log_timestamp}/screenshots"
+
+            # Batch read file content
+            with open(steps_log_path, "r", encoding="utf-8") as f:
+                lines = f.readlines()
+
+            # Use thread pool to parse JSON data in parallel
+            parse_futures = []
+            with concurrent.futures.ThreadPoolExecutor(max_workers=2) as json_executor:
+                for i, line in enumerate(lines):
+                    if line.strip():
+                        future = json_executor.submit(self._parse_step_data_safe, line, i)
+                        parse_futures.append(future)
+
+                # Collect parsing results
+                parsed_steps = []
+                for future in concurrent.futures.as_completed(parse_futures):
+                    result = future.result()
+                    if result:
+                        parsed_steps.append(result)
+
+                # Sort by step index
+                parsed_steps.sort(key=lambda x: x[1])  # Sort by index
+
+            # Process parsed step data
+            current_property = None
+            current_test = {}
+            monkey_events_count = 0
+            step_index = 0
+            screenshot_tasks = []
+
+            for step_data, original_index in parsed_steps:
+                if step_data:
+                    step_index += 1
+                    step_type = step_data.get("Type", "")
+                    screenshot = step_data.get("Screenshot", "")
+                    info = step_data.get("Info", {})
+
+                    if step_type == "Monkey":
+                        monkey_events_count += 1
+
+                        # If screenshots are enabled, mark the screenshot
+                        if self.take_screenshots and screenshot:
+                            self._mark_screenshot(info, screenshot, screenshot_tasks)
+
+                    # Add screenshot information
+                    if screenshot and screenshot not in steps_data["screenshot_info"]:
+                        self._add_screenshot_info(screenshot, step_type, info, step_index, relative_path, steps_data)
+
+                    # Process script information
+                    if step_type == "ScriptInfo":
+                        try:
+                            property_name = info.get("propName", "")
+                            state = info.get("state", "")
+                            current_property, current_test = self._process_script_info(
+                                property_name, state, step_index, screenshot,
+                                current_property, current_test, property_violations
+                            )
+                        except Exception as e:
+                            logger.error(f"Error processing ScriptInfo step {step_index}: {e}")
+
+                    # Record timing information
+                    if step_index == 1:
+                        first_step_time = step_data["Time"]
+                    last_step_time = step_data["Time"]
+
+            # Wait for all screenshot marking tasks to complete
+            for task in screenshot_tasks:
+                try:
+                    task.result()
+                except Exception as e:
+                    logger.error(f"Error in screenshot marking task: {e}")
+
+            steps_data["executed_events"] = monkey_events_count
+
+            # Calculate test time
+            if step_index > 0:
+                try:
+                    steps_data["total_testing_time"] = int((
+                        datetime.datetime.strptime(last_step_time, "%Y-%m-%d %H:%M:%S.%f") -
+                        datetime.datetime.strptime(first_step_time, "%Y-%m-%d %H:%M:%S.%f")
+                    ).total_seconds())
+                except Exception as e:
+                    logger.error(f"Error calculating test time: {e}")
+
+            # Generate property violations list
+            self._generate_property_violations_list(property_violations, steps_data)
+
+            return steps_data
+
+        except Exception as e:
+            logger.error(f"Error processing steps log: {e}")
+            return None
+
+    def _parse_step_data_safe(self, line, index):
+        """Safe step data parsing, returns (step_data, index) tuple"""
+        try:
+            if line.strip():
+                step_data = self._parse_step_data(line)
+                return (step_data, index)
+        except Exception as e:
+            logger.error(f"Error parsing step data at line {index}: {e}")
+        return (None, index)
+
+    def _read_result_json(self):
+        """Read result JSON file"""
+        try:
+            with open(self.data_path.result_json, "r", encoding="utf-8") as f:
+                return json.load(f)
+        except Exception as e:
+            logger.error(f"Error reading result JSON: {e}")
+            return None
+
+    def _get_cov_trend_parallel(self):
+        """Process coverage trend data in parallel"""
+        try:
+            cov_trend = []
+            last_coverage = None
+
+            with open(self.data_path.coverage_log, "r", encoding="utf-8") as f:
+                lines = f.readlines()
+
+            # Use thread pool to parse coverage data in parallel
+            with concurrent.futures.ThreadPoolExecutor(max_workers=2) as cov_executor:
+                parse_futures = []
+                for i, line in enumerate(lines):
+                    if line.strip():
+                        future = cov_executor.submit(self._parse_coverage_line, line, i)
+                        parse_futures.append(future)
+
+                # Collect parsing results
+                coverage_data_list = []
+                for future in concurrent.futures.as_completed(parse_futures):
+                    result = future.result()
+                    if result:
+                        coverage_data_list.append(result)
+
+                # Sort by index
+                coverage_data_list.sort(key=lambda x: x[1])
+
+                # Extract coverage trend data
+                for coverage_data, _ in coverage_data_list:
+                    if coverage_data:
+                        cov_trend.append({
+                            "steps": coverage_data.get("stepsCount", 0),
+                            "coverage": coverage_data.get("coverage", 0),
+                            "tested_activities_count": coverage_data.get("testedActivitiesCount", 0)
+                        })
+                        last_coverage = coverage_data
+
+            return cov_trend, last_coverage
+
+        except Exception as e:
+            logger.error(f"Error processing coverage trend: {e}")
+            return [], None
+
+    def _parse_coverage_line(self, line, index):
+        """Safe parsing of coverage data line"""
+        try:
+            if line.strip():
+                coverage_data = json.loads(line)
+                return (coverage_data, index)
+        except Exception as e:
+            logger.error(f"Error parsing coverage data at line {index}: {e}")
+        return (None, index)
 
     def _parse_step_data(self, raw_step_info: str) -> StepData:
         step_data = json.loads(raw_step_info)
         step_data["Info"] = json.loads(step_data.get("Info"))
         return step_data
 
-    def _mark_screenshot(self, step_data: StepData):
-        if step_data["Type"] == "Monkey":
-            try:
-                act = step_data["Info"].get("act")
-                pos = step_data["Info"].get("pos")
-                screenshot_name = step_data["Screenshot"]
-                if act in ["CLICK", "LONG_CLICK"] or act.startswith("SCROLL"):
-                    screenshot_path = self.data_path.screenshots_dir / screenshot_name
-                    if screenshot_path.exists():
-                        self._mark_screenshot_interaction(screenshot_path, act, pos)
-            except Exception as e:
-                logger.error(f"Error processing Monkey step: {e}")
+    def _mark_screenshot(self, info, screenshot: str, screenshot_tasks: list):
+        try:
+            act = info.get("act")
+            pos = info.get("pos")
+            if act in ["CLICK", "LONG_CLICK"] or act.startswith("SCROLL"):
+                screenshot_path = self.data_path.screenshots_dir / screenshot
+                if screenshot_path.exists():
+                    task = self.executor.submit(
+                        self._mark_screenshot_interaction,
+                        screenshot_path, act, pos
+                    )
+                    screenshot_tasks.append(task)
+        except Exception as e:
+            logger.error(f"Error preparing screenshot task: {e}")
 
-
+    @timer
     def _mark_screenshot_interaction(self, screenshot_path, action_type, position):
         """
             Mark interaction on screenshot with colored rectangle
@@ -252,28 +406,44 @@ class BugReportGenerator:
                 bool: True if marking was successful, False otherwise
         """
         try:
-            img = Image.open(screenshot_path).convert("RGB")
-            draw = ImageDraw.Draw(img)
+            # Read the image
+            @timer
+            def read_image(path):
+                img = cv2.imread(str(path))
+                if img is None:
+                    logger.warning(f"Could not read image: {path}")
+                    return None
+                return img
 
+            img = read_image(screenshot_path)
+            if img is None:
+                logger.warning(f"Could not read image: {screenshot_path}")
+                return False
+
+            # Validate position format
             if not isinstance(position, (list, tuple)) or len(position) != 4:
                 logger.warning(f"Invalid position format: {position}")
                 return False
 
-            x1, y1, x2, y2 = map(int, position)
+            x1, y1, x2, y2 = int(position[0]), int(position[1]), int(position[2]), int(position[3])
 
-            line_width = 5
-
+            # Choose color based on action type: CLICK uses red, LONG_CLICK uses blue
             if action_type == "CLICK":
-                for i in range(line_width):
-                    draw.rectangle([x1 - i, y1 - i, x2 + i, y2 + i], outline=(255, 0, 0))
+                cv2.rectangle(img, (x1, y1), (x2, y2), (0, 0, 255), 5)
             elif action_type == "LONG_CLICK":
-                for i in range(line_width):
-                    draw.rectangle([x1 - i, y1 - i, x2 + i, y2 + i], outline=(0, 0, 255))
+                cv2.rectangle(img, (x1, y1), (x2, y2), (255, 0, 0), 5)
             elif action_type.startswith("SCROLL"):
-                for i in range(line_width):
-                    draw.rectangle([x1 - i, y1 - i, x2 + i, y2 + i], outline=(0, 255, 0))
+                cv2.rectangle(img, (x1, y1), (x2, y2), (0, 255, 0), 5)
 
-            img.save(screenshot_path)
+            @timer
+            def save_image(path, image):
+                """
+                Save the image to the specified path
+                """
+                cv2.imwrite(str(path), image)
+            # Save with overwrite
+            # cv2.imwrite(str(screenshot_path), img)
+            save_image(screenshot_path, img)
             return True
 
         except Exception as e:
@@ -287,29 +457,6 @@ class BugReportGenerator:
             Returns True if screenshots were taken, False otherwise.
         """
         return self.data_path.screenshots_dir.exists()
-
-    def _get_cov_trend(self):
-        # Parse coverage data
-        coverage_log_path = self.data_path.coverage_log
-        cov_trend = []
-        last_line = None
-        if coverage_log_path.exists():
-            with open(coverage_log_path, "r", encoding="utf-8") as f:
-                for line in f:
-                    if not line.strip():
-                        continue
-                    try:
-                        coverage_data = json.loads(line)
-                        cov_trend.append({
-                            "steps": coverage_data.get("stepsCount", 0),
-                            "coverage": coverage_data.get("coverage", 0),
-                            "tested_activities_count": coverage_data.get("testedActivitiesCount", 0)
-                        })
-                        last_line = line
-                    except Exception as e:
-                        logger.error(f"Error parsing coverage data: {e}")
-                        continue
-        return cov_trend, last_line
 
     def _generate_html_report(self, data):
         """
@@ -335,8 +482,6 @@ class BugReportGenerator:
                 'total_testing_time': data["total_testing_time"],
                 'executed_events': data["executed_events"],
                 'coverage_percent': round(data["coverage"], 2),
-                'first_bug_time': data["first_bug_time"],
-                'first_precondition_time': data["first_precondition_time"],
                 'total_activities_count': len(data["total_activities"]),
                 'tested_activities_count': len(data["tested_activities"]),
                 'tested_activities': data["tested_activities"],  # Pass list of tested Activities
@@ -364,7 +509,7 @@ class BugReportGenerator:
             logger.error(f"Error rendering template: {e}")
             raise
 
-    def _add_screenshot_info(self, screenshot: str, step_type: str, info: Dict, step_index: int, relative_path: str, data: Dict):
+    def _add_screenshot_info(self, screenshot: str, step_type: str, info: Dict, step_index: int, relative_path: str, steps_data: Dict):
         """
         Add screenshot information to data structure
         
@@ -374,7 +519,7 @@ class BugReportGenerator:
             info: Step information dictionary
             step_index: Current step index
             relative_path: Relative path to screenshots directory
-            data: Data dictionary to update
+            steps_data: Steps data dictionary to update
         """
         try:
             caption = ""
@@ -391,13 +536,13 @@ class BugReportGenerator:
                 state = info.get('state', 'N/A')
                 caption = f"{prop_name} {state}" if prop_name else f"{state}"
 
-            data["screenshot_info"][screenshot] = {
+            steps_data["screenshot_info"][screenshot] = {
                 "type": step_type,
                 "caption": caption,
                 "step_index": step_index
             }
             
-            screenshot_caption = data["screenshot_info"][screenshot].get('caption', '')
+            screenshot_caption = steps_data["screenshot_info"][screenshot].get('caption', '')
             self.screenshots.append({
                 'id': step_index,
                 'path': f"{relative_path}/{screenshot}",
@@ -406,13 +551,13 @@ class BugReportGenerator:
             
         except Exception as e:
             logger.error(f"Error parsing screenshot info: {e}")
-            data["screenshot_info"][screenshot] = {
+            steps_data["screenshot_info"][screenshot] = {
                 "type": step_type,
                 "caption": step_type,
                 "step_index": step_index
             }
             
-            screenshot_caption = data["screenshot_info"][screenshot].get('caption', '')
+            screenshot_caption = steps_data["screenshot_info"][screenshot].get('caption', '')
             self.screenshots.append({
                 'id': step_index,
                 'path': f"{relative_path}/{screenshot}",
@@ -492,3 +637,15 @@ class BugReportGenerator:
                         "postcondition_page": end_step
                     })
                     index += 1
+
+
+if __name__ == "__main__":
+    print("开始生成bug报告...")
+
+    try:
+        b = BugReportGenerator()
+        report_path = b.generate_report("P:/Python/Kea2/output/res_2025062420_5511501588")
+        print(f"✓ bug报告生成成功: {report_path}")
+    except Exception as e:
+        print(f"✗ 生成失败: {e}")
+        print("请检查目录路径是否正确")

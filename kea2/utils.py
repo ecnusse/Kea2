@@ -2,6 +2,9 @@ import logging
 import os
 from pathlib import Path
 from typing import TYPE_CHECKING
+
+import time
+from functools import wraps
 if TYPE_CHECKING:
     from .keaUtils import Options
 
@@ -55,3 +58,14 @@ def getProjectRoot():
             return None
         cur_dir = cur_dir.parent
     return cur_dir
+
+
+def timer(func):
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+        start_time = time.time()
+        result = func(*args, **kwargs)
+        end_time = time.time()
+        print(f"Function '{func.__name__}' executed in {(end_time - start_time):.4f} seconds.")
+        return result
+    return wrapper

@@ -249,7 +249,7 @@ class BugReportGenerator:
 
                         # If screenshots are enabled, mark the screenshot
                         if self.take_screenshots and screenshot:
-                            self._mark_screenshot(info, screenshot, screenshot_tasks)
+                            self.executor.submit(self._mark_screenshot, info, screenshot, screenshot_tasks)
 
                     # Add screenshot information
                     if screenshot and screenshot not in steps_data["screenshot_info"]:

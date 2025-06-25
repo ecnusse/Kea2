@@ -5,8 +5,6 @@ from pathlib import Path
 from typing import Dict, TypedDict
 from collections import deque
 import concurrent.futures
-import queue
-import threading
 
 import cv2
 from jinja2 import Environment, FileSystemLoader, select_autoescape, PackageLoader
@@ -29,23 +27,6 @@ class DataPath:
     coverage_log: Path
     screenshots_dir: Path
 
-@dataclass
-class ScreenshotTask:
-    """Screenshot marking task data structure"""
-    screenshot_path: Path
-    action_type: str
-    position: list
-    task_id: str
-
-@dataclass
-class ImageData:
-    """Image data structure"""
-    task_id: str
-    image: object  # cv2 image
-    action_type: str
-    position: list
-    screenshot_path: Path
-
 
 class BugReportGenerator:
     """
@@ -62,22 +43,8 @@ class BugReportGenerator:
         if result_dir is not None:
             self._setup_paths(result_dir)
         
-        # Create thread pool with maximum worker threads for general tasks
+        # Create thread pool with maximum worker threads
         self.executor = concurrent.futures.ThreadPoolExecutor(max_workers=4)
-        
-        # Create separate thread pools for screenshot processing pipeline
-        self.screenshot_readers = concurrent.futures.ThreadPoolExecutor(max_workers=2)
-        self.screenshot_processors = concurrent.futures.ThreadPoolExecutor(max_workers=3)
-        self.screenshot_writers = concurrent.futures.ThreadPoolExecutor(max_workers=2)
-        
-        # Pipeline queues for screenshot processing
-        self.read_queue = queue.Queue(maxsize=10)
-        self.process_queue = queue.Queue(maxsize=10)
-        self.write_queue = queue.Queue(maxsize=10)
-        
-        # Pipeline control flags
-        self._pipeline_shutdown = False
-        self._pipeline_threads = []
 
         # Set up Jinja2 environment
         # First try to load templates from the package
@@ -122,44 +89,8 @@ class BugReportGenerator:
 
     def __del__(self):
         """Clean up thread pool resources"""
-        self._shutdown_screenshot_pipeline()
         if hasattr(self, 'executor'):
             self.executor.shutdown(wait=True)
-
-    def _shutdown_screenshot_pipeline(self):
-        """Gracefully shutdown screenshot processing pipeline"""
-        try:
-            # Set shutdown flag
-            self._pipeline_shutdown = True
-            
-            # Wait for all pipeline threads to complete
-            for thread in self._pipeline_threads:
-                if thread.is_alive():
-                    thread.join(timeout=2)
-            
-            # Clear queues to avoid thread blocking
-            self._clear_queues()
-            
-            # Shutdown thread pools
-            if hasattr(self, 'screenshot_readers'):
-                self.screenshot_readers.shutdown(wait=False)
-            if hasattr(self, 'screenshot_processors'):
-                self.screenshot_processors.shutdown(wait=False)
-            if hasattr(self, 'screenshot_writers'):
-                self.screenshot_writers.shutdown(wait=False)
-                
-        except Exception as e:
-            logger.error(f"Error shutting down screenshot pipeline: {e}")
-
-    def _clear_queues(self):
-        """Clear all queues"""
-        queues = [self.read_queue, self.process_queue, self.write_queue]
-        for q in queues:
-            try:
-                while not q.empty():
-                    q.get_nowait()
-            except queue.Empty:
-                pass
 
     def generate_report(self, result_dir_path=None):
         """
@@ -298,17 +229,12 @@ class BugReportGenerator:
                 # Sort by step index
                 parsed_steps.sort(key=lambda x: x[1])  # Sort by index
 
-            # Start screenshot processing pipeline
-            screenshot_pipeline_future = None
-            screenshot_tasks = []
-            if self.take_screenshots:
-                screenshot_pipeline_future = self.executor.submit(self._start_screenshot_pipeline)
-
             # Process parsed step data
             current_property = None
             current_test = {}
             monkey_events_count = 0
             step_index = 0
+            screenshot_tasks = []
 
             for step_data, original_index in parsed_steps:
                 if step_data:
@@ -320,11 +246,9 @@ class BugReportGenerator:
                     if step_type == "Monkey":
                         monkey_events_count += 1
 
-                    # Collect screenshot marking tasks (using new parallel pipeline)
+                    # Collect screenshot marking tasks
                     if self.take_screenshots and screenshot and step_type == "Monkey":
-                        task = self._create_screenshot_task(info, screenshot)
-                        if task:
-                            screenshot_tasks.append(task)
+                        self._mark_screenshot(info, screenshot, screenshot_tasks)
 
                     # Add screenshot information
                     if screenshot and screenshot not in steps_data["screenshot_info"]:
@@ -347,25 +271,12 @@ class BugReportGenerator:
                         first_step_time = step_data["Time"]
                     last_step_time = step_data["Time"]
 
-            # Process all screenshot tasks
-            if screenshot_tasks:
-                self._process_screenshot_tasks_pipeline(screenshot_tasks)
-
-            # Wait for screenshot processing pipeline to complete
-            if screenshot_pipeline_future:
+            # Wait for all screenshot marking tasks to complete
+            for task in screenshot_tasks:
                 try:
-                    screenshot_pipeline_future.result(timeout=30)  # 30 seconds timeout
-                    
-                    # Wait for all pipeline threads to complete
-                    for thread in self._pipeline_threads:
-                        if thread.is_alive():
-                            thread.join(timeout=5)
-                            
-                except concurrent.futures.TimeoutError:
-                    logger.warning("Screenshot pipeline processing timeout")
-                finally:
-                    # Ensure pipeline is properly closed
-                    self._shutdown_screenshot_pipeline()
+                    task.result()
+                except Exception as e:
+                    logger.error(f"Error in screenshot marking task: {e}")
 
             steps_data["executed_events"] = monkey_events_count
 
@@ -465,203 +376,53 @@ class BugReportGenerator:
         step_data["Info"] = json.loads(step_data.get("Info"))
         return step_data
 
-    def _create_screenshot_task(self, info, screenshot: str) -> ScreenshotTask:
-        """Create screenshot marking task"""
+    def _mark_screenshot(self, info, screenshot: str, screenshot_tasks: list):
         try:
             act = info.get("act")
             pos = info.get("pos")
             if act in ["CLICK", "LONG_CLICK"] or act.startswith("SCROLL"):
                 screenshot_path = self.data_path.screenshots_dir / screenshot
                 if screenshot_path.exists():
-                    return ScreenshotTask(
-                        screenshot_path=screenshot_path,
-                        action_type=act,
-                        position=pos,
-                        task_id=f"{screenshot}_{act}"
+                    task = self.executor.submit(
+                        self._mark_screenshot_interaction,
+                        screenshot_path, act, pos
                     )
+                    screenshot_tasks.append(task)
         except Exception as e:
-            logger.error(f"Error creating screenshot task: {e}")
-        return None
+            logger.error(f"Error preparing screenshot task: {e}")
 
-    def _start_screenshot_pipeline(self):
-        """Start screenshot processing pipeline"""
-        # Reset shutdown flag
-        self._pipeline_shutdown = False
-        self._pipeline_threads = []
-        
-        # Start reader thread
-        reader_thread = threading.Thread(target=self._screenshot_reader_worker, daemon=True)
-        reader_thread.start()
-        self._pipeline_threads.append(reader_thread)
-        
-        # Start processor thread
-        processor_thread = threading.Thread(target=self._screenshot_processor_worker, daemon=True)
-        processor_thread.start()
-        self._pipeline_threads.append(processor_thread)
-        
-        # Start writer thread
-        writer_thread = threading.Thread(target=self._screenshot_writer_worker, daemon=True)
-        writer_thread.start()
-        self._pipeline_threads.append(writer_thread)
-        
-        return True
+    @timer
+    def _mark_screenshot_interaction(self, screenshot_path, action_type, position):
+        """
+            Mark interaction on screenshot with colored rectangle
 
-    def _process_screenshot_tasks_pipeline(self, tasks: list[ScreenshotTask]):
-        """Add screenshot tasks to processing pipeline"""
-        for task in tasks:
-            if self._pipeline_shutdown:
-                break
-            try:
-                self.read_queue.put(task, timeout=5)
-            except queue.Full:
-                logger.warning(f"Read queue full, skipping task {task.task_id}")
-        
-        # Send termination signal
-        if not self._pipeline_shutdown:
-            try:
-                self.read_queue.put(None, timeout=2)
-            except queue.Full:
-                logger.warning("Could not send termination signal to read queue")
+            Args:
+                screenshot_path (Path): Path to the screenshot file
+                action_type (str): Type of action ('CLICK' or 'LONG_CLICK' or 'SCROLL')
+                position (list): Position coordinates [x1, y1, x2, y2]
 
-    def _screenshot_reader_worker(self):
-        """Screenshot reading worker thread"""
+            Returns:
+                bool: True if marking was successful, False otherwise
+        """
         try:
-            while not self._pipeline_shutdown:
-                try:
-                    task = self.read_queue.get(timeout=2)
-                    if task is None:  # Termination signal
-                        self.process_queue.put(None, timeout=2)
-                        break
-                    
-                    # Check if thread pool is still available
-                    if self._pipeline_shutdown or self.screenshot_readers._shutdown:
-                        break
-                    
-                    # Parallel image reading
-                    future = self.screenshot_readers.submit(self._read_image_parallel, task)
-                    image_data = future.result(timeout=10)
-                    
-                    if image_data and not self._pipeline_shutdown:
-                        try:
-                            self.process_queue.put(image_data, timeout=2)
-                        except queue.Full:
-                            logger.warning("Process queue full, dropping image data")
-                        
-                except queue.Empty:
-                    continue  # Continue waiting for tasks
-                except Exception as e:
-                    if not self._pipeline_shutdown:
-                        logger.error(f"Error in screenshot reader worker: {e}")
-                    break
-                    
-        except Exception as e:
-            logger.error(f"Fatal error in screenshot reader worker: {e}")
-        finally:
-            # Ensure termination signal is sent
-            try:
-                if not self._pipeline_shutdown:
-                    self.process_queue.put(None, timeout=1)
-            except:
-                pass
+            # Read the image
+            @timer
+            def read_image(path):
+                img = cv2.imread(str(path))
+                if img is None:
+                    logger.warning(f"Could not read image: {path}")
+                    return None
+                return img
 
-    def _screenshot_processor_worker(self):
-        """Screenshot processing worker thread"""
-        try:
-            while not self._pipeline_shutdown:
-                try:
-                    image_data = self.process_queue.get(timeout=2)
-                    if image_data is None:  # Termination signal
-                        self.write_queue.put(None, timeout=2)
-                        break
-                    
-                    # Check if thread pool is still available
-                    if self._pipeline_shutdown or self.screenshot_processors._shutdown:
-                        break
-                    
-                    # Parallel image processing
-                    future = self.screenshot_processors.submit(self._process_image_parallel, image_data)
-                    processed_data = future.result(timeout=10)
-                    
-                    if processed_data and not self._pipeline_shutdown:
-                        try:
-                            self.write_queue.put(processed_data, timeout=2)
-                        except queue.Full:
-                            logger.warning("Write queue full, dropping processed data")
-                        
-                except queue.Empty:
-                    continue  # Continue waiting for tasks
-                except Exception as e:
-                    if not self._pipeline_shutdown:
-                        logger.error(f"Error in screenshot processor worker: {e}")
-                    break
-                    
-        except Exception as e:
-            logger.error(f"Fatal error in screenshot processor worker: {e}")
-        finally:
-            # Ensure termination signal is sent
-            try:
-                if not self._pipeline_shutdown:
-                    self.write_queue.put(None, timeout=1)
-            except:
-                pass
-
-    def _screenshot_writer_worker(self):
-        """Screenshot writing worker thread"""
-        try:
-            while not self._pipeline_shutdown:
-                try:
-                    processed_data = self.write_queue.get(timeout=2)
-                    if processed_data is None:  # Termination signal
-                        break
-                    
-                    # Check if thread pool is still available
-                    if self._pipeline_shutdown or self.screenshot_writers._shutdown:
-                        break
-                    
-                    # Parallel image writing
-                    future = self.screenshot_writers.submit(self._write_image_parallel, processed_data)
-                    future.result(timeout=10)
-                        
-                except queue.Empty:
-                    continue  # Continue waiting for tasks
-                except Exception as e:
-                    if not self._pipeline_shutdown:
-                        logger.error(f"Error in screenshot writer worker: {e}")
-                    break
-                    
-        except Exception as e:
-            logger.error(f"Fatal error in screenshot writer worker: {e}")
-
-    def _read_image_parallel(self, task: ScreenshotTask) -> ImageData:
-        """Parallel image reading"""
-        try:
-            img = cv2.imread(str(task.screenshot_path))
+            img = read_image(screenshot_path)
             if img is None:
-                logger.warning(f"Could not read image: {task.screenshot_path}")
-                return None
-            
-            return ImageData(
-                task_id=task.task_id,
-                image=img,
-                action_type=task.action_type,
-                position=task.position,
-                screenshot_path=task.screenshot_path
-            )
-        except Exception as e:
-            logger.error(f"Error reading image {task.screenshot_path}: {e}")
-            return None
+                logger.warning(f"Could not read image: {screenshot_path}")
+                return False
 
-    def _process_image_parallel(self, image_data: ImageData) -> ImageData:
-        """Parallel image processing (marking operation)"""
-        try:
-            img = image_data.image
-            position = image_data.position
-            action_type = image_data.action_type
-            
             # Validate position format
             if not isinstance(position, (list, tuple)) or len(position) != 4:
                 logger.warning(f"Invalid position format: {position}")
-                return None
+                return False
 
             x1, y1, x2, y2 = int(position[0]), int(position[1]), int(position[2]), int(position[3])
 
@@ -673,20 +434,21 @@ class BugReportGenerator:
             elif action_type.startswith("SCROLL"):
                 cv2.rectangle(img, (x1, y1), (x2, y2), (0, 255, 0), 5)
 
-            return image_data
-            
-        except Exception as e:
-            logger.error(f"Error processing image {image_data.task_id}: {e}")
-            return None
-
-    def _write_image_parallel(self, image_data: ImageData) -> bool:
-        """Parallel image writing"""
-        try:
-            cv2.imwrite(str(image_data.screenshot_path), image_data.image)
+            @timer
+            def save_image(path, image):
+                """
+                Save the image to the specified path
+                """
+                cv2.imwrite(str(path), image)
+            # Save with overwrite
+            # cv2.imwrite(str(screenshot_path), img)
+            save_image(screenshot_path, img)
             return True
+
         except Exception as e:
-            logger.error(f"Error writing image {image_data.screenshot_path}: {e}")
+            logger.error(f"Error marking screenshot {screenshot_path}: {e}")
             return False
+
 
     def _detect_screenshots_setting(self):
         """
@@ -881,7 +643,7 @@ if __name__ == "__main__":
 
     try:
         b = BugReportGenerator()
-        report_path = b.generate_report("P:/Python/Kea2/output/res_2025062520_1336605919")
+        report_path = b.generate_report("P:/Python/Kea2/output/res_2025062420_5511501588")
         print(f"✓ bug报告生成成功: {report_path}")
     except Exception as e:
         print(f"✗ 生成失败: {e}")

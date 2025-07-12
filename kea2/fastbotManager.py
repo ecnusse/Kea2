@@ -176,7 +176,8 @@ class FastbotManager:
             "exec", "app_process",
             "/system/bin", "com.android.commands.monkey.Monkey",
             "-p", *self.options.packageNames,
-            "--agent-u2" if self.options.agent == "u2" else "--agent",
+            f"--agent-{'random-' if self.options.agent == 'random' else ''}u2"
+            if self.options.agent in ['random', 'u2'] else "--agent",
             "reuseq",
             "--running-minutes", f"{self.options.running_mins}",
             "--throttle", f"{self.options.throttle}",
@@ -195,7 +196,7 @@ class FastbotManager:
             else:
                 shell_command += ["--act-blacklist-file", f"{blacklist}"]
 
-        shell_command += ["-v", "-v", "-v"]
+        shell_command += ["-v", "-v", "-v" , "-v"]
 
         full_cmd = ["adb"] + (["-s", self.options.serial] if self.options.serial else []) + ["shell"] + shell_command
 

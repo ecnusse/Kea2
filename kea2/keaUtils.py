@@ -113,7 +113,7 @@ class Options:
     # target device with transport_id
     transport_id: str = None
     # test agent. "native" for stage 1 and "u2" for stage 1~3
-    agent: Literal["u2", "native"] = "u2"
+    agent: Literal["u2", "native", "random"] = "u2"
     # max step in exploration (availble in stage 2~3)
     maxStep: Union[str, float] = float("inf")
     # time(mins) for exploration
@@ -350,7 +350,7 @@ class KeaTestRunner(TextTestRunner):
 
             log_watcher = LogWatcher(LOGFILE)
             
-            if self.options.agent == "u2":
+            if self.options.agent in ["u2", "random"]:
                 # initialize the result.json file
                 result.flushResult()
                 # setUp for the u2 driver

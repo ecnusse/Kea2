@@ -50,8 +50,8 @@ def _set_runner_parser(subparsers: "argparse._SubParsersAction[argparse.Argument
         dest="agent",
         type=str,
         default="u2",
-        choices=["native", "u2"],
-        help="Running native fastbot or u2-fastbot. (Only u2-fastbot support PBT)",
+        choices=["native", "u2", "random"],
+        help="Running native fastbot , u2-fastbot or random-fastbot. (Native fastbot can't support PBT)",
     )
 
     parser.add_argument(
@@ -184,7 +184,7 @@ def parse_args(argv: List):
 
 
 def _sanitize_args(args):
-    if args.agent == "u2" and not args.driver_name:
+    if args.agent in ["u2", "random"] and not args.driver_name:
         if args.extra == []:
             args.driver_name = "d"
         else:

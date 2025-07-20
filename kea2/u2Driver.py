@@ -6,7 +6,7 @@ import adbutils
 import types
 import rtree
 import re
-from typing import Any, Dict, List, Union
+from typing import Any, Dict, List, Union, Optional
 from http.client import HTTPResponse
 from lxml import etree
 from .absDriver import AbstractScriptDriver, AbstractStaticChecker, AbstractDriver
@@ -205,6 +205,44 @@ class StaticU2UiObject(u2.UiObject):
     def __getattr__(self, attr):
         return getattr(super(), attr)
 
+"""
+The definition of XpathStaticChecker
+"""
+class StaticXpathUiObject(u2.UiObject):
+    def __init__(self, session, selector):
+        self.session: U2StaticDevice = session
+        self.selector = selector
+
+    @property
+    def exists(self):
+        return len(self.all()) > 0
+
+    def all(self, source: Optional[u2.xpath.PageSource] = None) -> List["u2.xpath.XMLElement"]:
+        """find all matched elements"""
+        if not source:
+            source = self.session.get_page_source()
+
+        elements = []
+        if isinstance(self.selector._base_xpath, u2.xpath.XPath):
+            elements = source.find_elements(self.selector._base_xpath)
+        else:
+            elements = self.selector._base_xpath.all(source)
+
+        # AND OR
+        if self.selector._next_xpath and self.selector._operator:
+            next_els = self.selector._next_xpath.all(source)
+            if self.selector._operator == u2.xpath.Operator.AND:
+                elements = list(set(elements) & set(next_els))
+            elif self.selector._operator == u2.xpath.Operator.OR:
+                elements = list(set(elements) | set(next_els))
+            else:
+                raise ValueError("Invalid operator", self.selector._operator)
+        for el in elements:
+            el._parent = self.selector._parent
+        return elements
+
+    def __getattr__(self, attr):
+        return getattr(super(), attr)
 
 def _get_bounds(raw_bounds):
     pattern = re.compile(r"\[(-?\d+),(-?\d+)\]\[(-?\d+),(-?\d+)\]")
@@ -299,7 +337,8 @@ class U2StaticDevice(u2.Device):
     def xpath(self) -> u2.xpath.XPathEntry:
         def get_page_source(self):
             # print("[Debug] Using static get_page_source method")
-            return u2.xpath.PageSource.parse(self._d.xml_raw)
+            xml_raw = etree.tostring(self._d.xml, encoding='unicode')
+            return u2.xpath.PageSource.parse(xml_raw)
         xpathEntry = _XPathEntry(self)
         xpathEntry.get_page_source = types.MethodType(
             get_page_source, xpathEntry
@@ -316,10 +355,14 @@ class _XPathEntry(u2.xpath.XPathEntry):
         self.xpath = None
         super().__init__(d)
         
-    def __call__(self, xpath, source = None):
+    # def __call__(self, xpath, source = None):
         # TODO fully support xpath in widget.block.py
-        self.xpath = xpath
-        return super().__call__(xpath, source)
+        # self.xpath = xpath
+        # return super().__call__(xpath, source)
+    def __call__(self, xpath, source=None):
+        ui = StaticXpathUiObject(session=self, selector=u2.xpath.XPathSelector(xpath, source=source))
+        return ui
+
 
 
 class U2StaticChecker(AbstractStaticChecker):

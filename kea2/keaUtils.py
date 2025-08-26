@@ -292,6 +292,7 @@ class KeaTestRunner(TextTestRunner):
     allProperties: PropertyStore
     options: Options = None
     _block_funcs: Dict[Literal["widgets", "trees"], List[Callable]] = None
+    fb = FastbotManager
 
     @classmethod
     def setOptions(cls, options: Options):
@@ -348,8 +349,8 @@ class KeaTestRunner(TextTestRunner):
                         message=r"Please use assert\w+ instead.",
                     )
 
-            fb = FastbotManager(self.options, LOGFILE)
-            fb.start()
+            self.fb = FastbotManager(self.options, LOGFILE)
+            self.fb.start()
 
             log_watcher = LogWatcher(LOGFILE)
             
@@ -358,11 +359,11 @@ class KeaTestRunner(TextTestRunner):
                 result.flushResult()
                 # setUp for the u2 driver
                 self.scriptDriver = self.options.Driver.getScriptDriver()
-                fb.check_alive()
+                self.fb.check_alive()
                 
-                fb.init(options=self.options, stamp=STAMP)
+                self.fb.init(options=self.options, stamp=STAMP)
 
-                resultSyncer = ResultSyncer(fb.device_output_dir, self.options)
+                resultSyncer = ResultSyncer(self.fb.device_output_dir, self.options)
                 resultSyncer.run()
 
                 end_by_remote = False
@@ -377,11 +378,11 @@ class KeaTestRunner(TextTestRunner):
                     )
 
                     try:
-                        xml_raw = fb.stepMonkey(self._monkeyStepInfo)
+                        xml_raw = self.fb.stepMonkey(self._monkeyStepInfo)
                         propsSatisfiedPrecond = self.getValidProperties(xml_raw, result)
                     except u2.HTTPError:
                         logger.info("Connection refused by remote.")
-                        if fb.get_return_code() == 0:
+                        if self.fb.get_return_code() == 0:
                             logger.info("Exploration times up (--running-minutes).")
                             end_by_remote = True
                             break
@@ -415,22 +416,22 @@ class KeaTestRunner(TextTestRunner):
                     print("execute property %s." % execPropName, flush=True)
 
                     result.addExcuted(test, self.stepsCount)
-                    fb.logScript(result.lastExecutedInfo)
+                    self.fb.logScript(result.lastExecutedInfo)
                     try:
                         test(result)
                     finally:
                         result.printErrors()
 
                     result.updateExectedInfo()
-                    fb.logScript(result.lastExecutedInfo)
+                    self.fb.logScript(result.lastExecutedInfo)
                     result.flushResult()
 
                 if not end_by_remote:
-                    fb.stopMonkey()
+                    self.fb.stopMonkey()
                 result.flushResult()
                 resultSyncer.close()
                 
-            fb.join()
+            self.fb.join()
             print(f"Finish sending monkey events.", flush=True)
             log_watcher.close()
 
@@ -516,6 +517,10 @@ class KeaTestRunner(TextTestRunner):
                     break
             # if all the precond passed. make it the candidate prop.
             if valid:
+                if not hasattr(test, '_has_been_satisfied'):
+                    self.fb.sendFirstTimeSatisfiedSignal()
+                    test._has_been_satisfied = True
+
                 if result.getExcuted(test) >= getattr(prop, MAX_TRIES_MARKER, float("inf")):
                     print(f"{getFullPropName(test)} has reached its max_tries. Skip.", flush=True)
                     continue

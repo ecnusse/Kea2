@@ -125,7 +125,16 @@ class FastbotManager:
         import re
         self._device_output_dir = re.match(r"outputDir:(.+)", r.text).group(1)
         print(f"[INFO] Fastbot initiated. outputDir: {r.text}", flush=True)
-    
+
+    @retry(Exception, tries=2, delay=2)
+    def sendFirstTimeSatisfiedSignal(self):
+        r = self.request(
+            method="GET",
+            path="/propertyFirstSatisfied",
+        )
+        print(f"[Server INFO] {r.text}", flush=True)
+
+
     @retry(Exception, tries=2, delay=2)
     def stepMonkey(self, monkeyStepInfo):
         r = self.request(

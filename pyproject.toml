@@ -1,6 +1,6 @@
 [project]
 name = "Kea2-python"
-version = "1.0.0"
+version = "1.0.1"
 description = "A python library for supporting and customizing automated UI testing for mobile apps"
 readme = "README.md"
 requires-python = ">=3.8"

@@ -117,6 +117,7 @@ TestResult = NewType("TestResult", Dict[PropertyName, PropertyExecResult])
 
 @dataclass
 class DataPath:
+    output_dir: Path
     steps_log: Path
     result_json: Path
     coverage_log: Path
@@ -220,15 +221,36 @@ class BugReportGenerator:
             result_dir: Directory path containing test results
         """
         self.result_dir = Path(result_dir)
-        self.log_timestamp = self.result_dir.name.split("_", 1)[1]
+        
+        if (self.result_dir / "bug_report_config.json").exists():
+            with open(self.result_dir / "bug_report_config.json", "r", encoding="utf-8") as fp:
+                config = json.load(fp)
+                self.log_stamp = config.get("log_stamp", "")
+                
+        if self.log_stamp:
+            output_dir = self.result_dir / f"output_{self.log_stamp}"
+            property_exec_info_file = self.result_dir / f"property_exec_info_{self.log_stamp}.json"
+            result_file = self.result_dir / f"result_{self.log_stamp}.json"
+        else:
+            output_dirs = [_ for _ in self.result_dir.glob("output_*") if _.is_dir()]
+            property_exec_info_files = [_ for _ in self.result_dir.glob("property_exec_info_*.json") if _.is_file()]
+            result_files = [_ for _ in self.result_dir.glob("result_*.json") if _.is_file()]
+            if all([output_dirs, property_exec_info_files, result_files]):
+                output_dir = output_dirs[0]
+                property_exec_info_file = property_exec_info_files[0]
+                result_file = result_files[0]
+        
+        if not all([output_dir, property_exec_info_file, result_file]):
+            raise RuntimeError("Cannot determine output directory or execution info files from result directory.")
 
         self.data_path: DataPath = DataPath(
-            steps_log=self.result_dir / f"output_{self.log_timestamp}" / "steps.log",
-            result_json=self.result_dir / f"result_{self.log_timestamp}.json",
-            coverage_log=self.result_dir / f"output_{self.log_timestamp}" / "coverage.log",
-            screenshots_dir=self.result_dir / f"output_{self.log_timestamp}" / "screenshots",
-            property_exec_info=self.result_dir / f"property_exec_info_{self.log_timestamp}.json",
-            crash_dump_log=self.result_dir / f"output_{self.log_timestamp}" / "crash-dump.log"
+            output_dir=output_dir,
+            steps_log=output_dir / "steps.log",
+            coverage_log=output_dir / "coverage.log",
+            screenshots_dir=output_dir / "screenshots",
+            crash_dump_log=output_dir / "crash-dump.log",
+            property_exec_info=property_exec_info_file,
+            result_json=result_file,
         )
 
         self.screenshots = deque()
@@ -277,7 +299,7 @@ class BugReportGenerator:
         Collect test data, including results, coverage, etc.
         """
         data: ReportData = {
-            "timestamp": self.log_timestamp,
+            "timestamp": self.log_stamp,
             "bugs_found": 0,
             "executed_events": 0,
             "total_testing_time": 0,
@@ -642,7 +664,8 @@ class BugReportGenerator:
             return
 
         # Use relative path string instead of Path object
-        relative_screenshot_path = f"output_{self.log_timestamp}/screenshots/{screenshot_name}"
+        abs_screenshots_path = self.data_path.output_dir / "screenshots" / screenshot_name
+        relative_screenshot_path = str(abs_screenshots_path.relative_to(self.result_dir))
 
         data["screenshot_info"][screenshot_name] = {
             "type": step_data["Type"],

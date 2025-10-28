@@ -120,6 +120,7 @@ You can launch Kea2 by shell commands `kea2 run`.
 | --log-stamp | the stamp for log file and result file. (e.g., if `--log-stamp 123` is specified, the log files will be named as `fastbot_123.log` and `result_123.json`.) | current time stamp |
 | --profile-period | The period (in the numbers of monkey events) to profile coverage and collect UI screenshots. Specifically, the UI screenshots are stored on the SDcard of the mobile device, and thus you need to set an appropriate value according to the available device storage. | `25` |
 | --take-screenshots | Take the UI screenshot at every Monkey event. The screenshots will be automatically pulled from the mobile device to your host machine periodically (the period is specified by `--profile-period`). |  |
+| --pre-failure-screenshots | Dump n screenshots before failure. 0 means take screenshots for every step. This option is only valid when `--take-screenshots` is set. | `0` |
 | --device-output-root | The root of device output dir. Kea2 will temporarily save the screenshots and result log into `"<device-output-root>/output_*********/"`. Make sure the root dir can be access. | `/sdcard` |
 
 ### 1.2 Sub-commands and their arguments

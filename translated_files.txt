@@ -1,1 +1,0 @@
-docs/manual_cn.md

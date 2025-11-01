@@ -8,7 +8,7 @@
 
 ## Kea2 脚本
 
-Kea2 使用 [Unittest](https://docs.python.org/3/library/unittest.html) 来管理脚本。所有 Kea2 脚本都可以在 unittest 规则中找到（即测试方法应以 `test_` 开头，测试类应继承自 `unittest.TestCase`）。
+Kea2 使用 [Unittest](https://docs.python.org/3/library/unittest.html) 来管理脚本。所有 Kea2 脚本遵循 unittest 的用例发现规则（即测试方法应以 `test_` 开头，测试类应继承自 `unittest.TestCase`）。
 
 Kea2 使用 [Uiautomator2](https://github.com/openatx/uiautomator2) 操控 Android 设备。详情请参考 [Uiautomator2 文档](https://github.com/openatx/uiautomator2?tab=readme-ov-file#quick-start)。
 
@@ -29,15 +29,20 @@ class MyFirstTest(unittest.TestCase):
 
 注意，如果测试方法未被 `@precondition` 装饰，该测试方法在自动化 UI 测试中永远不会被激活，而是被当作普通的 unittest 测试方法处理。因此，当测试方法应始终执行时，需要显式指定 `@precondition(lambda self: True)`。如果未装饰 `@prob`，默认概率为 1（即前置条件满足时始终执行）。
 
+以下是一个推荐的 Kea2 脚本示例。你可以将其作为一个模版。
+
 ```python
 import unittest
+from uiautomator2 import Device  # 引入 uiautomator2 的 Device 类来做类型提示
 from kea2 import precondition
 
 class MyFirstTest(unittest.TestCase):
+    d: Device  # 类型提示，表示 self.d 是 uiautomator2 的 Device 实例
 
     @prob(0.7)
     @precondition(lambda self: ...)
     def test_func1(self):
+        self.d(...)  # 使用 uiautomator2 的 Device 实例操控设备
         ...
 ```
 
@@ -188,7 +193,7 @@ if __name__ == "__main__":
 ```
 
 运行该脚本启动 Kea2，如：
-```python
+```bash
 python3 mytest.py
 ```
 
@@ -196,16 +201,18 @@ python3 mytest.py
 
 ```python
 # 脚本中的驱动名称（如 self.d，则为 d）
-driverName: str
+driverName: str = None
 # 驱动（当前只有 U2Driver）
-Driver: U2Driver
+Driver: AbstractDriver = None
 # 包名列表，指定被测试的应用
-packageNames: List[str]
+packageNames: List[str] = None
 # 目标设备序列号
 serial: str = None
+# 目标设备传输 ID
+transport_id: str = None
 # 测试 agent，默认 "u2"
-agent: "u2" | "native" = "u2"
-# 最大探索步数
+agent: Literal["u2", "native"] = "u2"
+# 最大探索步数（仅在阶段 2~3 有效）
 maxStep: Union[str, float] = float("inf")
 # 探索时长（分钟）
 running_mins: int = 10
@@ -256,7 +263,7 @@ extra_args: List[str] = None
 kea2 report -p res_20240101_120000
 
 # 从多个测试结果目录生成报告
-kea2 report -p ./output/res_20240101_120000 /Users/username
+kea2 report -p ./output/res_20240101_120000 /Users/username/kea2_tests/res_20240102_130001
 ```
 
 **报告内容包括：**
@@ -277,8 +284,8 @@ kea2 report -p ./output/res_20240101_120000 /Users/username
 
 **输入目录结构示例：**
 ```
-├── bug_report_config.json           # 报告配置 (包含测试信息)
 res_<timestamp>/
+├── bug_report_config.json           # 报告配置 (包含测试信息)
 ├── result_<timestamp>.json          # 性质测试结果
 ├── output_<timestamp>/
 │   ├── steps.log                    # 测试执行步骤

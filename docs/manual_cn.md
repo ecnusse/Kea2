@@ -215,7 +215,7 @@ serial: str = None
 transport_id: str = None
 # 测试 agent，默认 "u2"
 agent: Literal["u2", "native"] = "u2"
-# 最大探索步数（仅阶段 2~3 有效）
+# 最大探索步数（阶段 2~3 有效）
 maxStep: Union[str, float] = float("inf")
 # 探索时长（分钟）
 running_mins: int = 10
@@ -402,4 +402,30 @@ Kea2 默认会阻止探索过程中与第三方包（如广告包）的交互。
 
 ```bash
 kea2 run -s "emulator-5554" -p it.feio.android.omninotes.alpha --agent u2 --running-minutes 10 --throttle 200 --driver -- --allow-any-starts propertytest discover -p quicktest.py
+```
+
+## 提升 Kea2 性能的建议
+
+目前，我们在 `@precondition` 装饰器和 `widgets.block.py` 中实现了一个算法以提升工具性能。该算法仅支持 uiautomator2 中的基础选择器（不支持父子关系）。如果你有许多带复杂前置条件的性质且观察到性能问题，建议在 xpath 中指定。
+
+| | **推荐** | **不推荐** |
+| -- | -- | -- |
+| **选择器** | `d(text="1").exist` | `d(text="1").child(text="2").exist` |
+
+如果需要在 `@precondition` 中指定父子关系，请使用 xpath。
+
+例如：
+
+```python
+# 不要使用：
+# @precondition(lambda self: 
+#      self.d(className="android.widget.ListView").child(text="Bluetooth")
+# ):
+# ...
+
+# 使用
+@precondition(lambda self: 
+    self.d.xpath('//android.widget.ListView/*[@text="Bluetooth"]')
+):
+...
 ```

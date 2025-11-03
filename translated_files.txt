@@ -1,0 +1,2 @@
+README_cn.md
+docs/manual_cn.md

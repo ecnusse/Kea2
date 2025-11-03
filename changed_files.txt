@@ -1,0 +1,2 @@
+README.md
+docs/manual_en.md

@@ -4,7 +4,8 @@
 
 ## Kea2 教程
 
-1. [微信](Scenario_Examples_zh.md) 上应用 Kea2 功能 2 和 3 的小教程。
+1. [微信上应用 Kea2 功能 2 和 3 的小教程。](Scenario_Examples_zh.md)
+2. [编写 Kea2 脚本对应用特定功能进行压力测试的指南。（以 Lark 为例）](https://sy8pzmhmun.feishu.cn/wiki/Clqbwxx7ciul5DkEyq8c6edxnTc)
 
 ## Kea2 脚本
 
@@ -17,7 +18,7 @@ Kea2 使用 [Uiautomator2](https://github.com/openatx/uiautomator2) 操控 Andro
 1. 创建继承 `unittest.TestCase` 的测试类。
 
 ```python
-import unittest
+import unittest 
 
 class MyFirstTest(unittest.TestCase):
     ...
@@ -25,7 +26,7 @@ class MyFirstTest(unittest.TestCase):
 
 2. 通过定义测试方法编写脚本
 
-默认情况下，只有以 `test_` 开头的测试方法会被 unittest 识别。你可以用 `@precondition` 装饰函数。装饰器 `@precondition` 接收一个返回布尔值的函数作为参数。当函数返回 `True` 时，前置条件满足，脚本将被激活，接下来Kea2 会根据装饰器 `@prob` 定义的概率运行脚本。
+默认情况下，只有以 `test_` 开头的测试方法会被 unittest 识别。你可以用 `@precondition` 装饰函数。装饰器 `@precondition` 接收一个返回布尔值的函数作为参数。当函数返回 `True` 时，前置条件满足，脚本将被激活，接下来 Kea2 会根据装饰器 `@prob` 定义的概率运行脚本。
 
 注意，如果测试方法未被 `@precondition` 装饰，该测试方法在自动化 UI 测试中永远不会被激活，而是被当作普通的 unittest 测试方法处理。因此，当测试方法应始终执行时，需要显式指定 `@precondition(lambda self: True)`。如果未装饰 `@prob`，默认概率为 1（即前置条件满足时始终执行）。
 
@@ -215,7 +216,7 @@ serial: str = None
 transport_id: str = None
 # 测试 agent，默认 "u2"
 agent: Literal["u2", "native"] = "u2"
-# 最大探索步数（阶段 2~3 有效）
+# 最大探索步数（仅在阶段 2~3 有效）
 maxStep: Union[str, float] = float("inf")
 # 探索时长（分钟）
 running_mins: int = 10
@@ -406,7 +407,7 @@ kea2 run -s "emulator-5554" -p it.feio.android.omninotes.alpha --agent u2 --runn
 
 ## 提升 Kea2 性能的建议
 
-目前，我们在 `@precondition` 装饰器和 `widgets.block.py` 中实现了一个算法以提升工具性能。该算法仅支持 uiautomator2 中的基础选择器（不支持父子关系）。如果你有许多带复杂前置条件的性质且观察到性能问题，建议在 xpath 中指定。
+目前，我们在 `@precondition` 装饰器和 `widgets.block.py` 中实现了一个算法来提升工具性能。该算法仅支持 uiautomator2 中的基础选择器（不支持父子关系）。如果你有许多带复杂前置条件的性质且观察到性能问题，建议使用 xpath 指定。
 
 | | **推荐** | **不推荐** |
 | -- | -- | -- |
@@ -417,13 +418,13 @@ kea2 run -s "emulator-5554" -p it.feio.android.omninotes.alpha --agent u2 --runn
 例如：
 
 ```python
-# 不要使用：
+# 不推荐使用：
 # @precondition(lambda self: 
 #      self.d(className="android.widget.ListView").child(text="Bluetooth")
 # ):
 # ...
 
-# 使用
+# 推荐使用：
 @precondition(lambda self: 
     self.d.xpath('//android.widget.ListView/*[@text="Bluetooth"]')
 ):

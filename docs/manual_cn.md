@@ -4,8 +4,8 @@
 
 ## Kea2 教程
 
-1. [微信上应用 Kea2 功能 2 和 3 的小教程。](Scenario_Examples_zh.md)
-2. [编写 Kea2 脚本对应用特定功能进行压力测试的指南。（以 Lark 为例）](https://sy8pzmhmun.feishu.cn/wiki/Clqbwxx7ciul5DkEyq8c6edxnTc)
+1. [使用 Kea2 的功能 2 和 功能 3 进行测试 (以微信为例)](Scenario_Examples_zh.md)
+2. [编写 Kea2 脚本对应用特定功能进行压力测试（以飞书为例）](https://sy8pzmhmun.feishu.cn/wiki/Clqbwxx7ciul5DkEyq8c6edxnTc)
 
 ## Kea2 脚本
 
@@ -18,7 +18,7 @@ Kea2 使用 [Uiautomator2](https://github.com/openatx/uiautomator2) 操控 Andro
 1. 创建继承 `unittest.TestCase` 的测试类。
 
 ```python
-import unittest 
+import unittest
 
 class MyFirstTest(unittest.TestCase):
     ...
@@ -26,7 +26,7 @@ class MyFirstTest(unittest.TestCase):
 
 2. 通过定义测试方法编写脚本
 
-默认情况下，只有以 `test_` 开头的测试方法会被 unittest 识别。你可以用 `@precondition` 装饰函数。装饰器 `@precondition` 接收一个返回布尔值的函数作为参数。当函数返回 `True` 时，前置条件满足，脚本将被激活，接下来 Kea2 会根据装饰器 `@prob` 定义的概率运行脚本。
+默认情况下，只有以 `test_` 开头的测试方法会被 unittest 识别。你可以用 `@precondition` 装饰函数。装饰器 `@precondition` 接收一个返回布尔值的函数作为参数。当函数返回 `True` 时，前置条件满足，脚本将被激活，接下来Kea2 会根据装饰器 `@prob` 定义的概率运行脚本。
 
 注意，如果测试方法未被 `@precondition` 装饰，该测试方法在自动化 UI 测试中永远不会被激活，而是被当作普通的 unittest 测试方法处理。因此，当测试方法应始终执行时，需要显式指定 `@precondition(lambda self: True)`。如果未装饰 `@prob`，默认概率为 1（即前置条件满足时始终执行）。
 
@@ -216,7 +216,7 @@ serial: str = None
 transport_id: str = None
 # 测试 agent，默认 "u2"
 agent: Literal["u2", "native"] = "u2"
-# 最大探索步数（仅在阶段 2~3 有效）
+# 最大探索步数（阶段 2~3 有效）
 maxStep: Union[str, float] = float("inf")
 # 探索时长（分钟）
 running_mins: int = 10

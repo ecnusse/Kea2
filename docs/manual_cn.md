@@ -215,8 +215,8 @@ serial: str = None
 # 目标设备传输 ID
 transport_id: str = None
 # 测试 agent，默认 "u2"
-agent: Literal["u2", "native"] = "u2"
-# 最大探索步数（阶段 2~3 有效）
+agent: "u2" | "native" = "u2"
+# 最大探索步数（功能 2~3 有效）
 maxStep: Union[str, float] = float("inf")
 # 探索时长（分钟）
 running_mins: int = 10
@@ -407,7 +407,7 @@ kea2 run -s "emulator-5554" -p it.feio.android.omninotes.alpha --running-minutes
 
 ## 提升 Kea2 性能的建议
 
-目前，我们在 `@precondition` 装饰器和 `widgets.block.py` 中实现了一个算法来提升工具性能。该算法仅支持 uiautomator2 中的基础选择器（不支持父子关系）。如果你有许多带复杂前置条件的性质且观察到性能问题，建议使用 xpath 指定。
+目前，我们在 `@precondition` 装饰器和 `widgets.block.py` 中实现了一个算法来提升工具性能。该算法仅支持 uiautomator2 中的基础选择器（不支持父子关系）。如果你有许多带复杂前置条件的性质且发现性能问题，建议使用 xpath 来指定。
 
 | | **推荐** | **不推荐** |
 | -- | -- | -- |

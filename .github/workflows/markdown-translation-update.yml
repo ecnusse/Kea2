@@ -1,4 +1,4 @@
-name: Translate Monitored Documents on Update
+name: Translate Documents
 
 on:
   push:
@@ -6,6 +6,8 @@ on:
       - 'main'
     paths:
       - '**.md'
+      - '.github/scripts/**'
+      - '.github/workflows/markdown-translation-update.yml'
 
 permissions:
   contents: write
@@ -34,34 +36,36 @@ jobs:
         id: detect
         run: |
           echo "🔍 Loading translation list..."
-          python .github/scripts/identify_changed_files.py > changed_files.txt
+          python .github/scripts/identify_changed_files.py
           echo "✅ Done. Changed monitored files:"
           cat changed_files.txt
 
       - name: Translate changed files
         run: |
           echo "⌛ Translating, please wait..."
-          python .github/scripts/translate_changed_files.py changed_files.txt > translated_files.txt
-          echo "✅ Done. Translated files:"
-          cat translated_files.txt
+          python .github/scripts/translate_changed_files.py changed_files.txt
+          echo "✅ Translation Done."
         env:
           API_KEY: ${{ secrets.OPENAI_API_KEY }}
 
+      - name: Create pull request
+        id: cpr
+        uses: peter-evans/create-pull-request@v6
+        with:
+          branch: ci/docs-auto-translate
+          base: main
+          title: "chore(docs): auto-translate"
+          commit-message: "Auto-translate updated documentation"
+          author: github-actions[bot] <41898282+github-actions[bot]@users.noreply.github.com>
+          body: |
+            Automated translation for monitored docs.
+            Created by GitHub Actions.
+          labels: automation, docs
+          delete-branch: true
 
-      # https://github.com/ecnusse/Kea/blob/main/.github/workflows/update_translation.yml
-      - name: Commit and push changes if any
+      - name: Enable auto-merge (rebase)
+        if: steps.cpr.outputs.pull-request-number != ''
+        env:
+          GH_TOKEN: ${{ secrets.BOT_TOKEN }}
         run: |
-          git config --global user.name "github-actions[bot]"
-          git config --global user.email "github-actions[bot]@users.noreply.github.com"
-
-          git switch main
-          
-          xargs -a translated_files.txt git add
-
-          if [ -n "$(git status --porcelain)" ]; then
-            git commit -m "Auto-translate updated documentation"
-            git pull --rebase
-            git push origin main
-          else
-            echo "No changes to commit."
-          fi
+          gh pr merge ${{ steps.cpr.outputs.pull-request-number }} --rebase --auto

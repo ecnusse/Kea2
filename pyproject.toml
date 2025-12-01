@@ -1,6 +1,6 @@
 [project]
 name = "Kea2-python"
-version = "0.3.4"
+version = "1.0.4"
 description = "A python library for supporting and customizing automated UI testing for mobile apps"
 readme = "README.md"
 requires-python = ">=3.8"
@@ -9,7 +9,7 @@ dependencies = [
     "jinja2>=3.0.0",
     "uiautomator2>=3.3.3",
     "adbutils>=2.9.3",
-    "setuptools>=75.3.2",
+    "packaging>=25.0",
 ]
 authors = [
     { name = "Xixian Liang", email = "xixian@stu.ecnu.edu.cn" }
@@ -19,8 +19,11 @@ authors = [
 kea2 = "kea2.cli:main"
 
 [tool.setuptools.packages.find]
-include = ["kea2"]
+include = ["kea2*"]
 
 [tool.setuptools.package-data]
-kea2 = ["assets/**/*", "templates/**/*"]
+kea2 = [
+    "assets/**/*", 
+    "report/templates/**/*"
+]
 

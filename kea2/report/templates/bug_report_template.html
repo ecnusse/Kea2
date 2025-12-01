@@ -183,6 +183,18 @@
             width: 100%;
             table-layout: auto;
         }
+
+        .crash-analysis-panel {
+            background-color: #ffffff;
+            border-radius: 14px;
+            padding: 1.75rem;
+            box-shadow: 0 6px 15px rgba(44, 62, 80, 0.08);
+            border: 1px solid rgba(0, 0, 0, 0.05);
+        }
+
+        .crash-analysis-panel .btn-group .btn {
+            font-weight: 600;
+        }
         
         .table-custom thead {
             background-color: #495057;
@@ -229,14 +241,14 @@
         }
 
         .table-custom tr.collapse pre {
-            max-height: 300px;
-            overflow-y: auto;
             font-size: 0.85rem;
             line-height: 1.4;
             background-color: #f8f9fa;
             border: 1px solid #e9ecef;
             border-radius: 4px;
             padding: 0.75rem;
+            white-space: pre-wrap;
+            word-wrap: break-word;
         }
 
         .table-custom tr.collapse details {
@@ -279,12 +291,76 @@
             width: 8%;
             min-width: 70px;
         }
-        
+
         .table-custom th:nth-child(7), .table-custom td:nth-child(7) { /* Error Details */
             width: 45%;
             min-width: 400px;
             text-align: center;
             position: relative;
+        }
+
+        /* Property Checking Statistics specific adjustments */
+        .table-property-stats th,
+        .table-property-stats td {
+            padding: 20px 14px;
+            line-height: 1.65;
+        }
+
+        .table-property-stats th:nth-child(1),
+        .table-property-stats td:nth-child(1) {
+            width: 6%;
+            min-width: 60px;
+        }
+
+        .table-property-stats th:nth-child(2),
+        .table-property-stats td:nth-child(2) {
+            width: 22%;
+            min-width: 200px;
+            text-align: left;
+        }
+
+        .table-property-stats th:nth-child(3),
+        .table-property-stats td:nth-child(3) {
+            width: 10%;
+            min-width: 90px;
+        }
+
+        .table-property-stats th:nth-child(4),
+        .table-property-stats td:nth-child(4) {
+            width: 9%;
+            min-width: 80px;
+        }
+
+        .table-property-stats th:nth-child(5),
+        .table-property-stats td:nth-child(5) {
+            width: 9%;
+            min-width: 80px;
+        }
+
+        .table-property-stats th:nth-child(6),
+        .table-property-stats td:nth-child(6) {
+            width: 9%;
+            min-width: 80px;
+        }
+
+        .table-property-stats th:nth-child(7),
+        .table-property-stats td:nth-child(7) {
+            width: 9%;
+            min-width: 80px;
+        }
+
+        .table-property-stats th:nth-child(8),
+        .table-property-stats td:nth-child(8) {
+            width: 26%;
+            min-width: 260px;
+            text-align: left;
+        }
+
+        .table-property-stats td:nth-child(8) {
+            display: flex;
+            justify-content: flex-start;
+            align-items: center;
+            gap: 0.75rem;
         }
         
         .table-custom tbody tr:nth-of-type(odd) {
@@ -308,6 +384,31 @@
             color: #666;
             display: block;
             margin-top: 5px;
+        }
+
+        .summary-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+            gap: 24px;
+        }
+
+        .summary-item {
+            text-align: center;
+            padding: 20px 16px;
+            border-radius: 12px;
+            background-color: #f8fafc;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .summary-item:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 6px 12px rgba(15, 23, 42, 0.08);
+        }
+
+        .summary-item i {
+            font-size: 2rem;
+            display: block;
+            margin-bottom: 12px;
         }
         
         .chart-container {
@@ -1169,7 +1270,8 @@
     <header class="header text-center">
         <div class="container">
             <h1><i class="bi bi-bug"></i> Kea2 Test Report</h1>
-            <p class="lead">Test Time: {{ timestamp }}</p>
+            <p class="lead">Test Time: {{ test_time }}</p>
+            <p class="lead">Log Stamp: {{ log_stamp }}</p>
         </div>
     </header>
 
@@ -1179,48 +1281,41 @@
             <div class="col-12">
                 <div class="summary-card">
                     <h2 class="section-title">Test Summary</h2>
-                    <div class="row g-4">
-                        <div class="col-md-2 col-sm-6">
-                            <div class="text-center">
-                                <i class="bi bi-bug text-danger" style="font-size: 2rem;"></i>
-                                <span class="stat-value value-danger">{{ bugs_found }}</span>
-                                <span class="stat-label">Bugs Found</span>
-                            </div>
+                    <div class="summary-grid">
+                        <div class="summary-item">
+                            <i class="bi bi-bug text-danger"></i>
+                            <span class="stat-value value-danger">{{ bugs_found }}</span>
+                            <span class="stat-label">Property Violations</span>
                         </div>
-                        <div class="col-md-2 col-sm-6">
-                            <div class="text-center">
-                                <i class="bi bi-clock-history text-primary" style="font-size: 2rem;"></i>
-                                <span class="stat-value value-highlight">{{ total_testing_time }}</span>
-                                <span class="stat-label">Total Testing Time</span>
-                            </div>
+                        <div class="summary-item">
+                            <i class="bi bi-clock-history text-primary"></i>
+                            <span class="stat-value value-highlight">{{ total_testing_time }}</span>
+                            <span class="stat-label">Total Testing Time</span>
                         </div>
-                        <div class="col-md-2 col-sm-6">
-                            <div class="text-center">
-                                <i class="bi bi-activity text-success" style="font-size: 2rem;"></i>
-                                <span class="stat-value value-success">{{ executed_events }}</span>
-                                <span class="stat-label">Executed Events</span>
-                            </div>
+                        <div class="summary-item">
+                            <i class="bi bi-activity text-success"></i>
+                            <span class="stat-value value-success">{{ executed_events }}</span>
+                            <span class="stat-label">Executed Events</span>
                         </div>
-                        <div class="col-md-2 col-sm-6">
-                            <div class="text-center">
-                                <i class="bi bi-pie-chart text-warning" style="font-size: 2rem;"></i>
-                                <span class="stat-value value-warning">{{ coverage_percent }}%</span>
-                                <span class="stat-label">Activity Coverage</span>
-                            </div>
+                        <div class="summary-item">
+                            <i class="bi bi-pie-chart text-warning"></i>
+                            <span class="stat-value value-warning">{{ coverage_percent }}%</span>
+                            <span class="stat-label">Activity Coverage</span>
                         </div>
-                        <div class="col-md-2 col-sm-6">
-                            <div class="text-center">
-                                <i class="bi bi-list-check text-info" style="font-size: 2rem;"></i>
-                                <span class="stat-value value-highlight">{{ all_properties_count }}</span>
-                                <span class="stat-label">All Properties</span>
-                            </div>
+                        <div class="summary-item">
+                            <i class="bi bi-list-check text-info"></i>
+                            <span class="stat-value value-highlight">{{ executed_properties_count }}/{{ all_properties_count }}</span>
+                            <span class="stat-label">Executed Properties</span>
                         </div>
-                        <div class="col-md-2 col-sm-6">
-                            <div class="text-center">
-                                <i class="bi bi-check-square text-secondary" style="font-size: 2rem;"></i>
-                                <span class="stat-value value-success">{{ executed_properties_count }}</span>
-                                <span class="stat-label">Executed Properties</span>
-                            </div>
+                        <div class="summary-item">
+                            <i class="bi bi-exclamation-octagon text-danger"></i>
+                            <span class="stat-value value-danger">{{ triggered_crash_count }}</span>
+                            <span class="stat-label">Triggered Crash</span>
+                        </div>
+                        <div class="summary-item">
+                            <i class="bi bi-hourglass-split text-warning"></i>
+                            <span class="stat-value value-warning">{{ triggered_anr_count }}</span>
+                            <span class="stat-label">Triggered ANR</span>
                         </div>
                     </div>
                 </div>
@@ -1340,6 +1435,7 @@
 
         <!-- Screenshots Section -->
         {% if take_screenshots %}
+        {% if screenshots %}
         <div class="section-block">
             <h2 class="section-title">Test Screenshots</h2>
             <div class="card">
@@ -1357,135 +1453,160 @@
                 </div>
             </div>
         </div>
+        {% else %}
+        <div class="section-block">
+            <h2 class="section-title">Test Screenshots</h2>
+            <div class="alert alert-info text-center">
+                <i class="bi bi-info-circle"></i> No screenshots captured in this test session.
+            </div>
+        </div>
+        {% endif %}
         {% endif %}
 
         <!-- Crash Analysis Section -->
         {% if crash_events or anr_events %}
         <div class="section-block">
             <h2 class="section-title">
-                <i class="bi bi-exclamation-triangle text-danger"></i> Crash Analysis
+                <i class="bi bi-exclamation-triangle text-danger"></i> Crash and ANR Events
             </h2>
             
             <!-- Detailed Crash Information -->
-            <div class="card">
-                <div class="card-header bg-danger text-white">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <span><i class="bi bi-bug"></i> Crash & ANR Events</span>
-                        <span class="badge bg-light text-dark" style="font-size: 1.1em; font-weight: 600;">{{ (crash_events|length) + (anr_events|length) }} events</span>
+            <div class="crash-analysis-panel">
+                <!-- Event Filter -->
+                <div class="mb-3">
+                    <div class="btn-group" role="group" aria-label="Event filter">
+                        <input type="radio" class="btn-check" name="event-filter" id="all-events" autocomplete="off" checked>
+                        <label class="btn btn-outline-primary" for="all-events">All Events ({{ (crash_events|length) + (anr_events|length) }})</label>
+
+                        <input type="radio" class="btn-check" name="event-filter" id="crashes-only" autocomplete="off">
+                        <label class="btn btn-outline-danger" for="crashes-only">Crashes Only ({{ crash_events|length }})</label>
+
+                        <input type="radio" class="btn-check" name="event-filter" id="anr-only" autocomplete="off">
+                        <label class="btn btn-outline-warning" for="anr-only">ANR Only ({{ anr_events|length }})</label>
                     </div>
                 </div>
-                <div class="card-body">
-                    <!-- Event Filter -->
-                    <div class="mb-3">
-                        <div class="btn-group" role="group" aria-label="Event filter">
-                            <input type="radio" class="btn-check" name="event-filter" id="all-events" autocomplete="off" checked>
-                            <label class="btn btn-outline-primary" for="all-events">All Events ({{ (crash_events|length) + (anr_events|length) }})</label>
-                            
-                            <input type="radio" class="btn-check" name="event-filter" id="crashes-only" autocomplete="off">
-                            <label class="btn btn-outline-danger" for="crashes-only">Crashes Only ({{ crash_events|length }})</label>
-                            
-                            <input type="radio" class="btn-check" name="event-filter" id="anr-only" autocomplete="off">
-                            <label class="btn btn-outline-warning" for="anr-only">ANR Only ({{ anr_events|length }})</label>
-                        </div>
-                    </div>
-                    
-                    <!-- Events Table -->
-                    <div class="table-responsive">
-                        <table class="table table-custom">
-                            <thead>
-                                <tr>
-                                    <th>Type</th>
-                                    <th>Time</th>
-                                    <th>Exception</th>
-                                    <th>Process</th>
-                                    <th>Details</th>
-                                </tr>
-                            </thead>
-                            <tbody id="crash-events-container">
-                                {% for crash in crash_events %}
-                                <tr class="event-row" data-type="crash" data-page="1">
-                                    <td><span class="badge bg-danger">CRASH</span></td>
-                                    <td>{{ crash.time }}</td>
-                                    <td>{{ crash.exception_type }}</td>
-                                    <td>{{ crash.process }}</td>
-                                    <td>
-                                        <button class="btn btn-sm btn-outline-primary" type="button" 
-                                                data-bs-toggle="collapse" data-bs-target="#crash-detail-{{ loop.index }}" 
-                                                aria-expanded="false" aria-controls="crash-detail-{{ loop.index }}">
-                                            <i class="bi bi-eye"></i> Details
-                                        </button>
-                                        <button class="btn btn-sm btn-outline-secondary copy-stack-btn" 
-                                                data-stack-index="{{ loop.index }}">
-                                            <i class="bi bi-clipboard"></i> Copy
-                                        </button>
-                                    </td>
-                                </tr>
-                                <tr class="collapse" id="crash-detail-{{ loop.index }}">
-                                    <td colspan="5">
-                                        <div class="bg-light p-3 rounded">
-                                            <h6 class="text-danger">Stack Trace:</h6>
-                                            <pre class="text-danger mb-0 text-start" id="stack-trace-{{ loop.index }}" style="font-size: 0.9em; white-space: pre-wrap; text-align: left;">{{ crash.stack_trace }}</pre>
-                                        </div>
-                                    </td>
-                                </tr>
-                                {% endfor %}
-                                
-                                {% for anr in anr_events %}
-                                <tr class="event-row" data-type="anr" data-page="1">
-                                    <td><span class="badge bg-warning text-dark">ANR</span></td>
-                                    <td>{{ anr.time }}</td>
-                                    <td>{{ anr.reason }}</td>
-                                    <td>{{ anr.process }}</td>
-                                    <td>
-                                        <button class="btn btn-sm btn-outline-primary" type="button" 
-                                                data-bs-toggle="collapse" data-bs-target="#anr-detail-{{ loop.index }}" 
-                                                aria-expanded="false" aria-controls="anr-detail-{{ loop.index }}">
-                                            <i class="bi bi-eye"></i> Details
-                                        </button>
-                                        <button class="btn btn-sm btn-outline-secondary copy-stack-btn" 
-                                                data-stack-index="anr-{{ loop.index }}">
-                                            <i class="bi bi-clipboard"></i> Copy
-                                        </button>
-                                    </td>
-                                </tr>
-                                <tr class="collapse" id="anr-detail-{{ loop.index }}">
-                                    <td colspan="5">
-                                        <div class="bg-light p-3 rounded">
-                                            <h6 class="text-dark">ANR Details:</h6>
-                                            <pre class="text-dark mb-0 text-start" id="stack-trace-anr-{{ loop.index }}" style="font-size: 0.9em; white-space: pre-wrap; text-align: left;">{{ anr.trace }}</pre>
-                                        </div>
-                                    </td>
-                                </tr>
-                                {% endfor %}
-                            </tbody>
-                        </table>
-                    </div>
 
-                    <!-- Pagination for Crash Events -->
-                    <div class="pagination-container d-flex justify-content-between align-items-center mt-3">
-                        <div class="d-flex align-items-center">
-                            <label for="events-page-size" class="form-label me-2 mb-0">Show:</label>
-                            <select class="form-select form-select-sm" id="events-page-size" style="width: auto;">
-                                <option value="5">5</option>
-                                <option value="10" selected>10</option>
-                                <option value="20">20</option>
-                                <option value="50">50</option>
-                                <option value="100">100</option>
-                            </select>
-                        </div>
-                        <nav aria-label="Crash Events Pagination">
-                            <ul class="pagination pagination-sm mb-0" id="events-pagination">
-                                <!-- Pagination will be generated by JavaScript -->
-                            </ul>
-                        </nav>
+                <!-- Events Table -->
+                <div class="table-responsive">
+                    <table class="table table-custom">
+                        <thead>
+                            <tr>
+                                <th>Type</th>
+                                <th>Time</th>
+                                <th>Exception</th>
+                                <th>Process</th>
+                                {% if take_screenshots %}
+                                <th>Interaction Scenario Pages</th>
+                                {% endif %}
+                                <th>Details</th>
+                            </tr>
+                        </thead>
+                        <tbody id="crash-events-container">
+                            {% for crash in crash_events %}
+                            <tr class="event-row" data-type="crash" data-page="1">
+                                <td><span class="badge bg-danger">CRASH</span></td>
+                                <td>{{ crash.time }}</td>
+                                <td>{{ crash.exception_type }}</td>
+                                <td>{{ crash.process }}</td>
+                                {% if take_screenshots %}
+                                <td>
+                                    {% if crash.screenshot_id %}
+                                    <a href="#{{ crash.screenshot_id }}" class="link-button" onclick="scrollToScreenshot('{{ crash.screenshot_id }}')">
+                                        <i class="bi bi-camera"></i> Screenshot {{ crash.screenshot_id }}
+                                    </a>
+                                    {% else %}
+                                    <span class="text-muted">No screenshot</span>
+                                    {% endif %}
+                                </td>
+                                {% endif %}
+                                <td>
+                                    <button class="btn btn-sm btn-outline-primary" type="button"
+                                            data-bs-toggle="collapse" data-bs-target="#crash-detail-{{ loop.index }}"
+                                            aria-expanded="false" aria-controls="crash-detail-{{ loop.index }}">
+                                        <i class="bi bi-eye"></i> Details
+                                    </button>
+                                    <button class="btn btn-sm btn-outline-secondary copy-stack-btn"
+                                            data-stack-index="{{ loop.index }}">
+                                        <i class="bi bi-clipboard"></i> Copy
+                                    </button>
+                                </td>
+                            </tr>
+                            <tr class="collapse" id="crash-detail-{{ loop.index }}">
+                                <td colspan="{% if take_screenshots %}6{% else %}5{% endif %}">
+                                    <div class="bg-light p-3 rounded">
+                                        <h6 class="text-danger">Stack Trace:</h6>
+                                        <pre class="text-danger mb-0 text-start" id="stack-trace-{{ loop.index }}" style="font-size: 0.9em; white-space: pre-wrap; text-align: left;">{{ crash.stack_trace }}</pre>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+
+                            {% for anr in anr_events %}
+                            <tr class="event-row" data-type="anr" data-page="1">
+                                <td><span class="badge bg-warning text-dark">ANR</span></td>
+                                <td>{{ anr.time }}</td>
+                                <td>{{ anr.reason }}</td>
+                                <td>{{ anr.process }}</td>
+                                {% if take_screenshots %}
+                                <td>
+                                    {% if anr.screenshot_id %}
+                                    <a href="#{{ anr.screenshot_id }}" class="link-button" onclick="scrollToScreenshot('{{ anr.screenshot_id }}')">
+                                        <i class="bi bi-camera"></i> Screenshot {{ anr.screenshot_id }}
+                                    </a>
+                                    {% else %}
+                                    <span class="text-muted">No screenshot</span>
+                                    {% endif %}
+                                </td>
+                                {% endif %}
+                                <td>
+                                    <button class="btn btn-sm btn-outline-primary" type="button"
+                                            data-bs-toggle="collapse" data-bs-target="#anr-detail-{{ loop.index }}"
+                                            aria-expanded="false" aria-controls="anr-detail-{{ loop.index }}">
+                                        <i class="bi bi-eye"></i> Details
+                                    </button>
+                                    <button class="btn btn-sm btn-outline-secondary copy-stack-btn"
+                                            data-stack-index="anr-{{ loop.index }}">
+                                        <i class="bi bi-clipboard"></i> Copy
+                                    </button>
+                                </td>
+                            </tr>
+                            <tr class="collapse" id="anr-detail-{{ loop.index }}">
+                                <td colspan="{% if take_screenshots %}6{% else %}5{% endif %}">
+                                    <div class="bg-light p-3 rounded">
+                                        <h6 class="text-dark">ANR Details:</h6>
+                                        <pre class="text-dark mb-0 text-start" id="stack-trace-anr-{{ loop.index }}" style="font-size: 0.9em; white-space: pre-wrap; text-align: left;">{{ anr.trace }}</pre>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Pagination for Crash Events -->
+                <div class="pagination-container d-flex justify-content-between align-items-center mt-3">
+                    <div class="d-flex align-items-center">
+                        <label for="events-page-size" class="form-label me-2 mb-0">Show:</label>
+                        <select class="form-select form-select-sm" id="events-page-size" style="width: auto;">
+                            <option value="5">5</option>
+                            <option value="10" selected>10</option>
+                            <option value="20">20</option>
+                            <option value="50">50</option>
+                            <option value="100">100</option>
+                        </select>
                     </div>
+                    <nav aria-label="Crash Events Pagination">
+                        <ul class="pagination pagination-sm mb-0" id="events-pagination">
+                            <!-- Pagination will be generated by JavaScript -->
+                        </ul>
+                    </nav>
                 </div>
             </div>
         </div>
         {% else %}
         <div class="section-block">
             <h2 class="section-title">
-                <i class="bi bi-exclamation-triangle text-danger"></i> Crash Analysis
+                <i class="bi bi-exclamation-triangle text-danger"></i> Crash and ANR Events
             </h2>
             <div class="alert alert-info text-center">
                 <i class="bi bi-info-circle"></i> No crash or ANR events detected in this test session.
@@ -1512,7 +1633,12 @@
                         <tr class="property-violation-row" data-page="1">
                             <td>{{ violation.index }}</td>
                             <td><span class="badge bg-light text-dark badge-custom">{{ violation.property_name }}</span></td>
-                            <td><a href="#{{ violation.interaction_pages[0] }}" class="link-button">{{ violation.interaction_pages[0] }} ~ {{ violation.interaction_pages[1] }}</a></td>
+                            <td>
+                                <a href="#{{ violation.interaction_pages|last }}" class="link-button"
+                                   onclick="scrollToScreenshot('{{ violation.interaction_pages|last }}')">
+                                    {{ violation.interaction_pages[0] }} ~ {{ violation.interaction_pages[1] }}
+                                </a>
+                            </td>
                         </tr>
                         {% endfor %}
                     </tbody>
@@ -1576,13 +1702,14 @@
             </div>
             
             <div class="table-responsive">
-                <table class="table table-custom">
+                <table class="table table-custom table-property-stats">
                     <thead>
                         <tr>
                             <th>Index</th>
                             <th>Property Name <span class="badge bg-primary ms-2" style="font-size: 0.9rem; font-weight: 600;">{{ property_stats_summary.total_properties }}</span></th>
                             <th>Precondition Satisfied <span class="badge bg-success ms-2" style="font-size: 0.9rem; font-weight: 600;">{{ property_stats_summary.total_precond_satisfied }}</span></th>
                             <th>Executed <span class="badge bg-info ms-2" style="font-size: 0.9rem; font-weight: 600;">{{ property_stats_summary.total_executed }}</span></th>
+                            <th>Passes <span class="badge bg-secondary ms-2" style="font-size: 0.9rem; font-weight: 600;">{{ property_stats_summary.total_passes }}</span></th>
                             <th>Fails <span class="badge bg-danger ms-2" style="font-size: 0.9rem; font-weight: 600;">{{ property_stats_summary.total_fails }}</span> <i class="bi bi-arrow-down-up text-muted sort-icon" id="fails-sort" data-column="fails" data-order="none" style="cursor: pointer;"></i></th>
                             <th>Errors <span class="badge bg-warning ms-2" style="font-size: 0.9rem; font-weight: 600;">{{ property_stats_summary.total_errors }}</span> <i class="bi bi-arrow-down-up text-muted sort-icon" id="errors-sort" data-column="errors" data-order="none" style="cursor: pointer;"></i></th>
                             <th>Error Details</th>
@@ -1595,12 +1722,14 @@
                             data-property-name="{{ property_name }}"
                             data-precond-satisfied="{{ test_result.precond_satisfied|default(0) }}"
                             data-executed="{{ test_result.executed|default(0) }}"
+                            data-pass="{{ test_result.pass_count|default(0) }}"
                             data-fails="{{ test_result.fail|default(0) }}"
                             data-errors="{{ test_result.error|default(0) }}">
                             <td>{{ loop.index }}</td>
                             <td><span class="badge bg-light text-dark badge-custom">{{ property_name }}</span></td>
                             <td>{{ test_result.precond_satisfied|default(0) }}</td>
                             <td>{{ test_result.executed|default(0) }}</td>
+                            <td>{{ test_result.pass_count|default(0) }}</td>
                             <td><span class="badge bg-danger text-white">{{ test_result.fail|default(0) }}</span></td>
                             <td><span class="badge bg-warning text-dark">{{ test_result.error|default(0) }}</span></td>
                             <td>
@@ -1632,8 +1761,8 @@
                             {% set property_index = loop.index %}
                             {% if error_list|length == 1 %}
                                 <!-- Single error detail row -->
-                                <tr class="collapse" id="single-error-detail-{{ property_index }}">
-                                    <td colspan="7">
+                                <tr class="collapse property-detail-row" data-detail-for="{{ property_name }}" id="single-error-detail-{{ property_index }}">
+                                    <td colspan="8">
                                         <div class="bg-light p-3 rounded">
                                             <div class="mb-2">
                                                 <span class="badge bg-{{ 'danger' if error_list[0].state == 'fail' else 'warning' }}">
@@ -1664,8 +1793,8 @@
                                 </tr>
                             {% else %}
                                 <!-- Multiple errors detail row -->
-                                <tr class="collapse" id="multi-error-detail-{{ property_index }}">
-                                    <td colspan="7">
+                                <tr class="collapse property-detail-row" data-detail-for="{{ property_name }}" id="multi-error-detail-{{ property_index }}">
+                                    <td colspan="8">
                                         <div class="bg-light p-3 rounded">
                                             <!-- Error summary -->
                                             <div class="mb-3">
@@ -2218,6 +2347,18 @@
                 function sortTable(column, order) {
                     const container = document.getElementById('property-stats-container');
                     const rows = Array.from(container.getElementsByClassName('property-stat-row'));
+                    const detailRowMap = new Map();
+
+                    // Capture current detail rows so they can move with their parent property row
+                    const detailRows = Array.from(container.querySelectorAll('.property-detail-row'));
+                    detailRows.forEach(function(detailRow) {
+                        const key = detailRow.dataset.detailFor;
+                        if (!key) return;
+                        if (!detailRowMap.has(key)) {
+                            detailRowMap.set(key, []);
+                        }
+                        detailRowMap.get(key).push(detailRow);
+                    });
                     
                     rows.sort(function(a, b) {
                         let valueA, valueB;
@@ -2237,11 +2378,18 @@
                         }
                     });
                     
-                    // Clear container and append sorted rows
-                    container.innerHTML = '';
+                    const fragment = document.createDocumentFragment();
                     rows.forEach(function(row) {
-                        container.appendChild(row);
+                        fragment.appendChild(row);
+                        const detailKey = row.dataset.propertyName;
+                        const relatedDetailRows = detailRowMap.get(detailKey) || [];
+                        relatedDetailRows.forEach(function(detailRow) {
+                            fragment.appendChild(detailRow);
+                        });
                     });
+
+                    container.innerHTML = '';
+                    container.appendChild(fragment);
                     
                     // Re-initialize pagination after sorting
                     initPagination('property-stats-container', 'property-stat-row', 'stats-pagination', 'stats-page-size');
@@ -3501,6 +3649,31 @@
                 return parseInt(activeItem.getAttribute('data-page'));
             }
             return 1;
+        }
+
+        // Function to scroll to screenshot by ID
+        function scrollToScreenshot(screenshotId) {
+            const screenshotElement = document.getElementById(screenshotId);
+            if (screenshotElement) {
+                // Scroll to the screenshot with smooth behavior
+                screenshotElement.scrollIntoView({
+                    behavior: 'smooth',
+                    block: 'center'
+                });
+
+                // Add a highlight effect
+                screenshotElement.style.border = '3px solid #007bff';
+                screenshotElement.style.borderRadius = '8px';
+                screenshotElement.style.transition = 'border 0.3s ease';
+
+                // Remove highlight after 3 seconds
+                setTimeout(() => {
+                    screenshotElement.style.border = '';
+                    screenshotElement.style.borderRadius = '';
+                }, 3000);
+            } else {
+                console.warn('Screenshot with ID', screenshotId, 'not found');
+            }
         }
     </script>
 </body>

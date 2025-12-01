@@ -1,0 +1,3333 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kea2 Merged Test Report</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
+    <style>
+        :root {
+            --primary-color: #3498db;
+            --secondary-color: #2ecc71;
+            --warning-color: #f39c12;
+            --danger-color: #e74c3c;
+            --dark-color: #2c3e50;
+            --light-color: #ecf0f1;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Roboto, -apple-system, sans-serif;
+            background-color: #f8f9fa;
+            color: #333;
+            line-height: 1.6;
+        }
+        
+        /* Custom container width - wider than Bootstrap default */
+        .container {
+            max-width: 98% !important;
+            width: 98% !important;
+        }
+        
+        @media (min-width: 1200px) {
+            .container {
+                max-width: 1800px !important;
+                width: 95% !important;
+            }
+        }
+        
+        @media (min-width: 1400px) {
+            .container {
+                max-width: 2000px !important;
+                width: 92% !important;
+            }
+        }
+        
+        @media (min-width: 1600px) {
+            .container {
+                max-width: 2200px !important;
+                width: 90% !important;
+            }
+        }
+        
+        @media (min-width: 1800px) {
+            .container {
+                max-width: 2400px !important;
+                width: 88% !important;
+            }
+        }
+        
+        @media (min-width: 2000px) {
+            .container {
+                max-width: 2600px !important;
+                width: 85% !important;
+            }
+        }
+        
+        .header {
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            color: white;
+            padding: 2.5rem 0;
+            margin-bottom: 3rem;
+            border-radius: 0 0 20px 20px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        
+        .stats-card {
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+            transition: transform 0.3s, box-shadow 0.3s;
+            height: 100%;
+            overflow: hidden;
+            padding: 1rem;
+        }
+        
+        .stats-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 15px rgba(0, 0, 0, 0.1);
+        }
+        
+        .card-header {
+            font-weight: 600;
+            padding: 1.25rem 1.5rem;
+        }
+        
+        .card-body {
+            padding: 1.5rem;
+        }
+        
+        .table-custom {
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+            width: 100%;
+            table-layout: auto;
+        }
+
+        .crash-analysis-panel {
+            background-color: #ffffff;
+            border-radius: 14px;
+            padding: 1.75rem;
+            box-shadow: 0 6px 15px rgba(44, 62, 80, 0.08);
+            border: 1px solid rgba(0, 0, 0, 0.05);
+        }
+
+        .crash-analysis-panel .btn-group .btn {
+            font-weight: 600;
+        }
+        
+        .table-custom thead {
+            background-color: #495057;
+            color: white;
+        }
+        
+        .table-custom th {
+            font-weight: 600;
+            padding: 15px 12px;
+            white-space: nowrap;
+            text-align: center;
+        }
+        
+        .table-custom td {
+            padding: 15px 12px;
+            vertical-align: middle;
+            text-align: center;
+        }
+        
+        /* Specific column widths for property statistics table */
+        .table-custom th:nth-child(1), .table-custom td:nth-child(1) { /* Index */
+            width: 8%;
+            min-width: 55px;
+        }
+        
+        .table-custom th:nth-child(2), .table-custom td:nth-child(2) { /* Property Name */
+            width: 30%;
+            min-width: 200px;
+            text-align: left;
+        }
+        
+        .table-custom th:nth-child(3), .table-custom td:nth-child(3) { /* Precondition Satisfied */
+            width: 15%;
+            min-width: 95px;
+        }
+        
+        .table-custom th:nth-child(4), .table-custom td:nth-child(4) { /* Executed */
+            width: 12%;
+            min-width: 75px;
+        }
+        
+        .table-custom th:nth-child(5), .table-custom td:nth-child(5) { /* Fails */
+            width: 12%;
+            min-width: 75px;
+        }
+        
+        .table-custom th:nth-child(6), .table-custom td:nth-child(6) { /* Errors */
+            width: 12%;
+            min-width: 75px;
+        }
+        
+        .table-custom tbody tr:nth-of-type(odd) {
+            background-color: rgba(0, 0, 0, 0.02);
+        }
+        
+        .table-custom tbody tr:hover {
+            background-color: rgba(0, 0, 0, 0.05);
+        }
+
+        /* Specific column widths for property source mapping table */
+        #property-source-container tr th:nth-child(1),
+        #property-source-container tr td:nth-child(1) { /* Index */
+            width: 8%;
+            min-width: 55px;
+        }
+
+        #property-source-container tr th:nth-child(2),
+        #property-source-container tr td:nth-child(2) { /* Property Name */
+            width: 35%;
+            min-width: 200px;
+            text-align: left;
+        }
+
+        #property-source-container tr th:nth-child(3),
+        #property-source-container tr td:nth-child(3) { /* Source Directories */
+            width: 57%;
+            min-width: 300px;
+            text-align: center;
+        }
+
+        /* Property Source Mapping specific styles */
+        .property-source-row .badge-custom {
+            max-width: 100%;
+            word-break: break-word;
+            white-space: normal;
+        }
+
+        .property-source-row td:last-child {
+            line-height: 1.8;
+        }
+
+        .property-source-row .badge.bg-info {
+            transition: all 0.2s ease;
+        }
+
+        .property-source-row .badge.bg-info:hover {
+            background-color: #0d6efd !important;
+            transform: translateY(-1px);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        /* Source directories toggle button styles */
+        .source-dirs-toggle {
+            border-radius: 12px;
+            transition: all 0.2s ease;
+            vertical-align: middle;
+        }
+
+        .source-dirs-toggle:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .source-dirs-toggle .bi {
+            transition: transform 0.2s ease;
+        }
+
+        .source-dirs-hidden {
+            display: inline;
+        }
+
+        .source-dirs-container {
+            line-height: 1.8;
+        }
+
+        .stat-value {
+            font-size: 2.2rem;
+            font-weight: 700;
+            display: block;
+            margin-bottom: 0.8rem;
+            line-height: 1.2;
+        }
+        
+        .stat-label {
+            font-size: 1rem;
+            color: #666;
+            display: block;
+            margin-top: 5px;
+        }
+        
+        .section-title {
+            position: relative;
+            padding-bottom: 15px;
+            margin-bottom: 30px;
+            font-weight: 600;
+            color: var(--dark-color);
+        }
+        
+        .section-title::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            height: 3px;
+            width: 50px;
+            background: linear-gradient(to right, var(--primary-color), var(--secondary-color));
+            border-radius: 3px;
+        }
+        
+        .section-block {
+            margin-bottom: 70px;
+        }
+        
+        .value-highlight {
+            color: var(--primary-color);
+        }
+        
+        .value-danger {
+            color: var(--danger-color);
+        }
+        
+        .value-warning {
+            color: var(--warning-color);
+        }
+        
+        .value-success {
+            color: var(--secondary-color);
+        }
+        
+        .summary-card {
+            border-radius: 12px;
+            background-color: white;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+            padding: 30px;
+            margin-bottom: 40px;
+        }
+        
+        .badge-custom {
+            padding: 6px 12px;
+            border-radius: 50px;
+            font-weight: 500;
+            font-size: 0.9rem;
+            margin: 0 2px;
+        }
+        
+
+        
+        .activities-container {
+            display: flex;
+            flex-direction: column;
+            height: 650px;
+        }
+        
+        .pagination-container {
+            padding: 10px 0;
+            background-color: white;
+            border-radius: 0 0 8px 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        }
+        
+        /* Modern Activity Item Styling */
+        .activity-item {
+            background: #ffffff;
+            border: 1px solid #f3f4f6;
+            border-radius: 12px;
+            padding: 16px 20px;
+            margin-bottom: 8px;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .activity-item:hover {
+            border-color: #e5e7eb;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+            transform: translateY(-1px);
+        }
+
+        .activity-content {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .activity-name {
+            font-weight: 500;
+            color: #374151;
+            font-size: 14px;
+        }
+
+        .traversal-badge {
+            background: linear-gradient(135deg, #3b82f6, #1d4ed8) !important;
+            border: none;
+            border-radius: 20px;
+            padding: 6px 12px;
+            font-size: 12px;
+            font-weight: 500;
+            box-shadow: 0 2px 4px rgba(59, 130, 246, 0.2);
+        }
+
+        /* Modern Activity List Container */
+        .activity-list {
+            background: #ffffff;
+            border: 1px solid #e5e7eb;
+            border-radius: 12px;
+            padding: 16px;
+            height: 550px;
+            overflow-y: auto;
+            scrollbar-width: thin;
+            scrollbar-color: var(--primary-color) #eee;
+            margin-bottom: 15px;
+        }
+
+        .activity-list::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .activity-list::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 10px;
+        }
+
+        .activity-list::-webkit-scrollbar-thumb {
+            background-color: var(--primary-color);
+            border-radius: 10px;
+        }
+
+        .activity-list::-webkit-scrollbar-thumb:hover {
+            background-color: #2980b9;
+        }
+        
+        .nav-tabs .nav-link {
+            color: #666;
+            border: 1px solid transparent;
+            border-radius: 6px 6px 0 0;
+            font-weight: 500;
+            transition: all 0.3s ease;
+        }
+        
+        .nav-tabs .nav-link:hover {
+            color: var(--primary-color);
+            border-color: rgba(52, 152, 219, 0.2);
+            background-color: rgba(52, 152, 219, 0.05);
+        }
+        
+        .nav-tabs .nav-link.active {
+            color: var(--primary-color);
+            background-color: white;
+            border-color: #dee2e6 #dee2e6 #fff;
+            font-weight: 600;
+        }
+
+        .tab-content {
+            border: 1px solid #dee2e6;
+            border-top: none;
+            border-radius: 0 0 8px 8px;
+            padding: 20px;
+            background-color: #fafafa;
+        }
+
+        .sorting-controls {
+            background-color: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 20px;
+        }
+
+        .sorting-controls .form-select {
+            min-width: 140px;
+        }
+
+        .sorting-controls .btn {
+            transition: all 0.3s ease;
+        }
+
+        .sorting-controls .btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .sort-icon {
+            margin-left: 8px;
+            transition: all 0.3s ease;
+            font-size: 1.4rem;
+            color: #ffffff !important;
+            opacity: 0.6;
+            text-shadow: 0 0 3px rgba(0,0,0,0.3);
+        }
+
+        .sort-icon:hover {
+            opacity: 1;
+            transform: scale(1.2);
+            text-shadow: 0 0 5px rgba(0,0,0,0.5);
+        }
+
+        .sort-icon.active {
+            opacity: 1;
+            font-weight: bold;
+            text-shadow: 0 0 5px rgba(0,0,0,0.5);
+        }
+
+        .sort-icon.asc.active {
+            color: #40e0d0 !important;
+        }
+
+        .sort-icon.desc.active {
+            color: #ff6b6b !important;
+        }
+
+        /* Modern Sorting Controls Styling */
+        .sorting-controls-modern {
+            background: linear-gradient(135deg, #f8f9fa 0%, #ffffff 100%);
+            border: 1px solid #e3e6ea;
+            border-radius: 12px;
+            padding: 20px 24px;
+            margin-bottom: 24px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .sorting-controls-modern::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: linear-gradient(90deg, var(--primary-color), var(--secondary-color));
+            border-radius: 12px 12px 0 0;
+        }
+
+        .sorting-controls-modern:hover {
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+            transform: translateY(-1px);
+        }
+
+        .sort-label-section {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .sort-icon-wrapper {
+            width: 48px;
+            height: 48px;
+            background: linear-gradient(135deg, #3498db, #2980b9);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 2px 8px rgba(52, 152, 219, 0.3);
+        }
+
+        .sort-icon-wrapper i {
+            color: white;
+            font-size: 20px;
+        }
+
+        .sort-text {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .sort-title {
+            font-size: 16px;
+            font-weight: 600;
+            color: #2c3e50;
+            line-height: 1.2;
+        }
+
+        .sort-subtitle {
+            font-size: 13px;
+            color: #7f8c8d;
+            font-weight: 400;
+            line-height: 1.2;
+        }
+
+        .sort-button-section {
+            display: flex;
+            align-items: center;
+        }
+
+        .btn-sort-modern {
+            background: linear-gradient(135deg, #27ae60, #2ecc71);
+            border: none;
+            border-radius: 10px;
+            padding: 12px 20px;
+            color: white;
+            font-weight: 500;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 2px 8px rgba(46, 204, 113, 0.3);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .btn-sort-modern::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+            transition: left 0.5s ease;
+        }
+
+        .btn-sort-modern:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 16px rgba(46, 204, 113, 0.4);
+        }
+
+        .btn-sort-modern:hover::before {
+            left: 100%;
+        }
+
+        .btn-sort-modern:active {
+            transform: translateY(0px);
+            box-shadow: 0 2px 8px rgba(46, 204, 113, 0.3);
+        }
+
+        .btn-content {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            position: relative;
+            z-index: 1;
+        }
+
+        .btn-icon {
+            font-size: 16px;
+            opacity: 0.9;
+        }
+
+        .btn-text {
+            font-size: 14px;
+            font-weight: 500;
+            white-space: nowrap;
+        }
+
+        .btn-arrow {
+            font-size: 14px;
+            transition: transform 0.3s ease;
+            opacity: 0.8;
+        }
+
+        .btn-sort-modern:hover .btn-arrow {
+            transform: scale(1.1);
+            opacity: 1;
+        }
+
+        /* Search Controls Styling */
+        .search-controls-modern {
+            background: linear-gradient(135deg, #f8f9fa 0%, #ffffff 100%);
+            border: 1px solid #e3e6ea;
+            border-radius: 12px;
+            padding: 20px 24px;
+            margin-bottom: 24px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .search-controls-modern::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: linear-gradient(90deg, #17a2b8, #20c997);
+            border-radius: 12px 12px 0 0;
+        }
+
+        .search-controls-modern:hover {
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+            transform: translateY(-1px);
+        }
+
+        .search-icon-wrapper {
+            width: 48px;
+            height: 48px;
+            background: linear-gradient(135deg, #17a2b8, #138496);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 2px 8px rgba(23, 162, 184, 0.3);
+        }
+
+        .search-icon-wrapper i {
+            color: white;
+            font-size: 20px;
+        }
+
+        /* Combined Search and Sort Controls */
+        .search-sort-controls-modern {
+            background: #ffffff;
+            border: 1px solid #e5e7eb;
+            border-radius: 16px;
+            padding: 20px 24px;
+            margin-bottom: 20px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1), 0 1px 2px rgba(0, 0, 0, 0.06);
+            transition: all 0.2s ease;
+            position: relative;
+        }
+
+        .search-sort-controls-modern:hover {
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.07), 0 2px 4px rgba(0, 0, 0, 0.06);
+            border-color: #d1d5db;
+        }
+
+        .search-section {
+            min-width: 0; /* Allow flex item to shrink */
+        }
+
+        .sort-section {
+            flex-shrink: 0; /* Prevent sort section from shrinking */
+        }
+
+        .sort-label {
+            white-space: nowrap;
+            font-size: 14px;
+        }
+
+        /* Responsive design for combined controls */
+        @media (max-width: 768px) {
+            .search-sort-controls-modern .d-flex {
+                flex-direction: column;
+                gap: 16px !important;
+            }
+
+            .search-section {
+                width: 100% !important;
+                max-width: none !important;
+                flex-shrink: 1 !important;
+            }
+
+            .sort-section {
+                justify-content: center;
+                width: 100%;
+                margin-left: 0 !important;
+            }
+        }
+
+        @media (max-width: 576px) {
+            .search-section {
+                max-width: none !important;
+            }
+
+            .search-icon-wrapper {
+                width: 40px;
+                height: 40px;
+            }
+
+            .search-icon-wrapper i {
+                font-size: 18px;
+            }
+        }
+
+        /* Modern Search Input */
+        .activity-search-input {
+            border: 1px solid #e5e7eb;
+            border-radius: 12px;
+            padding: 12px 16px;
+            font-size: 14px;
+            transition: all 0.2s ease;
+            background: #f9fafb;
+        }
+
+        .activity-search-input:focus {
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+            background: #ffffff;
+            outline: none;
+        }
+
+        .search-btn {
+            border-radius: 12px;
+            padding: 12px 16px;
+            background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+            border: none;
+            color: white;
+            transition: all 0.2s ease;
+        }
+
+        .search-btn:hover {
+            background: linear-gradient(135deg, #2563eb, #1e40af);
+            transform: translateY(-1px);
+            box-shadow: 0 4px 8px rgba(59, 130, 246, 0.3);
+            color: white;
+        }
+
+        .search-btn:focus {
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+            color: white;
+        }
+
+        .search-clear-btn {
+            border-radius: 0 8px 8px 0;
+            border-left: none;
+            padding: 12px 16px;
+            transition: all 0.3s ease;
+        }
+
+        .search-clear-btn:hover {
+            background-color: #dc3545;
+            border-color: #dc3545;
+            color: white;
+        }
+
+        .search-results-count {
+            display: block;
+            margin-top: 8px;
+            font-size: 12px;
+            font-style: italic;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                max-width: 98% !important;
+                width: 98% !important;
+                padding-left: 10px !important;
+                padding-right: 10px !important;
+            }
+
+            .stat-value {
+                font-size: 1.5rem;
+            }
+
+            .table-custom {
+                font-size: 0.9rem;
+            }
+
+            .table-custom th, .table-custom td {
+                padding: 10px 6px;
+            }
+
+            .badge-custom {
+                font-size: 0.8rem;
+                padding: 4px 8px;
+            }
+        }
+
+        @media (max-width: 576px) {
+            .container {
+                max-width: 100% !important;
+                width: 100% !important;
+                padding-left: 5px !important;
+                padding-right: 5px !important;
+            }
+
+            .table-custom {
+                font-size: 0.8rem;
+            }
+
+            .table-custom th, .table-custom td {
+                padding: 8px 4px;
+                white-space: normal;
+            }
+        }
+
+        /* Merge Information Styles */
+        .merge-info-section {
+            margin-bottom: 1.5rem;
+        }
+
+        .merge-info-card {
+            background: linear-gradient(135deg, #f8f9fa 0%, #ffffff 100%);
+            border: 1px solid #e3f2fd;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+            overflow: hidden;
+            transition: all 0.3s ease;
+        }
+
+        .merge-info-card:hover {
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+            transform: translateY(-1px);
+        }
+
+        .merge-info-header {
+            padding: 16px 20px;
+            background: linear-gradient(135deg, #e3f2fd 0%, #f0f8ff 100%);
+            border-bottom: 1px solid rgba(23, 162, 184, 0.2);
+            cursor: pointer;
+            transition: all 0.3s ease;
+            user-select: none;
+        }
+
+        .merge-info-header:hover {
+            background: linear-gradient(135deg, #d1ecf1 0%, #e8f4f8 100%);
+        }
+
+        .merge-icon-wrapper {
+            width: 40px;
+            height: 40px;
+            background: linear-gradient(135deg, #17a2b8, #138496);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 2px 8px rgba(23, 162, 184, 0.3);
+        }
+
+        .merge-icon-wrapper i {
+            color: white;
+            font-size: 18px;
+        }
+
+        .merge-title {
+            font-size: 16px;
+            font-weight: 600;
+            color: #2c3e50;
+            margin-bottom: 2px;
+        }
+
+        .merge-subtitle {
+            font-size: 13px;
+            color: #6c757d;
+        }
+
+        .merge-count-badge {
+            font-size: 13px;
+            font-weight: 500;
+            padding: 6px 12px;
+            border-radius: 20px;
+            background: linear-gradient(135deg, #007bff, #0056b3) !important;
+            box-shadow: 0 2px 4px rgba(0, 123, 255, 0.3);
+        }
+
+        .collapse-icon {
+            font-size: 16px;
+            color: #6c757d;
+            transition: transform 0.3s ease;
+        }
+
+        .merge-info-header[aria-expanded="true"] .collapse-icon {
+            transform: rotate(180deg);
+        }
+
+        .merge-info-body {
+            padding: 20px;
+            background: #ffffff;
+        }
+
+        .merge-directories-header h6 {
+            color: #495057;
+            font-weight: 600;
+            font-size: 15px;
+        }
+
+        .merged-directories-list {
+            max-height: 200px;
+            overflow-y: auto;
+            overflow-x: hidden;
+            padding: 12px;
+            padding-right: 8px; /* Make room for scrollbar */
+            background: #f8f9fa;
+            border-radius: 8px;
+            border: 1px solid #e9ecef;
+            font-family: 'Courier New', monospace;
+            line-height: 1.6;
+            /* Force scrollbar to always be visible when content overflows */
+            scrollbar-width: thin;
+            scrollbar-color: #c1c1c1 #f1f1f1;
+        }
+
+        .directory-list-item {
+            display: flex;
+            align-items: center;
+            padding: 6px 8px;
+            margin-bottom: 4px;
+            background: white;
+            border-radius: 4px;
+            border: 1px solid #e9ecef;
+            transition: all 0.2s ease;
+        }
+
+        .directory-list-item:hover {
+            background: #e3f2fd;
+            border-color: #17a2b8;
+            transform: translateX(4px);
+        }
+
+        .directory-list-item:last-child {
+            margin-bottom: 0;
+        }
+
+        /* Property Search Container Styles */
+        .property-search-container {
+            position: relative;
+            display: flex;
+            align-items: center;
+            width: 100%;
+        }
+
+        .property-search-input {
+            border-radius: 25px !important;
+            border: 1px solid #dee2e6 !important;
+            padding: 8px 45px 8px 16px !important;
+            font-size: 14px;
+            transition: all 0.3s ease;
+            background-color: #ffffff;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        }
+
+        .property-search-input:focus {
+            border-color: #007bff !important;
+            box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25) !important;
+            outline: none;
+        }
+
+        .property-search-input::placeholder {
+            color: #6c757d;
+            font-style: italic;
+        }
+
+        .property-search-icon-btn {
+            position: absolute;
+            right: 8px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: none;
+            border: none;
+            color: #6c757d;
+            font-size: 16px;
+            padding: 4px 8px;
+            cursor: pointer;
+            transition: color 0.3s ease;
+            z-index: 10;
+        }
+
+        .property-search-icon-btn.search-btn:hover {
+            color: #495057 !important;
+            background: rgba(0, 0, 0, 0.04) !important;
+            border-radius: 4px !important;
+            transform: translateY(-50%) !important;
+            box-shadow: none !important;
+        }
+
+        .property-search-icon-btn.search-btn:focus {
+            outline: none;
+            color: #495057 !important;
+            background: rgba(0, 0, 0, 0.04) !important;
+            border-radius: 4px !important;
+            transform: translateY(-50%) !important;
+            box-shadow: none !important;
+        }
+
+        .directory-list-item .directory-index {
+            font-weight: 600;
+            color: #17a2b8;
+            margin-right: 8px;
+            min-width: 25px;
+            font-size: 14px;
+        }
+
+        /* Activities Coverage table styling */
+        .table-activities thead {
+            background-color: #007bff !important;
+            color: white;
+        }
+
+        .table-activities .sort-icon {
+            color: #ffffff !important;
+            text-shadow: 0 0 3px rgba(0,0,0,0.4);
+        }
+
+        .activities-sort-icon {
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .activities-sort-icon:hover {
+            transform: scale(1.1);
+        }
+
+        .table-activities .sort-icon:hover {
+            opacity: 1;
+            transform: scale(1.2);
+            text-shadow: 0 0 5px rgba(0,0,0,0.6);
+        }
+
+        .table-activities .activities-sort-icon:hover {
+            opacity: 1;
+            transform: scale(1.2);
+            text-shadow: 0 0 5px rgba(0,0,0,0.6);
+        }
+
+        /* Column widths for activities table */
+        .table-activities th:nth-child(1), .table-activities td:nth-child(1) { /* Activity Name */
+            width: 70%;
+            min-width: 300px;
+            text-align: left;
+            padding-left: 180px;
+        }
+
+        .table-activities th:nth-child(2), .table-activities td:nth-child(2) { /* Visit Count */
+            width: 30%;
+            min-width: 150px;
+            text-align: center;
+        }
+
+        .activity-name {
+            font-weight: 500;
+            color: #374151;
+            font-size: 14px;
+        }
+
+        /* Activities Coverage table styling */
+        .table-activities thead {
+            background-color: #007bff !important;
+            color: white;
+        }
+
+        .table-activities .sort-icon {
+            color: #ffffff !important;
+            text-shadow: 0 0 3px rgba(0,0,0,0.4);
+        }
+
+        .directory-list-item .directory-name {
+            font-size: 14px;
+            color: #2c3e50;
+            word-break: break-all;
+            flex: 1;
+        }
+
+        .merged-directories-list::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .merged-directories-list::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 4px;
+            margin: 2px;
+        }
+
+        .merged-directories-list::-webkit-scrollbar-thumb {
+            background: #17a2b8;
+            border-radius: 4px;
+            border: 1px solid #f1f1f1;
+            min-height: 20px;
+        }
+
+        .merged-directories-list::-webkit-scrollbar-thumb:hover {
+            background: #138496;
+            border-color: #e9ecef;
+        }
+
+        .merged-directories-list::-webkit-scrollbar-thumb:active {
+            background: #0f6674;
+        }
+
+        /* Scroll indicator for merged directories */
+        .merged-directories-container {
+            position: relative;
+        }
+
+        .merged-directories-container::after {
+            content: "";
+            position: absolute;
+            top: 0;
+            right: 0;
+            width: 2px;
+            height: 100%;
+            background: linear-gradient(to bottom, transparent 0%, rgba(23, 162, 184, 0.3) 50%, transparent 100%);
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .merged-directories-container:hover::after {
+            opacity: 1;
+        }
+
+        /* Animation for collapse */
+        .collapse {
+            transition: height 0.35s ease;
+        }
+
+        /* Responsive adjustments */
+        @media (max-width: 768px) {
+            .merged-directories-list {
+                font-size: 13px;
+            }
+
+            .directory-list-item .directory-name {
+                font-size: 13px;
+            }
+
+            .merge-info-header {
+                padding: 12px 16px;
+            }
+
+            .merge-info-body {
+                padding: 16px;
+            }
+
+            .merge-icon-wrapper {
+                width: 36px;
+                height: 36px;
+            }
+
+            .merge-title {
+                font-size: 14px;
+            }
+
+            .merge-subtitle {
+                font-size: 12px;
+            }
+
+            .directory-name {
+                font-size: 14px;
+            }
+
+            .directory-index {
+                font-size: 12px;
+            }
+
+            .directory-icon {
+                width: 32px;
+                height: 32px;
+            }
+
+            .directory-icon i {
+                font-size: 14px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <!-- Header -->
+    <header class="header text-center">
+        <div class="container">
+            <h1><i class="bi bi-bug"></i> Kea2 Merged Test Report</h1>
+            <p class="lead">Test Time: {{ timestamp }}</p>
+        </div>
+    </header>
+
+    <div class="container mb-5">
+        <!-- Test Summary -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="summary-card">
+                    <h2 class="section-title">Test Summary</h2>
+
+                    <!-- Statistics Cards -->
+                    <div class="row g-4">
+                        <div class="col-lg-2 col-md-4 col-sm-6">
+                            <div class="text-center">
+                                <i class="bi bi-bug text-danger" style="font-size: 2rem;"></i>
+                                <span class="stat-value value-danger">{{ bugs_found }}</span>
+                                <span class="stat-label">Property Violations</span>
+                            </div>
+                        </div>
+                        <div class="col-lg-2 col-md-4 col-sm-6">
+                            <div class="text-center">
+                                <i class="bi bi-x-circle text-danger" style="font-size: 2rem;"></i>
+                                <span class="stat-value value-danger">{{ total_crash_count|default(0) }}</span>
+                                <span class="stat-label">Crashes</span>
+                            </div>
+                        </div>
+                        <div class="col-lg-2 col-md-4 col-sm-6">
+                            <div class="text-center">
+                                <i class="bi bi-clock text-warning" style="font-size: 2rem;"></i>
+                                <span class="stat-value value-warning">{{ total_anr_count|default(0) }}</span>
+                                <span class="stat-label">ANRs</span>
+                            </div>
+                        </div>
+                        <div class="col-lg-2 col-md-4 col-sm-6">
+                            <div class="text-center">
+                                <i class="bi bi-pie-chart text-info" style="font-size: 2rem;"></i>
+                                <span class="stat-value value-highlight">{{ "%.2f"|format(coverage_percent) }}%</span>
+                                <span class="stat-label">Activity Coverage</span>
+                            </div>
+                        </div>
+                        <div class="col-lg-2 col-md-4 col-sm-6">
+                            <div class="text-center">
+                                <i class="bi bi-list-check text-primary" style="font-size: 2rem;"></i>
+                                <span class="stat-value value-highlight">{{ all_properties_count }}</span>
+                                <span class="stat-label">All Properties</span>
+                            </div>
+                        </div>
+                        <div class="col-lg-2 col-md-4 col-sm-6">
+                            <div class="text-center">
+                                <i class="bi bi-check-square text-success" style="font-size: 2rem;"></i>
+                                <span class="stat-value value-success">{{ executed_properties_count }}</span>
+                                <span class="stat-label">Executed Properties</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Merge Information Section -->
+                    {% if merge_info %}
+                    <div class="merge-info-section mt-4">
+                        <div class="merge-info-card">
+                            <!-- Collapsible Header -->
+                            <div class="merge-info-header" data-bs-toggle="collapse" data-bs-target="#mergeInfoCollapse" aria-expanded="false" aria-controls="mergeInfoCollapse">
+                                <div class="d-flex align-items-center justify-content-between">
+                                    <div class="d-flex align-items-center">
+                                        <div class="merge-icon-wrapper me-3">
+                                            <i class="bi bi-layers"></i>
+                                        </div>
+                                        <div>
+                                            <h6 class="mb-0 merge-title">Merged Report</h6>
+                                            <small class="text-muted merge-subtitle">
+                                                <i class="bi bi-clock me-1"></i>
+                                                Generated at {{ merge_info.merge_timestamp }}
+                                            </small>
+                                        </div>
+                                    </div>
+                                    <div class="d-flex align-items-center">
+                                        <span class="badge bg-primary me-3 merge-count-badge">
+                                            <i class="bi bi-folder2-open me-1"></i>
+                                            {{ merge_info.source_count }} directories
+                                        </span>
+                                        <i class="bi bi-chevron-down collapse-icon"></i>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Collapsible Content -->
+                            <div class="collapse" id="mergeInfoCollapse">
+                                <div class="merge-info-body">
+                                    <div class="merge-directories-header">
+                                        <h6 class="mb-3">
+                                            <i class="bi bi-list-ul me-2"></i>
+                                            Merged Directories
+                                        </h6>
+                                    </div>
+                                    <div class="merged-directories-container">
+                                        <div class="merged-directories-list">
+                                            {% for dir_name in merge_info.source_directories %}
+                                            <div class="directory-list-item">
+                                                <span class="directory-index">{{ loop.index }}.</span>
+                                                <span class="directory-name">{{ dir_name }}</span>
+                                            </div>
+                                            {% endfor %}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Activities Coverage -->
+        <div class="section-block">
+            <h2 class="section-title">Activities Coverage</h2>
+
+            <!-- Search Controls for Activities -->
+            <div class="mb-4">
+                <div class="d-flex align-items-center">
+                    <div style="width: 33%;">
+                        <div class="property-search-container">
+                            <input type="text" class="form-control property-search-input property-stats-search-simple"
+                                   id="activities-search"
+                                   placeholder="Search activities by name..."
+                                   data-target="activities-container"
+                                   data-item-class="activity-row"
+                                   data-pagination="activities-pagination"
+                                   data-page-size="activities-page-size">
+                            <button class="property-search-icon-btn search-btn" type="button" id="activities-search-btn">
+                                <i class="bi bi-search"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="ms-3">
+                        <small class="text-muted search-results-count" id="activities-search-results"></small>
+                    </div>
+                </div>
+            </div>
+
+            <div class="table-responsive">
+                <table class="table table-custom table-activities">
+                    <thead>
+                        <tr>
+                            <th>Activity Name <span class="badge bg-primary ms-2" style="font-size: 0.9rem; font-weight: 600;">{{ tested_activities_count }}/{{ total_activities_count }}</span></th>
+                            <th>Visit Count <i class="bi bi-arrow-down-up text-muted sort-icon activities-sort-icon" id="visit-count-sort" data-column="visit-count" data-order="none" style="cursor: pointer;"></i></th>
+                        </tr>
+                    </thead>
+                    <tbody id="activities-container">
+                        {% if total_activities|length > 0 %}
+                            {% for activity in total_activities %}
+                            <tr class="activity-row" data-page="1"
+                                data-activity-name="{{ activity }}"
+                                data-visit-count="{{ activity_count_history[activity] if activity in activity_count_history else 0 }}">
+                                <td>
+                                    {% if activity in tested_activities %}
+                                        <i class="bi bi-check-circle-fill text-success me-2"></i>
+                                    {% else %}
+                                        <i class="bi bi-dash-circle text-secondary me-2"></i>
+                                    {% endif %}
+                                    <span class="activity-name">{{ activity }}</span>
+                                </td>
+                                <td>
+                                    {% if activity in activity_count_history %}
+                                        <span class="badge bg-info text-white">
+                                            <i class="bi bi-eye"></i> {{ activity_count_history[activity] }} times
+                                        </span>
+                                    {% else %}
+                                        <span class="badge bg-secondary text-white">
+                                            <i class="bi bi-dash"></i> 0 times
+                                        </span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        {% else %}
+                            <tr>
+                                <td colspan="2" class="text-center text-muted">No activities found</td>
+                            </tr>
+                        {% endif %}
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Pagination for Activities -->
+            <div class="d-flex justify-content-between align-items-center mt-3">
+                <div class="d-flex align-items-center">
+                    <label for="activities-page-size" class="form-label me-2 mb-0">Show:</label>
+                    <select class="form-select form-select-sm" id="activities-page-size" style="width: auto;">
+                        <option value="5">5</option>
+                        <option value="10" selected>10</option>
+                        <option value="20">20</option>
+                        <option value="50">50</option>
+                        <option value="100">100</option>
+                    </select>
+                </div>
+                <nav aria-label="Activities pagination">
+                    <ul class="pagination pagination-sm mb-0" id="activities-pagination">
+                        <!-- Pagination will be generated by JavaScript -->
+                    </ul>
+                </nav>
+            </div>
+        </div>
+
+        <!-- Crash Analysis Section -->
+        {% if crash_events or anr_events %}
+        <div class="section-block">
+            <h2 class="section-title">
+                <i class="bi bi-exclamation-triangle text-danger"></i> Crash and ANR Events
+            </h2>
+
+            <!-- Detailed Crash Information -->
+            <div class="crash-analysis-panel">
+                <!-- Event Filter -->
+                <div class="mb-3">
+                    <div class="btn-group" role="group" aria-label="Event filter">
+                        <input type="radio" class="btn-check" name="event-filter" id="all-events" autocomplete="off" checked>
+                        <label class="btn btn-outline-primary" for="all-events">All Events ({{ (crash_events|length) + (anr_events|length) }})</label>
+
+                        <input type="radio" class="btn-check" name="event-filter" id="crashes-only" autocomplete="off">
+                        <label class="btn btn-outline-danger" for="crashes-only">Crashes Only ({{ crash_events|length }})</label>
+
+                        <input type="radio" class="btn-check" name="event-filter" id="anr-only" autocomplete="off">
+                        <label class="btn btn-outline-warning" for="anr-only">ANR Only ({{ anr_events|length }})</label>
+                    </div>
+                </div>
+
+
+                <!-- Events Table -->
+                <div class="table-responsive">
+                    <table class="table table-custom">
+                        <thead>
+                            <tr>
+                                <th>Type</th>
+                                <th>Time</th>
+                                <th>Exception</th>
+                                <th>Process</th>
+                                <th>Report Source</th>
+                                <th>Details</th>
+                            </tr>
+                        </thead>
+                        <tbody id="crash-events-container">
+                            {% for crash in crash_events %}
+                            <tr class="event-row" data-type="crash" data-page="1">
+                                <td><span class="badge bg-danger">CRASH</span></td>
+                                <td>{{ crash.time }}</td>
+                                <td>{{ crash.exception_type }}</td>
+                                <td>{{ crash.process }}</td>
+                                <td>
+                                    {% if crash.report_path %}
+                                    <a href="{{ crash.report_path }}" target="_blank" class="text-decoration-none">
+                                        <span class="badge bg-info text-white me-2 mb-1"
+                                              style="font-family: 'Courier New', monospace; font-size: 0.8em; padding: 0.4em 0.6em; cursor: pointer;"
+                                              title="Click to open original report"
+                                              onmouseover="this.style.backgroundColor='#0056b3'" onmouseout="this.style.backgroundColor='#0dcaf0'">
+                                            <i class="bi bi-folder me-1"></i>{{ crash.source_directory or 'Unknown' }}
+                                            <i class="bi bi-box-arrow-up-right ms-1" style="font-size: 0.7em;"></i>
+                                        </span>
+                                    </a>
+                                    {% elif crash.source_directory %}
+                                    <span class="badge bg-info text-white me-2 mb-1"
+                                          style="font-family: 'Courier New', monospace; font-size: 0.8em; padding: 0.4em 0.6em;">
+                                        <i class="bi bi-folder me-1"></i>{{ crash.source_directory }}
+                                    </span>
+                                    {% else %}
+                                    <span class="text-muted">N/A</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <button class="btn btn-sm btn-outline-primary" type="button"
+                                            data-bs-toggle="collapse" data-bs-target="#crash-detail-{{ loop.index }}"
+                                            aria-expanded="false" aria-controls="crash-detail-{{ loop.index }}">
+                                        <i class="bi bi-eye"></i> Details
+                                    </button>
+                                    <button class="btn btn-sm btn-outline-secondary copy-stack-btn"
+                                            data-stack-index="{{ loop.index }}">
+                                        <i class="bi bi-clipboard"></i> Copy
+                                    </button>
+                                </td>
+                            </tr>
+                            <tr class="collapse" id="crash-detail-{{ loop.index }}">
+                                <td colspan="6">
+                                    <div class="bg-light p-3 rounded">
+                                        <h6 class="text-danger">Stack Trace:</h6>
+                                        <pre class="text-danger mb-0 text-start" id="stack-trace-{{ loop.index }}" style="font-size: 0.9em; white-space: pre-wrap; text-align: left;">{{ crash.stack_trace }}</pre>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+
+
+                            {% for anr in anr_events %}
+                            <tr class="event-row" data-type="anr" data-page="1">
+                                <td><span class="badge bg-warning text-dark">ANR</span></td>
+                                <td>{{ anr.time }}</td>
+                                <td>{{ anr.reason }}</td>
+                                <td>{{ anr.process }}</td>
+                                <td>
+                                    {% if anr.report_path %}
+                                    <a href="{{ anr.report_path }}" target="_blank" class="text-decoration-none">
+                                        <span class="badge bg-info text-white me-2 mb-1"
+                                              style="font-family: 'Courier New', monospace; font-size: 0.8em; padding: 0.4em 0.6em; cursor: pointer;"
+                                              title="Click to open original report"
+                                              onmouseover="this.style.backgroundColor='#0056b3'" onmouseout="this.style.backgroundColor='#0dcaf0'">
+                                            <i class="bi bi-folder me-1"></i>{{ anr.source_directory or 'Unknown' }}
+                                            <i class="bi bi-box-arrow-up-right ms-1" style="font-size: 0.7em;"></i>
+                                        </span>
+                                    </a>
+                                    {% elif anr.source_directory %}
+                                    <span class="badge bg-info text-white me-2 mb-1"
+                                          style="font-family: 'Courier New', monospace; font-size: 0.8em; padding: 0.4em 0.6em;">
+                                        <i class="bi bi-folder me-1"></i>{{ anr.source_directory }}
+                                    </span>
+                                    {% else %}
+                                    <span class="text-muted">N/A</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <button class="btn btn-sm btn-outline-primary" type="button"
+                                            data-bs-toggle="collapse" data-bs-target="#anr-detail-{{ loop.index }}"
+                                            aria-expanded="false" aria-controls="anr-detail-{{ loop.index }}">
+                                        <i class="bi bi-eye"></i> Details
+                                    </button>
+                                    <button class="btn btn-sm btn-outline-secondary copy-stack-btn"
+                                            data-stack-index="anr-{{ loop.index }}">
+                                        <i class="bi bi-clipboard"></i> Copy
+                                    </button>
+                                </td>
+                            </tr>
+                            <tr class="collapse" id="anr-detail-{{ loop.index }}">
+                                <td colspan="6">
+                                    <div class="bg-light p-3 rounded">
+                                        <h6 class="text-dark">ANR Details:</h6>
+                                        <pre class="text-dark mb-0 text-start" id="stack-trace-anr-{{ loop.index }}" style="font-size: 0.9em; white-space: pre-wrap; text-align: left;">{{ anr.trace }}</pre>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Pagination for Crash Events -->
+                <div class="pagination-container d-flex justify-content-between align-items-center mt-3">
+                    <div class="d-flex align-items-center">
+                        <label for="events-page-size" class="form-label me-2 mb-0">Show:</label>
+                        <select class="form-select form-select-sm" id="events-page-size" style="width: auto;">
+                            <option value="5">5</option>
+                            <option value="10" selected>10</option>
+                            <option value="20">20</option>
+                            <option value="50">50</option>
+                            <option value="100">100</option>
+                        </select>
+                    </div>
+                    <nav aria-label="Crash Events Pagination">
+                        <ul class="pagination pagination-sm mb-0" id="events-pagination">
+                            <!-- Pagination will be generated by JavaScript -->
+                        </ul>
+                    </nav>
+                </div>
+            </div>
+        </div>
+        {% else %}
+        <div class="section-block">
+            <h2 class="section-title">
+                <i class="bi bi-exclamation-triangle text-danger"></i> Crash and ANR Events
+            </h2>
+            <div class="alert alert-info text-center">
+                <i class="bi bi-info-circle"></i> No crash or ANR events detected in this test session.
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Property Checking Statistics -->
+        <div class="section-block">
+            <h2 class="section-title">Property Checking Statistics</h2>
+
+            <!-- Search Controls for Property Statistics -->
+            <div class="mb-4">
+                <div style="width: 33%;">
+                    <div class="property-search-container">
+                        <input type="text" class="form-control property-search-input property-stats-search-simple"
+                               id="property-stats-search"
+                               placeholder="Search properties by name..."
+                               data-target="property-stats-container"
+                               data-item-class="property-stat-row"
+                               data-pagination="stats-pagination"
+                               data-page-size="stats-page-size">
+                        <button class="property-search-icon-btn search-btn" type="button"
+                                data-target="property-stats-search">
+                            <i class="bi bi-search"></i>
+                        </button>
+                    </div>
+                </div>
+                <small class="text-muted search-results-count" id="property-search-results"></small>
+            </div>
+
+            <div class="table-responsive">
+                <table class="table table-custom">
+                    <thead>
+                        <tr>
+                            <th>Index</th>
+                            <th>Property Name <span class="badge bg-primary ms-2" style="font-size: 0.9rem; font-weight: 600;">{{ property_stats_summary.total_properties if property_stats_summary is defined else property_stats|length }}</span></th>
+                            <th>Precondition Satisfied <span class="badge bg-success ms-2" style="font-size: 0.9rem; font-weight: 600;">{{ property_stats_summary.total_precond_satisfied if property_stats_summary is defined else 0 }}</span></th>
+                            <th>Total Executions <span class="badge bg-info ms-2" style="font-size: 0.9rem; font-weight: 600;">{{ property_stats_summary.total_executed if property_stats_summary is defined else 0 }}</span></th>
+                            <th>Passes <span class="badge bg-secondary ms-2" style="font-size: 0.9rem; font-weight: 600;">{{ property_stats_summary.total_passes if property_stats_summary is defined else 0 }}</span></th>
+                            <th>Fails <span class="badge bg-danger ms-2" style="font-size: 0.9rem; font-weight: 600;">{{ property_stats_summary.total_fails if property_stats_summary is defined else 0 }}</span> <i class="bi bi-arrow-down-up text-muted sort-icon" id="fails-sort" data-column="fails" data-order="none" style="cursor: pointer;"></i></th>
+                            <th>Errors <span class="badge bg-warning ms-2" style="font-size: 0.9rem; font-weight: 600;">{{ property_stats_summary.total_errors if property_stats_summary is defined else 0 }}</span> <i class="bi bi-arrow-down-up text-muted sort-icon" id="errors-sort" data-column="errors" data-order="none" style="cursor: pointer;"></i></th>
+                            <th>Skipped <span class="badge bg-light text-dark ms-2" style="font-size: 0.9rem; font-weight: 600;">{{ property_stats_summary.total_not_executed if property_stats_summary is defined else 0 }}</span></th>
+                        </tr>
+                    </thead>
+                    <tbody id="property-stats-container">
+                        {% for property_name, test_result in property_stats.items() %}
+                        <tr class="property-stat-row" data-page="1"
+                            data-index="{{ loop.index }}"
+                            data-property-name="{{ property_name }}"
+                            data-precond-satisfied="{{ test_result.precond_satisfied|default(0) }}"
+                            data-executed="{{ test_result.executed_total|default(test_result.executed|default(0)) }}"
+                            data-pass="{{ test_result.pass_count|default(0) }}"
+                            data-fails="{{ test_result.fail|default(0) }}"
+                            data-errors="{{ test_result.error|default(0) }}"
+                            data-not-executed="{{ test_result.not_executed|default(0) }}">
+                            <td>{{ loop.index }}</td>
+                            <td><span class="badge bg-light text-dark badge-custom">{{ property_name }}</span></td>
+                            <td>{{ test_result.precond_satisfied|default(0) }}</td>
+                            <td>{{ test_result.executed_total|default(test_result.executed|default(0)) }}</td>
+                            <td>{{ test_result.pass_count|default(0) }}</td>
+                            <td><span class="badge bg-danger text-white">{{ test_result.fail|default(0) }}</span></td>
+                            <td><span class="badge bg-warning text-dark">{{ test_result.error|default(0) }}</span></td>
+                            <td>{{ test_result.not_executed|default(0) }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+
+                <!-- Pagination for Property Checking Statistics -->
+                <div class="d-flex justify-content-between align-items-center mt-3">
+                    <div class="d-flex align-items-center">
+                        <label for="stats-page-size" class="form-label me-2 mb-0">Show:</label>
+                        <select class="form-select form-select-sm" id="stats-page-size" style="width: auto;">
+                            <option value="5">5</option>
+                            <option value="10" selected>10</option>
+                            <option value="20">20</option>
+                            <option value="50">50</option>
+                            <option value="100">100</option>
+                        </select>
+                    </div>
+                    <nav aria-label="Property Stats Pagination">
+                        <ul class="pagination pagination-sm mb-0" id="stats-pagination">
+                            <!-- Pagination will be generated by JavaScript -->
+                        </ul>
+                    </nav>
+                </div>
+            </div>
+        </div>
+
+        <!-- Property Source Mapping -->
+        {% if property_source_mapping %}
+        <div class="section-block">
+            <h2 class="section-title">
+                <i class="bi bi-folder2-open text-info"></i> Property Source Mapping
+            </h2>
+
+            <div class="alert alert-info mb-4" style="border-left: 4px solid #17a2b8; background-color: #f8f9fa;">
+                <div class="d-flex align-items-start">
+                    <i class="bi bi-info-circle me-2 mt-1"></i>
+                    <div>
+                        <strong>Source Directory Information:</strong>
+                        <p class="mb-0 mt-1">This section shows which test directories contain properties with failures or errors.
+                        Use this information to locate the original test reports for detailed error analysis.</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Search Controls for Property Source Mapping -->
+            <div class="mb-4">
+                <div style="width: 33%;">
+                    <div class="property-search-container">
+                        <input type="text" class="form-control property-search-input property-stats-search-simple"
+                               id="property-source-search"
+                               placeholder="Search properties by name..."
+                               data-target="property-source-container"
+                               data-item-class="property-source-row"
+                               data-pagination="source-pagination"
+                               data-page-size="source-page-size">
+                        <button class="property-search-icon-btn search-btn" type="button"
+                                data-target="property-source-search">
+                            <i class="bi bi-search"></i>
+                        </button>
+                    </div>
+                </div>
+                <small class="text-muted search-results-count" id="property-source-search-results"></small>
+            </div>
+
+            <div class="table-responsive">
+                <table class="table table-custom">
+                    <thead>
+                        <tr>
+                            <th>Index</th>
+                            <th>Property Name</th>
+                            <th>Source Directories</th>
+                        </tr>
+                    </thead>
+                    <tbody id="property-source-container">
+                        {% for property_name, source_dirs in property_source_mapping.items() %}
+                        <tr class="property-source-row" data-page="1"
+                            data-index="{{ loop.index }}"
+                            data-property-name="{{ property_name }}">
+                            <td>{{ loop.index }}</td>
+                            <td>
+                                <span class="badge bg-light text-dark badge-custom">{{ property_name }}</span>
+                            </td>
+                            <td>
+                                {% set max_visible = 3 %}
+                                {% if source_dirs|length <= max_visible %}
+                                    <!-- Show all directories if count is small -->
+                                    {% for dir_info in source_dirs %}
+                                    {% if dir_info.report_path %}
+                                    <a href="{{ dir_info.report_path }}" target="_blank" class="text-decoration-none">
+                                        <span class="badge bg-info text-white me-2 mb-1" style="font-family: 'Courier New', monospace; font-size: 0.8em; padding: 0.4em 0.6em; cursor: pointer;"
+                                              title="Click to open original report"
+                                              onmouseover="this.style.backgroundColor='#0056b3'" onmouseout="this.style.backgroundColor='#0dcaf0'">
+                                            <i class="bi bi-folder me-1"></i>{{ dir_info.dir_name }}
+                                            <i class="bi bi-box-arrow-up-right ms-1" style="font-size: 0.7em;"></i>
+                                        </span>
+                                    </a>
+                                    {% else %}
+                                    <span class="badge bg-info text-white me-2 mb-1" style="font-family: 'Courier New', monospace; font-size: 0.8em; padding: 0.4em 0.6em;">
+                                        <i class="bi bi-folder me-1"></i>{{ dir_info.dir_name }}
+                                    </span>
+                                    {% endif %}
+                                    {% endfor %}
+                                {% else %}
+                                    <!-- Show limited directories with expand/collapse -->
+                                    <div class="source-dirs-container" data-property="{{ property_name }}">
+                                        <!-- Always visible directories -->
+                                        {% for dir_info in source_dirs[:max_visible] %}
+                                        {% if dir_info.report_path %}
+                                        <a href="{{ dir_info.report_path }}" target="_blank" class="text-decoration-none">
+                                            <span class="badge bg-info text-white me-2 mb-1" style="font-family: 'Courier New', monospace; font-size: 0.8em; padding: 0.4em 0.6em; cursor: pointer;"
+                                                  title="Click to open original report"
+                                                  onmouseover="this.style.backgroundColor='#0056b3'" onmouseout="this.style.backgroundColor='#0dcaf0'">
+                                                <i class="bi bi-folder me-1"></i>{{ dir_info.dir_name }}
+                                                <i class="bi bi-box-arrow-up-right ms-1" style="font-size: 0.7em;"></i>
+                                            </span>
+                                        </a>
+                                        {% else %}
+                                        <span class="badge bg-info text-white me-2 mb-1" style="font-family: 'Courier New', monospace; font-size: 0.8em; padding: 0.4em 0.6em;">
+                                            <i class="bi bi-folder me-1"></i>{{ dir_info.dir_name }}
+                                        </span>
+                                        {% endif %}
+                                        {% endfor %}
+
+                                        <!-- Hidden directories -->
+                                        <div class="source-dirs-hidden" id="hidden-dirs-{{ loop.index }}" style="display: none;">
+                                            {% for dir_info in source_dirs[max_visible:] %}
+                                            {% if dir_info.report_path %}
+                                            <a href="{{ dir_info.report_path }}" target="_blank" class="text-decoration-none">
+                                                <span class="badge bg-info text-white me-2 mb-1" style="font-family: 'Courier New', monospace; font-size: 0.8em; padding: 0.4em 0.6em; cursor: pointer;"
+                                                      title="Click to open original report"
+                                                      onmouseover="this.style.backgroundColor='#0056b3'" onmouseout="this.style.backgroundColor='#0dcaf0'">
+                                                    <i class="bi bi-folder me-1"></i>{{ dir_info.dir_name }}
+                                                    <i class="bi bi-box-arrow-up-right ms-1" style="font-size: 0.7em;"></i>
+                                                </span>
+                                            </a>
+                                            {% else %}
+                                            <span class="badge bg-info text-white me-2 mb-1" style="font-family: 'Courier New', monospace; font-size: 0.8em; padding: 0.4em 0.6em;">
+                                                <i class="bi bi-folder me-1"></i>{{ dir_info.dir_name }}
+                                            </span>
+                                            {% endif %}
+                                            {% endfor %}
+                                        </div>
+
+                                        <!-- Toggle button -->
+                                        <button class="btn btn-sm btn-outline-info source-dirs-toggle"
+                                                data-target="hidden-dirs-{{ loop.index }}"
+                                                data-total="{{ source_dirs|length }}"
+                                                data-visible="{{ max_visible }}"
+                                                style="font-size: 0.75em; padding: 0.2em 0.5em; margin-left: 0.25em;">
+                                            <i class="bi bi-chevron-down"></i>
+                                            <span class="toggle-text">+{{ source_dirs|length - max_visible }} more</span>
+                                        </button>
+                                    </div>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+
+                <!-- Pagination for Property Source Mapping -->
+                <div class="d-flex justify-content-between align-items-center mt-3">
+                    <div class="d-flex align-items-center">
+                        <label for="source-page-size" class="form-label me-2 mb-0">Show:</label>
+                        <select class="form-select form-select-sm" id="source-page-size" style="width: auto;">
+                            <option value="5">5</option>
+                            <option value="10" selected>10</option>
+                            <option value="20">20</option>
+                            <option value="50">50</option>
+                            <option value="100">100</option>
+                        </select>
+                    </div>
+                    <nav aria-label="Property Source Pagination">
+                        <ul class="pagination pagination-sm mb-0" id="source-pagination">
+                            <!-- Pagination will be generated by JavaScript -->
+                        </ul>
+                    </nav>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Footer -->
+    <footer class="bg-dark text-white text-center py-4">
+        <div class="container">
+            <p class="mb-0">Kea2 Merged Test Report | Generated at: {{ timestamp }}</p>
+        </div>
+    </footer>
+
+    <!-- JavaScript -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Initialize merge info collapse functionality
+            initMergeInfoCollapse();
+
+            // Initialize merged directories scrollbar enhancement
+            initMergedDirectoriesScrollbar();
+
+            // Initialize pagination for Activities
+            initPagination('activities-container', 'activity-row', 'activities-pagination', 'activities-page-size');
+
+            // Initialize activity sorting
+            initActivitiesSorting();
+
+            // Initialize activity searching
+            initActivitiesSearching();
+
+            // Initialize activities page size selector
+            initActivitiesPageSize();
+
+            // Initialize property statistics searching
+            initPropertySearching();
+
+            // Initialize pagination for Property tables
+            initPagination('property-stats-container', 'property-stat-row', 'stats-pagination', 'stats-page-size');
+
+            // Initialize sorting for Property Checking Statistics
+            initSorting();
+
+            // Initialize property source mapping searching and pagination
+            initPropertySourceSearching();
+            initPagination('property-source-container', 'property-source-row', 'source-pagination', 'source-page-size');
+
+            // Initialize source directories expand/collapse functionality
+            initSourceDirsToggle();
+
+            // Initialize crash events functionality (only if crash analysis section exists)
+            setTimeout(function() {
+                const crashContainer = document.getElementById('crash-events-container');
+                if (crashContainer) {
+                    initCrashAnalysis();
+                    // Pagination will be set up automatically by initEventFiltering
+                }
+            }, 100);
+
+            function setupCrashEventsPagination() {
+                const container = document.getElementById('crash-events-container');
+                const paginationElement = document.getElementById('events-pagination');
+                const pageSizeSelect = document.getElementById('events-page-size');
+
+                if (!container || !paginationElement || !pageSizeSelect) {
+                    return;
+                }
+
+                const allEventRows = Array.from(container.querySelectorAll('.event-row'));
+
+                // Get currently filtered visible rows (those not hidden by filter)
+                const filteredRows = allEventRows.filter(row => {
+                    // Check if row should be visible based on current filter
+                    const eventType = row.dataset.type;
+                    const currentFilter = getCurrentFilter();
+
+                    switch(currentFilter) {
+                        case 'all-events':
+                            return true;
+                        case 'crashes-only':
+                            return eventType === 'crash';
+                        case 'anr-only':
+                            return eventType === 'anr';
+                        default:
+                            return true;
+                    }
+                });
+
+                const pageSize = parseInt(pageSizeSelect.value) || 10;
+                const totalPages = Math.ceil(filteredRows.length / pageSize);
+
+                // Clear pagination first
+                paginationElement.innerHTML = '';
+
+                // Show/hide pagination container based on whether pagination is needed
+                const paginationContainer = paginationElement.closest('.pagination-container');
+                if (paginationContainer) {
+                    if (totalPages > 1) {
+                        paginationContainer.style.display = '';
+                    } else {
+                        paginationContainer.style.display = 'none';
+                    }
+                }
+
+                // Hide all rows first
+                allEventRows.forEach(row => {
+                    row.style.display = 'none';
+                    const detailRow = row.nextElementSibling;
+                    if (detailRow && detailRow.classList.contains('collapse')) {
+                        detailRow.style.display = 'none';
+                    }
+                });
+
+                // Show only the first page of filtered rows
+                for (let i = 0; i < Math.min(pageSize, filteredRows.length); i++) {
+                    const row = filteredRows[i];
+                    row.style.display = '';
+                    const detailRow = row.nextElementSibling;
+                    if (detailRow && detailRow.classList.contains('collapse')) {
+                        detailRow.style.display = '';
+                    }
+                }
+
+                // Create pagination if needed
+                if (totalPages > 1) {
+                    createPaginationControls(totalPages, 1);
+                }
+
+                function getCurrentFilter() {
+                    const filterButtons = document.querySelectorAll('input[name="event-filter"]');
+                    for (let button of filterButtons) {
+                        if (button.checked) {
+                            return button.id;
+                        }
+                    }
+                    return 'all-events'; // default
+                }
+
+                function createPaginationControls(totalPages, currentPage) {
+                    paginationElement.innerHTML = '';
+
+                    // Previous button
+                    const prevLi = document.createElement('li');
+                    prevLi.className = 'page-item' + (currentPage === 1 ? ' disabled' : '');
+                    prevLi.innerHTML = '<a class="page-link" href="#" aria-label="Previous"><span aria-hidden="true">&laquo;</span></a>';
+                    prevLi.addEventListener('click', function(e) {
+                        e.preventDefault();
+                        if (currentPage > 1) {
+                            showCrashEventsPage(currentPage - 1, totalPages);
+                        }
+                    });
+                    paginationElement.appendChild(prevLi);
+
+                    // Page numbers
+                    for (let i = 1; i <= totalPages; i++) {
+                        const pageLi = document.createElement('li');
+                        pageLi.className = i === currentPage ? 'page-item active' : 'page-item';
+                        pageLi.innerHTML = `<a class="page-link" href="#">${i}</a>`;
+                        pageLi.addEventListener('click', function(e) {
+                            e.preventDefault();
+                            showCrashEventsPage(i, totalPages);
+                        });
+                        paginationElement.appendChild(pageLi);
+                    }
+
+                    // Next button
+                    const nextLi = document.createElement('li');
+                    nextLi.className = 'page-item' + (currentPage === totalPages ? ' disabled' : '');
+                    nextLi.innerHTML = '<a class="page-link" href="#" aria-label="Next"><span aria-hidden="true">&raquo;</span></a>';
+                    nextLi.addEventListener('click', function(e) {
+                        e.preventDefault();
+                        if (currentPage < totalPages) {
+                            showCrashEventsPage(currentPage + 1, totalPages);
+                        }
+                    });
+                    paginationElement.appendChild(nextLi);
+                }
+
+                function showCrashEventsPage(pageNum, totalPages) {
+                    // Get current page size
+                    const currentPageSize = parseInt(pageSizeSelect.value) || 10;
+
+                    // Recalculate filtered rows based on current filter
+                    const currentFilteredRows = allEventRows.filter(row => {
+                        const eventType = row.dataset.type;
+                        const currentFilter = getCurrentFilter();
+
+                        switch(currentFilter) {
+                            case 'all-events':
+                                return true;
+                            case 'crashes-only':
+                                return eventType === 'crash';
+                            case 'anr-only':
+                                return eventType === 'anr';
+                            default:
+                                return true;
+                        }
+                    });
+
+                    const startIndex = (pageNum - 1) * currentPageSize;
+                    const endIndex = startIndex + currentPageSize;
+
+                    // Hide all rows first
+                    allEventRows.forEach(row => {
+                        row.style.display = 'none';
+                        const detailRow = row.nextElementSibling;
+                        if (detailRow && detailRow.classList.contains('collapse')) {
+                            detailRow.style.display = 'none';
+                        }
+                    });
+
+                    // Show only the rows for current page
+                    for (let i = startIndex; i < endIndex && i < currentFilteredRows.length; i++) {
+                        const row = currentFilteredRows[i];
+                        row.style.display = '';
+                        const detailRow = row.nextElementSibling;
+                        if (detailRow && detailRow.classList.contains('collapse')) {
+                            detailRow.style.display = '';
+                        }
+                    }
+
+                    // Update pagination controls and container visibility
+                    const paginationContainer = paginationElement.closest('.pagination-container');
+                    if (paginationContainer) {
+                        if (totalPages > 1) {
+                            paginationContainer.style.display = '';
+                            createPaginationControls(totalPages, pageNum);
+                        } else {
+                            paginationContainer.style.display = 'none';
+                            paginationElement.innerHTML = '';
+                        }
+                    }
+                }
+            }
+
+            // Activity sorting function
+            function initActivitySorting() {
+                const sortButtons = document.querySelectorAll('.activity-sort-btn');
+
+                sortButtons.forEach(function(button) {
+                    button.addEventListener('click', function() {
+                        const sortType = this.dataset.sort;
+                        const currentOrder = this.dataset.order;
+                        const parentTab = this.closest('.tab-pane');
+                        const isTestedTab = parentTab.id === 'tested-activities';
+
+                        // Toggle sort order
+                        const newOrder = currentOrder === 'asc' ? 'desc' : 'asc';
+
+                        this.dataset.order = newOrder;
+                        const icon = this.querySelector('.sort-icon');
+
+                        if (newOrder === 'asc') {
+                            icon.className = 'bi bi-arrow-up sort-icon btn-arrow';
+                        } else {
+                            icon.className = 'bi bi-arrow-down sort-icon btn-arrow';
+                        }
+
+                        // Sort activities
+                        sortActivities(sortType, newOrder, isTestedTab);
+                    });
+                });
+
+                function sortActivities(sortType, order, isTestedTab) {
+                    const containerId = isTestedTab ? 'tested-activities-container' : 'all-activities-container';
+                    const itemClass = isTestedTab ? 'tested-activity' : 'all-activity';
+                    const paginationId = isTestedTab ? 'tested-pagination' : 'all-pagination';
+                    const pageSizeSelectId = isTestedTab ? 'tested-page-size' : 'all-page-size';
+
+                    const container = document.getElementById(containerId);
+                    const items = Array.from(container.getElementsByClassName(itemClass));
+
+                    // Check if there's an active search
+                    const searchInputId = isTestedTab ? 'tested-activity-search' : 'all-activity-search';
+                    const searchInput = document.getElementById(searchInputId);
+                    const hasActiveSearch = searchInput && searchInput.value.trim() !== '';
+                    const searchTerm = hasActiveSearch ? searchInput.value.toLowerCase().trim() : '';
+
+                    // Store current search visibility state before sorting
+                    const searchStates = new Map();
+                    if (hasActiveSearch) {
+                        items.forEach(function(item) {
+                            const searchVisible = item.getAttribute('data-search-visible');
+                            searchStates.set(item, searchVisible);
+                        });
+                    }
+
+                    // Sort all items
+                    items.sort(function(a, b) {
+                        const badgeA = a.querySelector('.traversal-badge');
+                        const badgeB = b.querySelector('.traversal-badge');
+
+                        // Extract traversal count from badge text like " 5 times"
+                        const valueA = badgeA ? parseInt(badgeA.textContent.match(/\d+/)[0]) || 0 : 0;
+                        const valueB = badgeB ? parseInt(badgeB.textContent.match(/\d+/)[0]) || 0 : 0;
+
+                        if (order === 'asc') {
+                            return valueA - valueB;
+                        } else {
+                            return valueB - valueA;
+                        }
+                    });
+
+                    // Clear container and append sorted items
+                    container.innerHTML = '';
+                    items.forEach(function(item) {
+                        container.appendChild(item);
+                    });
+
+                    // Restore search state and apply filtering
+                    if (hasActiveSearch) {
+                        let visibleCount = 0;
+                        items.forEach(function(item) {
+                            const activityNameElement = item.querySelector('.activity-name');
+                            if (activityNameElement) {
+                                const activityName = activityNameElement.textContent.toLowerCase();
+
+                                if (activityName.includes(searchTerm)) {
+                                    item.setAttribute('data-search-visible', 'true');
+                                    visibleCount++;
+                                } else {
+                                    item.setAttribute('data-search-visible', 'false');
+                                }
+                            }
+                        });
+
+                        // Update search results count
+                        const resultsElement = document.getElementById(searchInput.id.replace('-search', '-search-results'));
+                        if (resultsElement) {
+                            resultsElement.textContent = `Found ${visibleCount} of ${items.length} activities`;
+                        }
+
+                        // Re-initialize pagination with filtered results
+                        initPagination(containerId, itemClass, paginationId, pageSizeSelectId);
+                    } else {
+                        // No active search, just re-initialize pagination
+                        initPagination(containerId, itemClass, paginationId, pageSizeSelectId);
+                    }
+                }
+            }
+
+            // Simplified sorting function for Fails and Errors columns
+            function initSorting() {
+                // Exclude activities sort icons to avoid conflicts
+                const sortIcons = document.querySelectorAll('.sort-icon:not(.activities-sort-icon)');
+
+                console.log('initSorting: Found', sortIcons.length, 'sort icons (excluding activities)');
+
+                sortIcons.forEach(function(icon) {
+                    icon.addEventListener('click', function() {
+                        const column = this.dataset.column;
+                        const currentOrder = this.dataset.order;
+
+                        // Reset all other sort icons
+                        sortIcons.forEach(function(otherIcon) {
+                            if (otherIcon !== icon) {
+                                otherIcon.dataset.order = 'none';
+                                otherIcon.className = 'bi bi-arrow-down-up sort-icon';
+                                otherIcon.style.color = '#6c757d';
+                            }
+                        });
+
+                        // Toggle current sort order
+                        let newOrder;
+                        if (currentOrder === 'none' || currentOrder === 'desc') {
+                            newOrder = 'asc';
+                            this.className = 'bi bi-arrow-up sort-icon active asc';
+                            this.style.color = '#28a745';
+                        } else {
+                            newOrder = 'desc';
+                            this.className = 'bi bi-arrow-down sort-icon active desc';
+                            this.style.color = '#dc3545';
+                        }
+
+                        this.dataset.order = newOrder;
+                        sortTable(column, newOrder);
+                    });
+                });
+
+                function sortTable(column, order) {
+                    const container = document.getElementById('property-stats-container');
+                    const rows = Array.from(container.getElementsByClassName('property-stat-row'));
+
+                    rows.sort(function(a, b) {
+                        let valueA, valueB;
+
+                        if (column === 'fails') {
+                            valueA = parseInt(a.dataset.fails);
+                            valueB = parseInt(b.dataset.fails);
+                        } else if (column === 'errors') {
+                            valueA = parseInt(a.dataset.errors);
+                            valueB = parseInt(b.dataset.errors);
+                        }
+
+                        if (order === 'asc') {
+                            return valueA - valueB;
+                        } else {
+                            return valueB - valueA;
+                        }
+                    });
+
+                    // Clear container and append sorted rows
+                    container.innerHTML = '';
+                    rows.forEach(function(row) {
+                        container.appendChild(row);
+                    });
+
+                    // Re-initialize pagination after sorting
+                    initPagination('property-stats-container', 'property-stat-row', 'stats-pagination', 'stats-page-size');
+                }
+            }
+
+            // Function to handle page navigation
+            function goToPage(pageNumber, containerId, itemClass, itemsPerPage, paginationId) {
+                const container = document.getElementById(containerId);
+                const allItems = Array.from(container.getElementsByClassName(itemClass));
+                const paginationElement = document.getElementById(paginationId);
+
+                // Get items that should be visible based on search filter
+                const filteredItems = allItems.filter(item => {
+                    const searchVisible = item.getAttribute('data-search-visible');
+                    const shouldShow = searchVisible === null || searchVisible === 'true';
+                    return shouldShow;
+                });
+
+                // Update pagination active state
+                if (paginationElement) {
+                    const pageItems = paginationElement.getElementsByClassName('page-item');
+                    const totalPages = Math.max(1, Math.ceil(filteredItems.length / itemsPerPage));
+
+                    for (let i = 0; i < pageItems.length; i++) {
+                        const pageText = pageItems[i].textContent.trim();
+                        if (pageText === pageNumber.toString()) {
+                            pageItems[i].className = 'page-item active';
+                        } else if (pageText !== '«' && pageText !== '»') {
+                            pageItems[i].className = 'page-item';
+                        } else if (pageText === '«') {
+                            // Previous button
+                            pageItems[i].className = pageNumber <= 1 ? 'page-item disabled' : 'page-item';
+                        } else if (pageText === '»') {
+                            // Next button
+                            pageItems[i].className = pageNumber >= totalPages ? 'page-item disabled' : 'page-item';
+                        }
+                    }
+                }
+
+                // Hide all items first
+                allItems.forEach((item, index) => {
+                    item.style.display = 'none';
+                });
+
+                // Show items for current page (only from filtered items)
+                const startIndex = (pageNumber - 1) * itemsPerPage;
+                const endIndex = Math.min(startIndex + itemsPerPage, filteredItems.length);
+
+                for (let i = startIndex; i < endIndex; i++) {
+                    if (filteredItems[i]) {
+                        filteredItems[i].style.display = '';
+                    }
+                }
+            }
+
+            // Pagination initialization function
+            function initPagination(containerId, itemClass, paginationId, pageSizeSelectId) {
+                const container = document.getElementById(containerId);
+                const pageSizeSelect = document.getElementById(pageSizeSelectId);
+                if (!container) return;
+
+                // Remove existing event listener to prevent duplicate bindings
+                if (pageSizeSelect && !pageSizeSelect.hasAttribute('data-listener-bound')) {
+                    pageSizeSelect.addEventListener('change', function() {
+                        const newItemsPerPage = parseInt(this.value);
+                        renderPagination();
+                        goToPage(1, containerId, itemClass, newItemsPerPage, paginationId);
+                    });
+                    // Mark as having listener bound
+                    pageSizeSelect.setAttribute('data-listener-bound', 'true');
+                }
+
+                function renderPagination() {
+                    const allItems = Array.from(container.getElementsByClassName(itemClass));
+
+                    // Always get current page size from select element
+                    const currentPageSizeSelect = document.getElementById(pageSizeSelectId);
+                    const currentItemsPerPage = currentPageSizeSelect ? parseInt(currentPageSizeSelect.value) : 10;
+
+                    // Use same filtering logic as goToPage function
+                    const filteredItems = allItems.filter(item => {
+                        const searchVisible = item.getAttribute('data-search-visible');
+                        // If no search filter is applied, show all items
+                        return searchVisible === null || searchVisible === 'true';
+                    });
+
+                    const totalItems = filteredItems.length;
+                    const totalPages = Math.max(1, Math.ceil(totalItems / currentItemsPerPage));
+
+                    // Create pagination
+                    const paginationElement = document.getElementById(paginationId);
+                    if (!paginationElement) return;
+
+                    // Clear pagination
+                    paginationElement.innerHTML = '';
+
+                    // Don't show pagination if there's only one page or no items
+                    if (totalPages <= 1) {
+                        // Hide the entire pagination container when not needed
+                        const paginationContainer = paginationElement.closest('.pagination-container');
+                        if (paginationContainer) {
+                            paginationContainer.style.display = 'none';
+                        }
+                        return;
+                    }
+
+                    // Show the pagination container when needed
+                    const paginationContainer = paginationElement.closest('.pagination-container');
+                    if (paginationContainer) {
+                        paginationContainer.style.display = '';
+                    }
+
+                    // Previous button
+                    const prevLi = document.createElement('li');
+                    prevLi.className = 'page-item disabled';
+                    prevLi.innerHTML = '<a class="page-link" href="#" aria-label="Previous"><span aria-hidden="true">&laquo;</span></a>';
+                    prevLi.addEventListener('click', function(e) {
+                        e.preventDefault();
+                        const activePage = paginationElement.querySelector('.page-item.active');
+                        if (activePage) {
+                            const currentPageNum = parseInt(activePage.textContent.trim());
+                            if (currentPageNum > 1) {
+                                goToPage(currentPageNum - 1, containerId, itemClass, currentItemsPerPage, paginationId);
+                            }
+                        }
+                    });
+                    paginationElement.appendChild(prevLi);
+
+                    // Add page numbers
+                    for (let i = 1; i <= totalPages; i++) {
+                        const pageLi = document.createElement('li');
+                        pageLi.className = i === 1 ? 'page-item active' : 'page-item';
+                        pageLi.innerHTML = `<a class="page-link" href="#">${i}</a>`;
+                        pageLi.addEventListener('click', function(e) {
+                            e.preventDefault();
+                            goToPage(i, containerId, itemClass, currentItemsPerPage, paginationId);
+                        });
+                        paginationElement.appendChild(pageLi);
+                    }
+
+                    // Next button
+                    const nextLi = document.createElement('li');
+                    nextLi.className = totalPages <= 1 ? 'page-item disabled' : 'page-item';
+                    nextLi.innerHTML = '<a class="page-link" href="#" aria-label="Next"><span aria-hidden="true">&raquo;</span></a>';
+                    nextLi.addEventListener('click', function(e) {
+                        e.preventDefault();
+                        const activePage = paginationElement.querySelector('.page-item.active');
+                        if (activePage) {
+                            const currentPageNum = parseInt(activePage.textContent.trim());
+                            if (currentPageNum < totalPages) {
+                                goToPage(currentPageNum + 1, containerId, itemClass, currentItemsPerPage, paginationId);
+                            }
+                        }
+                    });
+                    paginationElement.appendChild(nextLi);
+                }
+
+                // Initial render
+                renderPagination();
+                // Always call goToPage to ensure items are displayed correctly, even if no pagination is shown
+                const currentItemsPerPage = pageSizeSelect ? parseInt(pageSizeSelect.value) : 10;
+                goToPage(1, containerId, itemClass, currentItemsPerPage, paginationId);
+            }
+
+            // Activity searching function
+            function initActivitySearching() {
+                const searchInputs = document.querySelectorAll('.activity-search-input');
+
+                searchInputs.forEach(function(searchInput) {
+                    const searchButton = document.querySelector('.search-btn[data-target="' + searchInput.id + '"]');
+                    const clearButton = document.querySelector('[data-target="' + searchInput.id + '"].search-clear-btn');
+
+                    // Search on Enter key
+                    searchInput.addEventListener('keydown', function(e) {
+                        if (e.key === 'Enter') {
+                            e.preventDefault();
+                            performActivitySearch(this);
+                        } else if (e.key === 'Escape') {
+                            clearActivitySearch(this);
+                        }
+                    });
+
+                    // Search button functionality
+                    if (searchButton) {
+                        searchButton.addEventListener('click', function() {
+                            performActivitySearch(searchInput);
+                        });
+                    }
+
+                    // Clear button functionality
+                    if (clearButton) {
+                        clearButton.addEventListener('click', function() {
+                            clearActivitySearch(searchInput);
+                        });
+                    }
+                });
+
+                function performActivitySearch(searchInput) {
+                    const searchTerm = searchInput.value.toLowerCase().trim();
+                    const containerId = searchInput.dataset.target;
+                    const itemClass = searchInput.dataset.itemClass;
+                    const paginationId = searchInput.dataset.pagination;
+                    const pageSizeSelectId = searchInput.dataset.pageSize;
+
+                    const container = document.getElementById(containerId);
+                    const items = Array.from(container.getElementsByClassName(itemClass));
+
+                    let visibleCount = 0;
+                    let totalCount = items.length;
+
+                    // Filter items based on search term
+                    items.forEach(function(item) {
+                        const activityNameElement = item.querySelector('.activity-name');
+                        if (activityNameElement) {
+                            const activityName = activityNameElement.textContent.toLowerCase();
+
+                            if (searchTerm === '' || activityName.includes(searchTerm)) {
+                                item.setAttribute('data-search-visible', 'true');
+                                visibleCount++;
+                            } else {
+                                item.setAttribute('data-search-visible', 'false');
+                            }
+                        }
+                    });
+
+                    // Update search results count
+                    const resultsElement = document.getElementById(searchInput.id.replace('-search', '-search-results'));
+                    if (resultsElement) {
+                        if (searchTerm === '') {
+                            resultsElement.textContent = '';
+                        } else {
+                            resultsElement.textContent = `Found ${visibleCount} of ${totalCount} activities`;
+                        }
+                    }
+
+                    // Re-initialize pagination with filtered results
+                    initPagination(containerId, itemClass, paginationId, pageSizeSelectId);
+                }
+
+                function clearActivitySearch(searchInput) {
+                    searchInput.value = '';
+                    performActivitySearch(searchInput);
+                }
+            }
+
+            // Property statistics searching function
+            function initPropertySearching() {
+                const searchInput = document.getElementById('property-stats-search');
+                const searchButton = document.querySelector('.search-btn[data-target="property-stats-search"]');
+                const clearButton = document.querySelector('[data-target="property-stats-search"].search-clear-btn');
+
+                if (!searchInput) return;
+
+                // Search on Enter key
+                searchInput.addEventListener('keydown', function(e) {
+                    if (e.key === 'Enter') {
+                        e.preventDefault();
+                        performPropertySearch(this);
+                    } else if (e.key === 'Escape') {
+                        clearPropertySearch(this);
+                    }
+                });
+
+                // Search button functionality
+                if (searchButton) {
+                    searchButton.addEventListener('click', function() {
+                        performPropertySearch(searchInput);
+                    });
+                }
+
+                // Clear button functionality
+                if (clearButton) {
+                    clearButton.addEventListener('click', function() {
+                        clearPropertySearch(searchInput);
+                    });
+                }
+
+                function performPropertySearch(searchInput) {
+                    const searchTerm = searchInput.value.toLowerCase().trim();
+                    const container = document.getElementById('property-stats-container');
+                    const items = Array.from(container.getElementsByClassName('property-stat-row'));
+
+                    let visibleCount = 0;
+                    let totalCount = items.length;
+
+                    // Filter items based on search term
+                    items.forEach(function(item) {
+                        const propertyNameElement = item.querySelector('.badge-custom');
+                        if (propertyNameElement) {
+                            const propertyName = propertyNameElement.textContent.toLowerCase();
+
+                            if (searchTerm === '' || propertyName.includes(searchTerm)) {
+                                item.setAttribute('data-search-visible', 'true');
+                                visibleCount++;
+                            } else {
+                                item.setAttribute('data-search-visible', 'false');
+                            }
+                        }
+                    });
+
+                    // Update search results count
+                    const resultsElement = document.getElementById('property-search-results');
+                    if (resultsElement) {
+                        if (searchTerm === '') {
+                            resultsElement.textContent = '';
+                        } else {
+                            resultsElement.textContent = `Found ${visibleCount} of ${totalCount} properties`;
+                        }
+                    }
+
+                    // Re-initialize pagination with filtered results
+                    initPagination('property-stats-container', 'property-stat-row', 'stats-pagination', 'stats-page-size');
+                }
+
+                function clearPropertySearch(searchInput) {
+                    searchInput.value = '';
+                    performPropertySearch(searchInput);
+                }
+            }
+
+            // Property source mapping searching function
+            function initPropertySourceSearching() {
+                const searchInput = document.getElementById('property-source-search');
+                const searchButton = document.querySelector('.search-btn[data-target="property-source-search"]');
+                const clearButton = document.querySelector('[data-target="property-source-search"].search-clear-btn');
+
+                if (!searchInput) return;
+
+                // Search on Enter key
+                searchInput.addEventListener('keydown', function(e) {
+                    if (e.key === 'Enter') {
+                        e.preventDefault();
+                        performPropertySourceSearch(this);
+                    } else if (e.key === 'Escape') {
+                        clearPropertySourceSearch(this);
+                    }
+                });
+
+                // Search button functionality
+                if (searchButton) {
+                    searchButton.addEventListener('click', function() {
+                        performPropertySourceSearch(searchInput);
+                    });
+                }
+
+                // Clear button functionality
+                if (clearButton) {
+                    clearButton.addEventListener('click', function() {
+                        clearPropertySourceSearch(searchInput);
+                    });
+                }
+
+                function performPropertySourceSearch(searchInput) {
+                    const searchTerm = searchInput.value.toLowerCase().trim();
+                    const container = document.getElementById('property-source-container');
+                    const items = Array.from(container.getElementsByClassName('property-source-row'));
+
+                    let visibleCount = 0;
+                    let totalCount = items.length;
+
+                    // Filter items based on search term
+                    items.forEach(function(item) {
+                        const propertyNameElement = item.querySelector('.badge-custom');
+                        if (propertyNameElement) {
+                            const propertyName = propertyNameElement.textContent.toLowerCase();
+
+                            if (searchTerm === '' || propertyName.includes(searchTerm)) {
+                                item.setAttribute('data-search-visible', 'true');
+                                visibleCount++;
+                            } else {
+                                item.setAttribute('data-search-visible', 'false');
+                            }
+                        }
+                    });
+
+                    // Update search results count
+                    const resultsElement = document.getElementById('property-source-search-results');
+                    if (resultsElement) {
+                        if (searchTerm === '') {
+                            resultsElement.textContent = '';
+                        } else {
+                            resultsElement.textContent = `Found ${visibleCount} of ${totalCount} properties`;
+                        }
+                    }
+
+                    // Re-initialize pagination with filtered results
+                    initPagination('property-source-container', 'property-source-row', 'source-pagination', 'source-page-size');
+                }
+
+                function clearPropertySourceSearch(searchInput) {
+                    searchInput.value = '';
+                    performPropertySourceSearch(searchInput);
+                }
+            }
+
+            // Activities table searching function
+            function initActivitiesSearching() {
+                const searchInput = document.getElementById('activities-search');
+                const searchButton = document.getElementById('activities-search-btn');
+
+                if (!searchInput) return;
+
+                // Search on Enter key and clear on Escape
+                searchInput.addEventListener('keydown', function(e) {
+                    if (e.key === 'Enter') {
+                        e.preventDefault();
+                        performActivitiesSearch(this);
+                    } else if (e.key === 'Escape') {
+                        clearActivitiesSearch(this);
+                    }
+                });
+
+                // Search button functionality
+                if (searchButton) {
+                    searchButton.addEventListener('click', function() {
+                        performActivitiesSearch(searchInput);
+                    });
+                }
+
+                function performActivitiesSearch(searchInput) {
+                    const searchTerm = searchInput.value.toLowerCase().trim();
+                    const container = document.getElementById('activities-container');
+                    const rows = container.querySelectorAll('.activity-row');
+                    const resultsCount = document.getElementById('activities-search-results');
+
+                    let visibleCount = 0;
+
+                    rows.forEach(function(row) {
+                        const activityName = row.querySelector('.activity-name').textContent.toLowerCase();
+
+                        // If no search term, show all rows
+                        if (!searchTerm) {
+                            row.removeAttribute('data-search-visible');
+                            visibleCount++;
+                        } else {
+                            const matches = activityName.includes(searchTerm);
+                            if (matches) {
+                                row.setAttribute('data-search-visible', 'true');
+                                visibleCount++;
+                            } else {
+                                row.setAttribute('data-search-visible', 'false');
+                            }
+                        }
+                    });
+
+                    console.log('Search performed:', {searchTerm, visibleCount, totalRows: rows.length});
+
+                    // Update results count
+                    if (resultsCount) {
+                        if (searchTerm) {
+                            resultsCount.textContent = `Found ${visibleCount} of ${rows.length} activities`;
+                        } else {
+                            resultsCount.textContent = '';
+                        }
+                    }
+
+                    // Immediately show/hide rows based on search before pagination update
+                    rows.forEach(function(row) {
+                        const searchVisible = row.getAttribute('data-search-visible');
+                        if (searchVisible === null || searchVisible === 'true') {
+                            row.style.display = '';
+                        } else {
+                            row.style.display = 'none';
+                        }
+                    });
+
+                    console.log('Rows visibility updated, calling pagination update...');
+
+                    // Update pagination after search
+                    updateActivitiesPagination();
+                }
+
+                function clearActivitiesSearch(searchInput) {
+                    searchInput.value = '';
+                    performActivitiesSearch(searchInput);
+                    searchInput.focus();
+                }
+            }
+
+            // Activities table sorting function - Simplified version
+            function initActivitiesSorting() {
+                console.log('Initializing activities sorting...');
+
+                // Use event delegation to avoid losing event listeners
+                document.addEventListener('click', function(e) {
+                    // Check if clicked element is the sort icon
+                    if (e.target && e.target.id === 'visit-count-sort') {
+                        e.preventDefault();
+                        e.stopPropagation();
+
+                        console.log('=== SORT CLICK EVENT START ===');
+                        console.log('Sort icon clicked via delegation');
+
+                        const sortIcon = e.target;
+                        const currentOrder = sortIcon.dataset.order || 'none';
+
+                        console.log('Current order:', currentOrder);
+
+                        // Determine new order
+                        let newOrder;
+                        if (currentOrder === 'none' || currentOrder === 'desc') {
+                            newOrder = 'asc';
+                        } else {
+                            newOrder = 'desc';
+                        }
+
+                        console.log('New order:', newOrder);
+
+                        // Update icon appearance
+                        sortIcon.classList.remove('bi-arrow-down-up', 'bi-arrow-up', 'bi-arrow-down');
+                        sortIcon.classList.add('text-primary');
+                        if (newOrder === 'asc') {
+                            sortIcon.classList.add('bi-arrow-up');
+                        } else {
+                            sortIcon.classList.add('bi-arrow-down');
+                        }
+
+                        // Store new order
+                        sortIcon.dataset.order = newOrder;
+
+                        // Get container and rows
+                        const container = document.getElementById('activities-container');
+                        const rows = Array.from(container.querySelectorAll('.activity-row'));
+
+                        console.log('Found rows for sorting:', rows.length);
+
+                        // Sort rows
+                        rows.sort((a, b) => {
+                            const aCount = parseInt(a.dataset.visitCount) || 0;
+                            const bCount = parseInt(b.dataset.visitCount) || 0;
+
+                            if (newOrder === 'asc') {
+                                return aCount - bCount;
+                            } else {
+                                return bCount - aCount;
+                            }
+                        });
+
+                        console.log('Rows sorted, reordering DOM');
+
+                        // Clear container and re-append sorted rows
+                        container.innerHTML = '';
+                        rows.forEach(function(row) {
+                            container.appendChild(row);
+                        });
+
+                        console.log('DOM reordered, updating pagination');
+
+                        // Update pagination after sorting
+                        updateActivitiesPagination();
+
+                        console.log('=== SORT CLICK EVENT END ===');
+                    }
+                });
+
+                console.log('Activities sorting initialized with event delegation');
+            }
+
+            // Function to update Activities pagination after sorting
+            function updateActivitiesPagination() {
+                const container = document.getElementById('activities-container');
+                const pageSizeSelect = document.getElementById('activities-page-size');
+                const paginationElement = document.getElementById('activities-pagination');
+
+                if (!container || !paginationElement) return;
+
+                const allRows = Array.from(container.querySelectorAll('.activity-row'));
+                const itemsPerPage = pageSizeSelect ? parseInt(pageSizeSelect.value) : 10;
+
+                // Filter visible rows (considering search)
+                const visibleRows = allRows.filter(row => {
+                    const searchVisible = row.getAttribute('data-search-visible');
+                    return searchVisible === null || searchVisible === 'true';
+                });
+
+                const totalItems = visibleRows.length;
+                const totalPages = Math.max(1, Math.ceil(totalItems / itemsPerPage));
+
+                console.log('Updating pagination:', {totalItems, itemsPerPage, totalPages});
+
+                // Get pagination container
+                const paginationContainer = paginationElement.closest('.d-flex');
+
+                // Don't show pagination if there's only one page or no items
+                if (totalPages <= 1) {
+                    if (paginationContainer) {
+                        paginationContainer.style.display = 'none';
+                    }
+                    // Show visible rows and hide invisible rows
+                    allRows.forEach(row => {
+                        const searchVisible = row.getAttribute('data-search-visible');
+                        if (searchVisible === null || searchVisible === 'true') {
+                            row.style.display = '';
+                        } else {
+                            row.style.display = 'none';
+                        }
+                    });
+                    return;
+                }
+
+                // Show pagination container
+                if (paginationContainer) {
+                    paginationContainer.style.display = '';
+                }
+
+                // Clear existing pagination
+                paginationElement.innerHTML = '';
+
+                // Previous button
+                const prevLi = document.createElement('li');
+                prevLi.className = 'page-item disabled';
+                prevLi.innerHTML = '<a class="page-link" href="#" aria-label="Previous"><span aria-hidden="true">&laquo;</span></a>';
+                paginationElement.appendChild(prevLi);
+
+                // Create pagination buttons
+                for (let i = 1; i <= totalPages; i++) {
+                    const li = document.createElement('li');
+                    li.className = `page-item ${i === 1 ? 'active' : ''}`;
+
+                    const a = document.createElement('a');
+                    a.className = 'page-link';
+                    a.href = '#';
+                    a.textContent = i;
+                    a.addEventListener('click', function(e) {
+                        e.preventDefault();
+                        goToActivitiesPage(i, totalPages, itemsPerPage);
+                    });
+
+                    li.appendChild(a);
+                    paginationElement.appendChild(li);
+                }
+
+                // Next button
+                const nextLi = document.createElement('li');
+                nextLi.className = totalPages <= 1 ? 'page-item disabled' : 'page-item';
+                nextLi.innerHTML = '<a class="page-link" href="#" aria-label="Next"><span aria-hidden="true">&raquo;</span></a>';
+                paginationElement.appendChild(nextLi);
+
+                // Add event listeners to prev/next buttons
+                const prevButton = paginationElement.firstChild;
+                const nextButton = paginationElement.lastChild;
+
+                prevButton.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    const activePage = paginationElement.querySelector('.page-item.active');
+                    if (activePage && activePage.previousElementSibling && activePage.previousElementSibling !== prevButton) {
+                        const pageNum = parseInt(activePage.textContent) - 1;
+                        if (pageNum >= 1) {
+                            goToActivitiesPage(pageNum, totalPages, itemsPerPage);
+                        }
+                    }
+                });
+
+                nextButton.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    const activePage = paginationElement.querySelector('.page-item.active');
+                    if (activePage && activePage.nextElementSibling && activePage.nextElementSibling !== nextButton) {
+                        const pageNum = parseInt(activePage.textContent) + 1;
+                        if (pageNum <= totalPages) {
+                            goToActivitiesPage(pageNum, totalPages, itemsPerPage);
+                        }
+                    }
+                });
+
+                // Show first page
+                goToActivitiesPage(1, totalPages, itemsPerPage);
+            }
+
+            // Function to navigate to specific page
+            function goToActivitiesPage(pageNumber, totalPages, itemsPerPage) {
+                const container = document.getElementById('activities-container');
+                const allRows = Array.from(container.querySelectorAll('.activity-row'));
+
+                // Filter visible rows (considering search)
+                const visibleRows = allRows.filter(row => {
+                    const searchVisible = row.getAttribute('data-search-visible');
+                    return searchVisible === null || searchVisible === 'true';
+                });
+
+                const startIndex = (pageNumber - 1) * itemsPerPage;
+                const endIndex = startIndex + itemsPerPage;
+
+                console.log('Going to page:', {pageNumber, startIndex, endIndex, totalVisible: visibleRows.length});
+
+                // Hide all rows first
+                allRows.forEach(row => {
+                    row.style.display = 'none';
+                });
+
+                // Show only rows for current page
+                visibleRows.slice(startIndex, endIndex).forEach(row => {
+                    row.style.display = '';
+                });
+
+                // Update pagination active state
+                const paginationElement = document.getElementById('activities-pagination');
+                if (paginationElement) {
+                    const pageItems = paginationElement.querySelectorAll('.page-item');
+                    const prevButton = pageItems[0]; // First item is previous button
+                    const nextButton = pageItems[pageItems.length - 1]; // Last item is next button
+
+                    // Update page number buttons (skip first and last which are prev/next)
+                    pageItems.forEach((item, index) => {
+                        // Skip prev/next buttons
+                        if (index === 0 || index === pageItems.length - 1) return;
+
+                        const pageNum = index; // Adjusted for prev button at index 0
+                        if (pageNum === pageNumber) {
+                            item.classList.add('active');
+                        } else {
+                            item.classList.remove('active');
+                        }
+                    });
+
+                    // Update prev/next button states
+                    if (prevButton) {
+                        if (pageNumber <= 1) {
+                            prevButton.classList.add('disabled');
+                        } else {
+                            prevButton.classList.remove('disabled');
+                        }
+                    }
+
+                    if (nextButton) {
+                        if (pageNumber >= totalPages) {
+                            nextButton.classList.add('disabled');
+                        } else {
+                            nextButton.classList.remove('disabled');
+                        }
+                    }
+                }
+            }
+
+            // Initialize Activities page size selector
+            function initActivitiesPageSize() {
+                const pageSizeSelect = document.getElementById('activities-page-size');
+
+                if (!pageSizeSelect) return;
+
+                // Remove existing event listener to prevent duplicate bindings
+                if (!pageSizeSelect.hasAttribute('data-activities-listener-bound')) {
+                    pageSizeSelect.addEventListener('change', function() {
+                        console.log('Activities page size changed to:', this.value);
+                        updateActivitiesPagination();
+                    });
+                    // Mark as having listener bound
+                    pageSizeSelect.setAttribute('data-activities-listener-bound', 'true');
+                }
+            }
+
+            // Source directories expand/collapse functionality
+            function initSourceDirsToggle() {
+                const toggleButtons = document.querySelectorAll('.source-dirs-toggle');
+
+                toggleButtons.forEach(function(button) {
+                    button.addEventListener('click', function() {
+                        const targetId = this.getAttribute('data-target');
+                        const hiddenDirs = document.getElementById(targetId);
+                        const icon = this.querySelector('.bi');
+                        const toggleText = this.querySelector('.toggle-text');
+                        const total = parseInt(this.getAttribute('data-total'));
+                        const visible = parseInt(this.getAttribute('data-visible'));
+
+                        if (hiddenDirs.style.display === 'none') {
+                            // Show hidden directories
+                            hiddenDirs.style.display = 'inline';
+                            icon.className = 'bi bi-chevron-up';
+                            toggleText.textContent = 'Show less';
+                            this.classList.remove('btn-outline-info');
+                            this.classList.add('btn-outline-secondary');
+                        } else {
+                            // Hide directories
+                            hiddenDirs.style.display = 'none';
+                            icon.className = 'bi bi-chevron-down';
+                            toggleText.textContent = `+${total - visible} more`;
+                            this.classList.remove('btn-outline-secondary');
+                            this.classList.add('btn-outline-info');
+                        }
+                    });
+                });
+            }
+
+            function updatePaginationControls(paginationId, currentPage, totalPages, onPageClick) {
+                var pagination = document.getElementById(paginationId);
+                if (!pagination) return;
+
+                pagination.innerHTML = '';
+
+                if (totalPages <= 1) {
+                    // Hide the entire pagination container when not needed
+                    var paginationContainer = pagination.closest('.pagination-container');
+                    if (paginationContainer) {
+                        paginationContainer.style.display = 'none';
+                    }
+                    return;
+                }
+
+                // Show the pagination container when needed
+                var paginationContainer = pagination.closest('.pagination-container');
+                if (paginationContainer) {
+                    paginationContainer.style.display = '';
+                }
+
+                // Previous button
+                var prevLi = document.createElement('li');
+                prevLi.className = 'page-item' + (currentPage === 1 ? ' disabled' : '');
+                var prevLink = document.createElement('a');
+                prevLink.className = 'page-link';
+                prevLink.href = '#';
+                prevLink.setAttribute('aria-label', 'Previous');
+                prevLink.innerHTML = '<span aria-hidden="true">&laquo;</span>';
+
+                prevLink.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    // Get current page dynamically to avoid stale closure values
+                    var currentActivePage = getCurrentPageNumber(paginationId);
+                    if (currentActivePage > 1 && !prevLi.classList.contains('disabled')) {
+                        onPageClick(currentActivePage - 1);
+                    }
+                });
+
+                prevLi.appendChild(prevLink);
+                pagination.appendChild(prevLi);
+
+                // Page numbers
+                for (var i = 1; i <= totalPages; i++) {
+                    var li = document.createElement('li');
+                    li.className = 'page-item' + (i === currentPage ? ' active' : '');
+                    var link = document.createElement('a');
+                    link.className = 'page-link';
+                    link.href = '#';
+                    link.textContent = i;
+                    link.addEventListener('click', (function(page) {
+                        return function(e) {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            onPageClick(page);
+                        };
+                    })(i));
+                    li.appendChild(link);
+                    pagination.appendChild(li);
+                }
+
+                // Next button
+                var nextLi = document.createElement('li');
+                nextLi.className = 'page-item' + (currentPage === totalPages ? ' disabled' : '');
+                var nextLink = document.createElement('a');
+                nextLink.className = 'page-link';
+                nextLink.href = '#';
+                nextLink.setAttribute('aria-label', 'Next');
+                nextLink.innerHTML = '<span aria-hidden="true">&raquo;</span>';
+
+                nextLink.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    // Get current page dynamically to avoid stale closure values
+                    var currentActivePage = getCurrentPageNumber(paginationId);
+                    if (currentActivePage < totalPages && !nextLi.classList.contains('disabled')) {
+                        onPageClick(currentActivePage + 1);
+                    }
+                });
+
+                nextLi.appendChild(nextLink);
+                pagination.appendChild(nextLi);
+            }
+
+            function getCurrentPageNumber(paginationId) {
+                var pagination = document.getElementById(paginationId);
+                if (!pagination) return 1;
+
+                var activeItem = pagination.querySelector('.page-item.active');
+                if (activeItem) {
+                    var pageText = activeItem.textContent.trim();
+                    var pageNum = parseInt(pageText);
+                    return isNaN(pageNum) ? 1 : pageNum;
+                }
+                return 1;
+            }
+
+            function initMergeInfoCollapse() {
+                // Initialize merge info collapse functionality if needed
+                // This function can be expanded based on specific merge info requirements
+                console.log('Merge info collapse initialized');
+            }
+
+            function initMergedDirectoriesScrollbar() {
+                const directoriesList = document.querySelector('.merged-directories-list');
+                const directoriesContainer = document.querySelector('.merged-directories-container');
+
+                if (!directoriesList || !directoriesContainer) return;
+
+                // Function to check if scrollbar is needed
+                function checkScrollbar() {
+                    const hasScrollbar = directoriesList.scrollHeight > directoriesList.clientHeight;
+
+                    if (hasScrollbar) {
+                        directoriesContainer.classList.add('has-scrollbar');
+                        // Add scroll indicator
+                        if (!directoriesContainer.querySelector('.scroll-indicator')) {
+                            const indicator = document.createElement('div');
+                            indicator.className = 'scroll-indicator';
+                            indicator.innerHTML = '<i class="bi bi-chevron-down"></i>';
+                            indicator.style.cssText = `
+                                position: absolute;
+                                bottom: 5px;
+                                right: 5px;
+                                background: rgba(23, 162, 184, 0.8);
+                                color: white;
+                                border-radius: 50%;
+                                width: 20px;
+                                height: 20px;
+                                display: flex;
+                                align-items: center;
+                                justify-content: center;
+                                font-size: 10px;
+                                pointer-events: none;
+                                opacity: 0.7;
+                                transition: opacity 0.3s ease;
+                            `;
+                            directoriesContainer.appendChild(indicator);
+                        }
+                    } else {
+                        directoriesContainer.classList.remove('has-scrollbar');
+                        const indicator = directoriesContainer.querySelector('.scroll-indicator');
+                        if (indicator) {
+                            indicator.remove();
+                        }
+                    }
+                }
+
+                // Check on load
+                checkScrollbar();
+
+                // Check on window resize
+                window.addEventListener('resize', checkScrollbar);
+
+                // Add scroll event listener to hide indicator when scrolled to bottom
+                directoriesList.addEventListener('scroll', function() {
+                    const indicator = directoriesContainer.querySelector('.scroll-indicator');
+                    if (indicator) {
+                        const isAtBottom = this.scrollTop + this.clientHeight >= this.scrollHeight - 5;
+                        indicator.style.opacity = isAtBottom ? '0' : '0.7';
+                    }
+                });
+
+                // Enhance scrollbar visibility on hover
+                directoriesContainer.addEventListener('mouseenter', function() {
+                    directoriesList.style.scrollbarWidth = 'auto';
+                });
+
+                directoriesContainer.addEventListener('mouseleave', function() {
+                    directoriesList.style.scrollbarWidth = 'thin';
+                });
+            }
+
+            // Crash Analysis Functions
+            function initCrashAnalysis() {
+                // Initialize event filtering first (this will set initial visibility)
+                initEventFiltering();
+
+                // Initialize pagination for crash events (using specialized function)
+                initCrashEventsPagination();
+
+                // Initialize copy stack trace functionality
+                initCopyStackTrace();
+            }
+
+            function initEventFiltering() {
+                const filterButtons = document.querySelectorAll('input[name="event-filter"]');
+
+                filterButtons.forEach(button => {
+                    button.addEventListener('change', function() {
+                        const filterType = this.id;
+                        filterEvents(filterType);
+                    });
+                });
+
+                // Initialize with default filter (all-events)
+                filterEvents('all-events');
+            }
+
+            function filterEvents(filterType) {
+                const eventRows = document.querySelectorAll('.event-row');
+
+                eventRows.forEach(row => {
+                    const eventType = row.dataset.type;
+                    let shouldShow = false;
+
+                    switch(filterType) {
+                        case 'all-events':
+                            shouldShow = true;
+                            break;
+                        case 'crashes-only':
+                            shouldShow = eventType === 'crash';
+                            break;
+                        case 'anr-only':
+                            shouldShow = eventType === 'anr';
+                            break;
+                    }
+
+                    // Set the display style to control visibility
+                    row.style.display = shouldShow ? '' : 'none';
+
+                    // Also control the corresponding detail row
+                    const detailRow = row.nextElementSibling;
+                    if (detailRow && detailRow.classList.contains('collapse')) {
+                        detailRow.style.display = shouldShow ? '' : 'none';
+                    }
+                });
+
+                // Re-setup pagination after filtering
+                setTimeout(function() {
+                    setupCrashEventsPagination();
+                }, 10);
+            }
+
+
+
+            function initCrashEventsPagination() {
+                const pageSizeSelect = document.getElementById('events-page-size');
+
+                if (pageSizeSelect) {
+                    // Add event listener for page size change
+                    pageSizeSelect.addEventListener('change', function() {
+                        setupCrashEventsPagination();
+                    });
+                }
+            }
+
+
+
+
+
+
+            function initCopyStackTrace() {
+                const copyButtons = document.querySelectorAll('.copy-stack-btn');
+
+                copyButtons.forEach(button => {
+                    button.addEventListener('click', function() {
+                        const stackIndex = this.dataset.stackIndex;
+                        copyStackTrace(stackIndex);
+                    });
+                });
+            }
+
+            function copyStackTrace(stackIndex) {
+                const stackElement = document.getElementById(`stack-trace-${stackIndex}`);
+                if (!stackElement) return;
+
+                const stackText = stackElement.textContent;
+
+                if (navigator.clipboard && navigator.clipboard.writeText) {
+                    navigator.clipboard.writeText(stackText).then(() => {
+                        showCopyNotification('Stack trace copied to clipboard!');
+                    }).catch(err => {
+                        console.error('Failed to copy stack trace: ', err);
+                        showCopyNotification('Failed to copy stack trace', 'error');
+                    });
+                } else {
+                    // Fallback for older browsers
+                    const textArea = document.createElement('textarea');
+                    textArea.value = stackText;
+                    document.body.appendChild(textArea);
+                    textArea.select();
+                    try {
+                        document.execCommand('copy');
+                        showCopyNotification('Stack trace copied to clipboard!');
+                    } catch (err) {
+                        console.error('Fallback copy failed: ', err);
+                        showCopyNotification('Failed to copy stack trace', 'error');
+                    }
+                    document.body.removeChild(textArea);
+                }
+            }
+
+            function showCopyNotification(message, type) {
+                type = type || 'success';
+
+                // Create notification element
+                const notification = document.createElement('div');
+                notification.className = 'alert alert-' + (type === 'error' ? 'danger' : 'success') + ' position-fixed';
+                notification.style.cssText = 'top: 20px; right: 20px; z-index: 9999; min-width: 300px; opacity: 0; transition: opacity 0.3s ease-in-out;';
+                notification.innerHTML = '<i class="bi bi-' + (type === 'error' ? 'exclamation-triangle' : 'check-circle') + '"></i> ' + message;
+
+                document.body.appendChild(notification);
+
+                // Fade in animation
+                setTimeout(function() {
+                    notification.style.opacity = '1';
+                }, 10);
+
+                // Auto remove after 3 seconds with fade out
+                setTimeout(function() {
+                    notification.style.opacity = '0';
+                    setTimeout(function() {
+                        if (notification.parentNode) {
+                            notification.parentNode.removeChild(notification);
+                        }
+                    }, 300);
+                }, 3000);
+            }
+        });
+    </script>
+</body>
+</html>

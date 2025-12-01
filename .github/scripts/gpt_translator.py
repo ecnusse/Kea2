@@ -38,6 +38,7 @@ property -> 性质
 property-based testing -> 基于性质的测试
 monkey event -> 随机事件
 widget -> 控件
+lark -> 飞书
 """
 
 SYSTEM_PROMPT_TEMPLATE = Template("""

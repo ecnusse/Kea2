@@ -1,0 +1,64 @@
+name: '🐛 Bug Report'
+description: 'Report an bug'
+title: '[Bug Report] '
+labels: ['unconfirm']
+type: Bug
+body:
+  - type: input
+    attributes:
+      label: '📌 Kea2 Version'
+      description: 'Please provide the specific version number of Kea2 (result of `kea2 version`)'
+    validations:
+      required: true
+
+  - type: dropdown
+    attributes:
+      label: '💻 Operating System'
+      description: 'Select your operating system (multiple options allowed)'
+      multiple: true
+      options:
+        - 'Windows'
+        - 'macOS'
+        - 'Linux'
+        - 'Other'
+    validations:
+      required: true
+
+  - type: input
+    attributes:
+      label: '📱 Android Version'
+      description: 'Please provide the Android version number (e.g., Android 12)'
+    validations:
+      required: true
+
+  - type: input
+    attributes:
+      label: '📲 Device Model'
+      description: 'Please describe your device model (e.g., Xiaomi 15, Nexus 5X, Honor V20, etc.)'
+
+  - type: input
+    attributes:
+      label: '🐍 Python Version'
+      description: 'Please provide your Python version information (result of `python --version`)'
+
+  - type: textarea
+    attributes:
+      label: '🐛 Bug Description'
+      description: 'Describe the bug you encountered in detail. Add screenshots if applicable'
+    validations:
+      required: true
+
+  - type: textarea
+    attributes:
+      label: '📷 Recurrence Steps'
+      description: 'Describe the exact steps to reproduce the issue. Add screenshots if applicable'
+
+  - type: textarea
+    attributes:
+      label: '🚦 Expected Behavior'
+      description: 'Describe what behavior or result you expected'
+
+  - type: textarea
+    attributes:
+      label: '📝 Additional Information'
+      description: 'If you need further explanation or the issue cannot be reproduced through code, please provide more details'

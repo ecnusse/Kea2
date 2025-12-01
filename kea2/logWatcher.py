@@ -2,12 +2,12 @@ import re
 import os
 import threading
 import time
+
 from typing import IO
-from kea2.utils import getLogger
+from .utils import getLogger
 
 
 logger = getLogger(__name__)
-
 
 PATTERN_EXCEPTION = re.compile(r"\[Fastbot\].+Internal\serror\n([\s\S]*)")
 PATTERN_STATISTIC = re.compile(r".+Monkey\sis\sover!\n([\s\S]+)")
@@ -16,7 +16,6 @@ PATTERN_STATISTIC = re.compile(r".+Monkey\sis\sover!\n([\s\S]+)")
 def thread_excepthook(args):
     print(args.exc_value, flush=True)
     os._exit(1)
-
 
 
 class LogWatcher:
@@ -47,7 +46,7 @@ class LogWatcher:
                 raise RuntimeError(
                     "[Error] Fatal Execption while running fastbot:\n" + 
                     exception_body + 
-                    "\nSee fastbot.log for details."
+                    f"\nSee {self.log_file} for details."
                 )
         
         statistic_match = PATTERN_STATISTIC.search(content)

@@ -1,11 +1,12 @@
 import sys
 import subprocess
 import threading
-from typing import List, Optional, Set, Tuple
 
-from kea2.utils import getLogger
+from typing import IO, Generator, Optional, List, Union, List, Optional, Set, Tuple
+
 from adbutils import AdbDevice, adb
-from typing import IO, TYPE_CHECKING, Generator, Optional, List, Union
+
+from .utils import getLogger
 
 logger = getLogger(__name__)
 

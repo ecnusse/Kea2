@@ -1,21 +1,20 @@
 import functools
-import random
-import socket
-import time
 from time import sleep
+from importlib.metadata import version
+
 import uiautomator2 as u2
 import adbutils
 import types
 import rtree
 import re
-from typing import Any, Dict, List, Union, Optional
-from http.client import HTTPResponse
-from lxml import etree
-from .absDriver import AbstractScriptDriver, AbstractStaticChecker, AbstractDriver
-from .adbUtils import list_forwards, remove_forward, create_forward
-from .utils import TimeStamp, getLogger
 
-TIME_STAMP = TimeStamp().getTimeStamp()
+from typing import List, Literal, Union, Optional
+from lxml import etree
+from packaging.version import Version
+from .absDriver import AbstractScriptDriver, AbstractStaticChecker, AbstractDriver
+from .adbUtils import list_forwards, remove_forward
+from .utils import getLogger
+
 
 import logging
 logging.getLogger("urllib3").setLevel(logging.INFO)
@@ -57,8 +56,7 @@ class U2ScriptDriver(AbstractScriptDriver):
             print("[INFO] Connecting to uiautomator2. Please wait ...")
             self.d = u2.connect(adb)
             sleep(5)
-            self.d._device_server_port = 8090
-
+        self.d._device_server_port = 8090
         return self.d
 
     def _remove_remote_port(self, port:int):
@@ -71,11 +69,16 @@ class U2ScriptDriver(AbstractScriptDriver):
                 remove_forward(local_spec=forward_local, device=self.deviceSerial)
 
     def tearDown(self):
-        # logger.debug("U2Driver tearDown: stop_uiautomator")
-        # self.d.stop_uiautomator()
-        # logger.debug("U2Driver tearDown: remove forward")
-        # self._remove_remote_port(8090)
-        pass
+        logger.debug("U2Driver tearDown: stop_uiautomator")
+        if self.d is None:
+            return
+        try:
+            self.d._device_server_port = 9008
+            self.d.stop_uiautomator()
+        except (OSError, AttributeError, RuntimeError) as e:
+            logger.debug(f"Error during uiautomator teardown (may be already closed): {e}")
+        except Exception as e:
+            logger.warning(f"Unexpected error during uiautomator teardown: {e}")
 
 """
 The definition of U2StaticChecker
@@ -207,10 +210,14 @@ class StaticU2UiObject(u2.UiObject):
     def __getattr__(self, attr):
         return getattr(super(), attr)
 
+
+class StaticXpathObject(u2.xpath.XPathSelector):
+    pass
+
 """
 The definition of XpathStaticChecker
 """
-class StaticXpathUiObject(u2.xpath.XPathSelector):
+class StaticXpathObjectV1(StaticXpathObject):
     def __init__(self, session, selector):
         self.session: U2StaticDevice = session
         self.selector = selector
@@ -220,7 +227,7 @@ class StaticXpathUiObject(u2.xpath.XPathSelector):
         source = self.session.get_page_source()
         return len(self.selector.all(source)) > 0
 
-    def __and__(self, value) -> 'StaticXpathUiObject':
+    def __and__(self, value) -> 'StaticXpathObject':
         s = u2.xpath.XPathSelector(self.selector)
         s._next_xpath = u2.xpath.XPathSelector.create(value.selector)
         s._operator = u2.xpath.Operator.AND
@@ -228,7 +235,7 @@ class StaticXpathUiObject(u2.xpath.XPathSelector):
         self.selector = s
         return self
 
-    def __or__(self, value) -> 'StaticXpathUiObject':
+    def __or__(self, value) -> 'StaticXpathObject':
         s = u2.xpath.XPathSelector(self.selector)
         s._next_xpath = u2.xpath.XPathSelector.create(value.selector)
         s._operator = u2.xpath.Operator.OR
@@ -264,7 +271,7 @@ class StaticXpathUiObject(u2.xpath.XPathSelector):
             print("Unsupported operator: {}".format(selector._operator))
             return "//error"
 
-    def xpath(self, _xpath: Union[list, tuple, str]) -> 'StaticXpathUiObject':
+    def xpath(self, _xpath: Union[list, tuple, str]) -> 'StaticXpathObject':
         """
         add xpath to condition list
         the element should match all conditions
@@ -277,7 +284,7 @@ class StaticXpathUiObject(u2.xpath.XPathSelector):
             self.selector = self.selector & _xpath
         return self
 
-    def child(self, _xpath: str) -> "StaticXpathUiObject":
+    def child(self, _xpath: str) -> "StaticXpathObject":
         """
         add child xpath
         """
@@ -324,6 +331,45 @@ class StaticXpathUiObject(u2.xpath.XPathSelector):
             raise AttributeError("Invalid attr", key)
         return getattr(super(), key)
 
+
+class StaticXpathObjectV2(StaticXpathObjectV1):
+    def __and__(self, value) -> 'StaticXpathObject':
+        s = u2.xpath.XPathSelector(self.selector)
+        s._next_xpath = u2.xpath.XPathSelector.create(value.selector)
+        s._operator = u2.xpath.Operator.AND
+        self.selector = s
+        return self
+
+    def __or__(self, value) -> 'StaticXpathObject':
+        s = u2.xpath.XPathSelector(self.selector)
+        s._next_xpath = u2.xpath.XPathSelector.create(value.selector)
+        s._operator = u2.xpath.Operator.OR
+        self.selector = s
+        return self
+
+    def get_last_match(self) -> "u2.xpath.XMLElement":
+        source = self.session.get_page_source()
+        return self.selector.all(source)[0]
+
+
+class StaticXpathUiObjectFactory:
+
+    _u2_version = None
+
+    @classmethod
+    def get_u2_version(cls):
+        if cls._u2_version is None:
+            cls._u2_version = Version(version("uiautomator2"))
+        return cls._u2_version
+
+    @classmethod
+    def create(cls, session, xpath, source) -> StaticXpathObject:
+        if cls.get_u2_version() <= Version("3.4.0"):
+            return StaticXpathObjectV1(session, selector=u2.xpath.XPathSelector(xpath, source=source))
+        elif cls.get_u2_version() >= Version("3.4.1"):
+            return StaticXpathObjectV2(session, selector=u2.xpath.XPathSelector(xpath))
+
+
 def _get_bounds(raw_bounds):
     pattern = re.compile(r"\[(-?\d+),(-?\d+)\]\[(-?\d+),(-?\d+)\]")
     m = re.match(pattern, raw_bounds)
@@ -349,9 +395,11 @@ class _HindenWidgetFilter:
             import traceback, uuid
             traceback.print_exc()
             logger.error(f"Error in setting covered widgets")
-            with open(f"kea2_error_tree_{uuid.uuid4().hex}.xml", "wb") as f:
-                xml_bytes = etree.tostring(root, pretty_print=True, encoding="utf-8", xml_declaration=True)
-                f.write(xml_bytes)
+            from .utils import LoggingLevel
+            if LoggingLevel.level <= logging.DEBUG:
+                with open(f"kea2_error_tree_{uuid.uuid4().hex}.xml", "wb") as f:
+                    xml_bytes = etree.tostring(root, pretty_print=True, encoding="utf-8", xml_declaration=True)
+                    f.write(xml_bytes)
 
         # xml_bytes = etree.tostring(root, pretty_print=True, encoding="utf-8", xml_declaration=True)
         # with open("filtered_tree.xml", "wb") as f:
@@ -411,15 +459,25 @@ class _HindenWidgetFilter:
 
 
 class U2StaticDevice(u2.Device):
+
     def __init__(self, script_driver=None):
         self.xml: etree._Element = None
-        self._script_driver = script_driver
+        self._script_driver:u2.Device = script_driver
+        self._app_current = None
 
     def __call__(self, **kwargs):
         ui = StaticU2UiObject(session=self, selector=u2.Selector(**kwargs))
         if self._script_driver:
             ui.jsonrpc = self._script_driver.jsonrpc
         return ui
+
+    def clear_cache(self):
+        self._app_current = None
+
+    def app_current(self):
+        if not self._app_current:
+            self._app_current = self._script_driver.app_current()
+        return self._app_current
 
     @property
     def xpath(self) -> u2.xpath.XPathEntry:
@@ -432,32 +490,33 @@ class U2StaticDevice(u2.Device):
             get_page_source, xpathEntry
         )
         return xpathEntry
-    
+
     def __getattr__(self, attr):
         """Proxy other methods to script_driver"""
         logger.debug(f"{attr} not exists in static checker, proxy to script_driver.")
         return getattr(self._script_driver, attr)
 
+
 class _XPathEntry(u2.xpath.XPathEntry):
     def __init__(self, d):
         self.xpath = None
         super().__init__(d)
-        
+
     # def __call__(self, xpath, source = None):
         # TODO fully support xpath in widget.block.py
         # self.xpath = xpath
         # return super().__call__(xpath, source)
-    def __call__(self, xpath, source=None):
-        ui = StaticXpathUiObject(session=self, selector=u2.xpath.XPathSelector(xpath, source=source))
-        return ui
 
+    def __call__(self, xpath, source=None):
+        ui = StaticXpathUiObjectFactory.create(session=self, xpath=xpath, source=source)
+        return ui
 
 
 class U2StaticChecker(AbstractStaticChecker):
     """
     This is the StaticChecker used to check the precondition.
     We use the static checker due to the performing issues when runing multi-properties.
-    
+
     *e.g. the following self.d use U2StaticChecker*
     ```
     @precondition(lambda self: self.d("battery").exists)
@@ -499,10 +558,18 @@ class U2Driver(AbstractDriver):
             U2ScriptDriver.setTransportId(kwarg["transport_id"])
 
     @classmethod
-    def getScriptDriver(self):
-        if self.scriptDriver is None:
-            self.scriptDriver = U2ScriptDriver()
-        return self.scriptDriver.getInstance()
+    def getScriptDriver(cls, mode:Literal["direct", "proxy"]="proxy") -> u2.Device:
+        """
+        get the uiautomator2 device instance
+        mode: direct or proxy
+        direct: connect to device directly (device server port: 9008)
+        proxy: connect to device via kea2 agent (device server port: 8090)
+        """
+        if cls.scriptDriver is None:
+            cls.scriptDriver = U2ScriptDriver()
+        _instance = cls.scriptDriver.getInstance()
+        _instance._device_server_port = 9008 if mode == "direct" else 8090
+        return _instance
 
     @classmethod
     def getStaticChecker(self, hierarchy=None):
@@ -513,51 +580,15 @@ class U2Driver(AbstractDriver):
     @classmethod
     def tearDown(self):
         if self.scriptDriver:
-            self.scriptDriver.tearDown()
+            try:
+                self.scriptDriver.tearDown()
+            except Exception as e:
+                logger.debug(f"Error during U2Driver teardown: {e}")
 
 
 """
 Other Utils
 """
-def forward_port(self, remote: Union[int, str]) -> int:
-        """forward remote port to local random port"""
-        remote = 8090
-        if isinstance(remote, int):
-            remote = "tcp:" + str(remote)
-        for f in self.forward_list():
-            if (
-                f.serial == self._serial
-                and f.remote == remote
-                and f.local.startswith("tcp:")
-            ):  # yapf: disable
-                return int(f.local[len("tcp:"):])
-        local_port = get_free_port()
-        self.forward("tcp:" + str(local_port), remote)
-        logger.debug(f"forwading port: tcp:{local_port} -> {remote}")
-        return local_port
-
-def is_port_in_use(port: int) -> bool:
-    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-        return s.connect_ex(('127.0.0.1', port)) == 0
-
-
-def get_free_port():
-    try:
-        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        s.bind(('127.0.0.1', 0))
-        try:
-            return s.getsockname()[1]
-        finally:
-            s.close()
-    except OSError:
-        # bind 0 will fail on Manjaro, fallback to random port
-        # https://github.com/openatx/adbutils/issues/85
-        for _ in range(20):
-            port = random.randint(10000, 20000)
-            if not is_port_in_use(port):
-                return port
-        raise RuntimeError("No free port found")
-
 def set_covered_to_deepest_node(selector: u2.Selector):
 
     def find_deepest_nodes(node):
@@ -577,5 +608,3 @@ def set_covered_to_deepest_node(selector: u2.Selector):
 
     if deepest_node is not None:
         dict.update(deepest_node, {"covered": False})
-
-

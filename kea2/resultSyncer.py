@@ -1,7 +1,10 @@
-from pathlib import Path
 import threading
+
+from pathlib import Path
+
 from .adbUtils import ADBDevice
 from .utils import getLogger
+
 from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from .keaUtils import Options
@@ -13,7 +16,7 @@ class ResultSyncer:
 
     def __init__(self, device_output_dir, options: "Options"):
         self.device_output_dir = device_output_dir
-        self.output_dir = Path(options.output_dir) / Path(device_output_dir).name
+        self.output_dir = options.output_dir / Path(device_output_dir).name
         self.running = False
         self.thread = None
         self.sync_event = threading.Event()

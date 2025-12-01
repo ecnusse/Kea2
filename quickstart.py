@@ -10,6 +10,24 @@ class Omni_Notes_Sample(unittest.TestCase):
 
     def setUp(self):
         self.d = u2.connect() 
+    
+    @prob(0.5)
+    @precondition(
+        lambda self: self.d(description="Navigate up").exists
+    )
+    def test_goBack(self):
+        print("Navigate back")
+        self.d(description="Navigate up").click()
+        sleep(0.5)
+    
+    @prob(0.5)
+    @precondition(
+        lambda self: self.d(description="drawer closed").exists
+    )
+    def test_openDrawer(self):
+        print("Open drawer")
+        self.d(description="drawer closed").click()
+        sleep(0.5)
 
     @prob(0.7)  # The probability of executing the function when precondition is satisfied.
     @precondition(
@@ -45,6 +63,7 @@ class Omni_Notes_Sample(unittest.TestCase):
         assertion:
             The search input box is still being opened
         """
+        print("rotate the device")
         self.d.set_orientation("l")
         sleep(2)
         self.d.set_orientation("n")

@@ -2,9 +2,11 @@
 # cli.py
 
 from __future__ import absolute_import, print_function
+from datetime import datetime
 import sys
 from .utils import getProjectRoot, getLogger
 from .kea_launcher import run
+from .version_manager import check_config_compatibility, get_cur_version
 import argparse
 
 import os
@@ -15,8 +17,7 @@ logger = getLogger(__name__)
 
 
 def cmd_version(args):
-    from importlib.metadata import version
-    print(version("Kea2-python"), flush=True)
+    print(get_cur_version(), flush=True)
 
 
 def cmd_init(args):
@@ -36,9 +37,16 @@ def cmd_init(args):
         src = Path(__file__).parent / "assets" / "quicktest.py"
         dst = cwd / "quicktest.py"
         shutil.copyfile(src, dst)
+    
+    def save_version():
+        import json
+        version_file = configs_dir / "version.json"
+        with open(version_file, "w") as fp:
+            json.dump({"version": get_cur_version(), "init date": datetime.now().strftime("%Y-%m-%d %H:%M:%S")}, fp, indent=4)
 
     copy_configs()
     copy_samples()
+    save_version()
     logger.info("Kea2 project initialized.")
 
 
@@ -47,42 +55,23 @@ def cmd_load_configs(args):
 
 
 def cmd_report(args):
-    from .bug_report_generator import BugReportGenerator
-    try:
-        report_dir = args.path
-        if not report_dir:
-            logger.error("Report directory path is required. Use -p to specify the path.")
-            return
+    from .report.bug_report_generator import BugReportGenerator
+    report_dirs = args.path
+    
+    for report_dir in report_dirs:
+        report_dir = Path(report_dir).resolve()
 
-        if Path(report_dir).is_absolute():
-            report_path = Path(report_dir)
-        else:
-            report_path = Path.cwd() / report_dir
-
-        report_path = report_path.resolve()
-
-        if not report_path.exists():
-            logger.error(f"Report directory does not exist: {report_path}")
-            return
+        if not report_dir.exists():
+            logger.error(f"Report directory does not exist: {str(report_dir)}, Skipped.")
+            continue
         
         logger.debug(f"Generating test report from directory: {report_dir}")
-
-        generator = BugReportGenerator()
-        report_file = generator.generate_report(report_path)
-        
-        if report_file:
-            logger.debug(f"Test report generated successfully: {report_file}")
-            print(f"Report saved to: {report_file}", flush=True)
-        else:
-            logger.error("Failed to generate test report")
-
-    except Exception as e:
-        logger.error(f"Error generating test report: {e}")
+        BugReportGenerator(report_dir).generate_report()
 
 
 def cmd_merge(args):
     """Merge multiple test report directories and generate a combined report"""
-    from .report_merger import TestReportMerger
+    from .report.report_merger import TestReportMerger
 
     try:
         # Validate input paths
@@ -94,11 +83,9 @@ def cmd_merge(args):
         for path in args.paths:
             path_obj = Path(path)
             if not path_obj.exists():
-                logger.error(f"Test report path does not exist: {path}")
-                return
+                raise FileNotFoundError(f"{path_obj}")
             if not path_obj.is_dir():
-                logger.error(f"Path is not a directory: {path}")
-                return
+                raise NotADirectoryError(f"{path_obj}")
 
         logger.debug(f"Merging {len(args.paths)} test report directories...")
 
@@ -106,19 +93,17 @@ def cmd_merge(args):
         merger = TestReportMerger()
 
         # Merge test reports
-        merged_dir = merger.merge_reports(args.paths, args.output)
+        merged_report = merger.merge_reports(args.paths, args.output)
 
-        # Print results
-        print(f"✅ Test reports merged successfully!", flush=True)
-        print(f"📁 Merged report directory: {merged_dir}", flush=True)
-        print(f"📊 Merged report: {merged_dir}/merged_report.html", flush=True)
-
-        # Get merge summary
-        merge_summary = merger.get_merge_summary()
-        print(f"📈 Merged {merge_summary.get('merged_directories', 0)} directories", flush=True)
+        if merged_report is not None:
+            print(f"✅ Test reports merged successfully!", flush=True)
+            print(f"📊 Merged report: {merged_report}", flush=True)
+            # Get merge summary
+            merge_summary = merger.get_merge_summary()
+            print(f"📈 Merged {merge_summary.get('merged_directories', 0)} directories", flush=True)
 
     except Exception as e:
-        logger.error(f"Error during merge operation: {e}")
+        logger.error(f"Error during merge operation: {e}")      
 
 
 def cmd_run(args):
@@ -126,6 +111,9 @@ def cmd_run(args):
     if base_dir is None:
         logger.error("kea2 project not initialized. Use `kea2 init`.")
         return
+
+    check_config_compatibility()
+
     run(args)
 
 
@@ -145,8 +133,9 @@ _commands = [
                 name=["report_dir"],
                 args=["-p", "--path"],
                 type=str,
+                nargs="+",
                 required=True,
-                help="Path to the directory containing test results"
+                help="Root directory path of the test results to generate report from"
             )
         ]
     ),
@@ -210,9 +199,10 @@ def main():
     args = parser.parse_args()
 
     import logging
-    logging.basicConfig(level=logging.INFO)
+    from .utils import LoggingLevel
+    LoggingLevel.set_level(logging.INFO)
     if args.debug:
-        logging.basicConfig(level=logging.DEBUG)
+        LoggingLevel.set_level(logging.DEBUG)
         logger.debug("args: %s", args)
 
     if args.subparser:

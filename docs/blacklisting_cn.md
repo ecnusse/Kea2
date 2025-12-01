@@ -135,21 +135,16 @@ d(text="Alarm", className="android.widget.Button")
   d(text="Settings").sibling(className="android.widget.ImageView")
   ```
 
-#### XPath 表达式
-- 基本 XPath 表达式：
-
+#### XPath表达式
+- 基本XPath表达式：
   ```python
   d.xpath('//*[@text="Private FM"]')
   ```
-
-- 以 @ 开头：
-
+- 以@开头：
   ```python
   d.xpath('@personal-fm') # 等价于 d.xpath('//*[@resource-id="personal-fm"]').exists
   ```
-
 - 子元素定位：
-
   ```python
   d.xpath('@android:id/list').child('/android.widget.TextView')
   ```
@@ -163,13 +158,13 @@ d(text="Alarm", className="android.widget.Button")
 - 基于位置关系的查询：
 
   ```python
-  d(A).left(B)    # 选择位于 A 左侧的 B
-  d(A).right(B)   # 选择位于 A 右侧的 B
-  d(A).up(B)      # 选择位于 A 上方的 B
-  d(A).down(B)    # 选择位于 A 下方的 B
+  d(A).left(B)    # 选择位于A左侧的B
+  d(A).right(B)   # 选择位于A右侧的B
+  d(A).up(B)      # 选择位于A上方的B
+  d(A).down(B)    # 选择位于A下方的B
   ```
 
-- 子元素查询方法，例如 `child_by_text`、`child_by_description` 以及 `child_by_instance` 等，如下所示：
+- 子元素查询方法，例如`child_by_text`, `child_by_description`以及`child_by_instance`等，如下所示：
 
   ```python
   d(className="android.widget.ListView", resourceId="android:id/list") \
@@ -178,11 +173,11 @@ d(text="Alarm", className="android.widget.Button")
   d(className="android.widget.ListView", resourceId="android:id/list") \
     .child_by_text(
       "Bluetooth",
-      allow_scroll_search=True,  # 默认为 False
+      allow_scroll_search=True,  # 默认 False
       className="android.widget.LinearLayout"
     )
   ```
-- 基于 instance 参数的方法，例如：
+- 基于实例参数的方法，例如：
 
   ```python
   d(className="android.widget.Button", instance=2)
@@ -191,7 +186,7 @@ d(text="Alarm", className="android.widget.Button")
 - 基于正则表达式匹配的方法：  
   `textMatches`, `classNameMatches`, `descriptionMatches`, `packageNameMatches`, `resourceIdMatches`
 
-#### XPath 表达式
+#### XPath表达式的高级用法
 - 多条件定位
 
   ```python
@@ -250,7 +245,7 @@ d(text="Alarm", className="android.widget.Button")
    
    示例运行命令：
    ```
-   kea2 run -s "emulator-5554" -p it.feio.android.omninotes.alpha --agent u2 --running-minutes 10 --throttle 200 --act-whitelist-file /sdcard/awl.strings --driver-name d unittest discover -p quicktest.py
+   kea2 run -s "emulator-5554" -p it.feio.android.omninotes.alpha --running-minutes 10 --throttle 200 --act-whitelist-file /sdcard/awl.strings --driver-name d unittest discover -p quicktest.py
    ```
 
 ### Activity黑名单配置
@@ -258,12 +253,12 @@ d(text="Alarm", className="android.widget.Button")
 1. **添加Activity名称**  
    将你希望加入黑名单的Activity名称写入`configs/abl.strings`，格式与白名单的相同。
 
-   **例子：** 
+      **例子：** 
   ```
   it.feio.android.omninotes.MainActivity
   it.feio.android.omninotes.SettingsActivity
   ```
-  > 注意：你不需要手动将此黑名单文件推送到设备上，程序将自动完成这一工作。
+>注意：你不需要手动将此黑名单文件推送到设备上，程序将自动完成这一工作。
 
 2. **在运行测试时增加命令行参数**  
    在命令行添加以下参数以指定黑名单文件 (`/sdcard/abl.strings`是设备上的目标路径):  
@@ -274,7 +269,7 @@ d(text="Alarm", className="android.widget.Button")
    
    示例运行命令：
    ```
-   kea2 run -s "emulator-5554" -p it.feio.android.omninotes.alpha --agent u2 --running-minutes 10 --throttle 200 --act-blacklist-file /sdcard/abl.strings --driver-name d unittest discover -p quicktest.py
+   kea2 run -s "emulator-5554" -p it.feio.android.omninotes.alpha --running-minutes 10 --throttle 200 --act-blacklist-file /sdcard/abl.strings --driver-name d unittest discover -p quicktest.py
    ```
 
 ### 重要说明

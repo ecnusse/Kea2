@@ -1,5 +1,4 @@
 import json
-import re
 from datetime import datetime
 from dataclasses import dataclass
 from pathlib import Path
@@ -7,9 +6,10 @@ from typing import Dict, Tuple, TypedDict, List, Deque, NewType, Union, Optional
 from collections import deque
 from concurrent.futures import ThreadPoolExecutor
 
-from PIL import Image, ImageDraw, ImageFont
 from jinja2 import Environment, FileSystemLoader, select_autoescape, PackageLoader
-from kea2.utils import getLogger, catchException
+from ..utils import getLogger, catchException
+from .mixin import CrashAnrMixin, PathParserMixin, ScreenshotsMixin
+from .utils import thread_pool
 
 logger = getLogger(__name__)
 
@@ -115,26 +115,14 @@ PropertyName = NewType("PropertyName", str)
 TestResult = NewType("TestResult", Dict[PropertyName, PropertyExecResult])
 
 
-@dataclass
-class DataPath:
-    steps_log: Path
-    result_json: Path
-    coverage_log: Path
-    screenshots_dir: Path
-    property_exec_info: Path
-    crash_dump_log: Path
-
-
-class BugReportGenerator:
+class BugReportGenerator(CrashAnrMixin, PathParserMixin, ScreenshotsMixin):
     """
     Generate HTML format bug reports
     """
 
     _cov_trend: Deque[CovData] = None
     _test_result: TestResult = None
-    _take_screenshots: bool = None
-    _data_path: DataPath = None
-
+    
     @property
     def cov_trend(self):
         if self._cov_trend is not None:
@@ -157,17 +145,6 @@ class BugReportGenerator:
         return self._cov_trend
 
     @property
-    def take_screenshots(self) -> bool:
-        """Whether the `--take-screenshots` enabled. Should we report the screenshots?
-
-        Returns:
-            bool: Whether the `--take-screenshots` enabled.
-        """
-        if self._take_screenshots is None:
-            self._take_screenshots = self.data_path.screenshots_dir.exists()
-        return self._take_screenshots
-
-    @property
     def test_result(self) -> TestResult:
         if self._test_result is not None:
             return self._test_result
@@ -178,6 +155,13 @@ class BugReportGenerator:
             self._test_result: TestResult = json.load(f)
 
         return self._test_result
+    
+    @property 
+    def config(self) -> Dict:
+        if not hasattr(self, '_config'):
+            with open(self.result_dir / "bug_report_config.json", "r", encoding="utf-8") as fp:
+                self._config = json.load(fp)
+        return self._config
 
     def __init__(self, result_dir=None):
         """
@@ -186,16 +170,15 @@ class BugReportGenerator:
         Args:
             result_dir: Directory path containing test results
         """
-        if result_dir is not None:
-            self._setup_paths(result_dir)
-
-        self.executor = ThreadPoolExecutor(max_workers=128)
-
-        # Set up Jinja2 environment
-        # First try to load templates from the package
+        if result_dir is None:
+            raise RuntimeError("Result directory must be provided to generate report.")
+        self.result_dir = Path(result_dir)
+        
+    def __set_up_jinja_env(self):
+        """Set up Jinja2 environment for HTML template rendering"""
         try:
             self.jinja_env = Environment(
-                loader=PackageLoader("kea2", "templates"),
+                loader=PackageLoader("kea2.report", "templates"),
                 autoescape=select_autoescape(['html', 'xml'])
             )
         except (ImportError, ValueError):
@@ -211,29 +194,9 @@ class BugReportGenerator:
                 loader=FileSystemLoader(templates_dir),
                 autoescape=select_autoescape(['html', 'xml'])
             )
-
-    def _setup_paths(self, result_dir):
-        """
-        Setup paths for a given result directory
-
-        Args:
-            result_dir: Directory path containing test results
-        """
-        self.result_dir = Path(result_dir)
-        self.log_timestamp = self.result_dir.name.split("_", 1)[1]
-
-        self.data_path: DataPath = DataPath(
-            steps_log=self.result_dir / f"output_{self.log_timestamp}" / "steps.log",
-            result_json=self.result_dir / f"result_{self.log_timestamp}.json",
-            coverage_log=self.result_dir / f"output_{self.log_timestamp}" / "coverage.log",
-            screenshots_dir=self.result_dir / f"output_{self.log_timestamp}" / "screenshots",
-            property_exec_info=self.result_dir / f"property_exec_info_{self.log_timestamp}.json",
-            crash_dump_log=self.result_dir / f"output_{self.log_timestamp}" / "crash-dump.log"
-        )
-
-        self.screenshots = deque()
-
-    def generate_report(self, result_dir_path=None):
+    
+    @catchException("Error generating bug report")
+    def generate_report(self) -> Optional[str]:
         """
         Generate bug report and save to result directory
 
@@ -241,20 +204,15 @@ class BugReportGenerator:
             result_dir_path: Directory path containing test results (optional)
                            If not provided, uses the path from initialization
         """
-        try:
-            # Setup paths if result_dir_path is provided
-            if result_dir_path is not None:
-                self._setup_paths(result_dir_path)
-
-            # Check if paths are properly set up
-            if not hasattr(self, 'result_dir') or self.result_dir is None:
-                raise ValueError(
-                    "No result directory specified. Please provide result_dir_path or initialize with a directory.")
-
+        # Check if paths are properly set up
+        self.__set_up_jinja_env()
+        
+        self.screenshots = deque()
+        with thread_pool(max_workers=128) as executor:
             logger.debug("Starting bug report generation")
 
             # Collect test data
-            test_data: ReportData = self._collect_test_data()
+            test_data: ReportData = self._collect_test_data(executor)
 
             # Generate HTML report
             html_content = self._generate_html_report(test_data)
@@ -264,20 +222,17 @@ class BugReportGenerator:
             with open(report_path, "w", encoding="utf-8") as f:
                 f.write(html_content)
 
-            logger.debug(f"Bug report saved to: {report_path}")
+            logger.info(f"Bug report saved to: {report_path}")
             return str(report_path)
 
-        except Exception as e:
-            logger.error(f"Error generating bug report: {e}")
-        finally:
-            self.executor.shutdown()
-
-    def _collect_test_data(self) -> ReportData:
+    @catchException("Error when collecting test data")
+    def _collect_test_data(self, executor: "ThreadPoolExecutor"=None) -> ReportData:
         """
         Collect test data, including results, coverage, etc.
         """
         data: ReportData = {
-            "timestamp": self.log_timestamp,
+            "timestamp": self.config.get("log_stamp", ""),
+            "test_time": self.config.get("test_time", ""),
             "bugs_found": 0,
             "executed_events": 0,
             "total_testing_time": 0,
@@ -294,7 +249,7 @@ class BugReportGenerator:
             "property_execution_trend": [],
             "activity_count_history": {},
             "crash_events": [],
-            "anr_events": []
+            "anr_events": [],
         }
 
         # Parse steps.log file to get test step numbers and screenshot mappings
@@ -325,12 +280,12 @@ class BugReportGenerator:
                 info = step_data.get("Info", {})
 
                 # Count Monkey events separately
-                if step_type == "Monkey":
+                if step_type == "Monkey" or step_type == "Fuzz":
                     monkey_events_count += 1
 
                 # If screenshots are enabled, mark the screenshot
                 if self.take_screenshots and step_data["Screenshot"]:
-                    self.executor.submit(self._mark_screenshot, step_data)
+                    executor.submit(self._mark_screenshot, step_data)
 
                 # Collect detailed information for each screenshot
                 if screenshot and screenshot not in data["screenshot_info"]:
@@ -338,22 +293,19 @@ class BugReportGenerator:
 
                 # Process ScriptInfo for property violations and execution tracking
                 if step_type == "ScriptInfo":
-                    try:
-                        property_name = info.get("propName", "")
-                        state = info.get("state", "")
-                        
-                        # Track executed properties (properties that have been started)
-                        if property_name and state == "start":
-                            executed_properties.add(property_name)
-                            # Record the monkey steps count for this property execution
-                            executed_properties_by_step[monkey_events_count] = executed_properties.copy()
-                        
-                        current_property, current_test = self._process_script_info(
-                            property_name, state, step_index, screenshot,
-                            current_property, current_test, property_violations
-                        )
-                    except Exception as e:
-                        logger.error(f"Error processing ScriptInfo step {step_index}: {e}")
+                    property_name = info.get("propName", "")
+                    state = info.get("state", "")
+                    
+                    # Track executed properties (properties that have been started)
+                    if property_name and state == "start":
+                        executed_properties.add(property_name)
+                        # Record the monkey steps count for this property execution
+                        executed_properties_by_step[monkey_events_count] = executed_properties.copy()
+                    
+                    current_property, current_test = self._process_script_info(
+                        property_name, state, step_index, screenshot,
+                        current_property, current_test, property_violations
+                    )
 
                 # Store first and last step for time calculation
                 if step_index == 1:
@@ -369,27 +321,38 @@ class BugReportGenerator:
                     return datetime.strptime(raw_datetime, r"%Y-%m-%d %H:%M:%S.%f")
 
                 test_time = _get_datetime(last_step_time) - _get_datetime(first_step_time)
-
+                
                 total_seconds = int(test_time.total_seconds())
                 hours, remainder = divmod(total_seconds, 3600)
                 minutes, seconds = divmod(remainder, 60)
                 data["total_testing_time"] = f"{hours:02d}:{minutes:02d}:{seconds:02d}"
 
-        # Calculate bug count directly from result data
+        # Enrich property statistics with derived metrics and calculate bug count
+        enriched_property_stats = {}
         for property_name, test_result in self.test_result.items():
             # Check if failed or error
-            if test_result["fail"] > 0 or test_result["error"] > 0:
+            if test_result.get("fail", 0) > 0 or test_result.get("error", 0) > 0:
                 data["bugs_found"] += 1
 
-        # Store the raw result data for direct use in HTML template
-        data["property_stats"] = self.test_result
+            executed_count = test_result.get("executed", 0)
+            fail_count = test_result.get("fail", 0)
+            error_count = test_result.get("error", 0)
+            pass_count = max(executed_count - fail_count - error_count, 0)
+
+            enriched_property_stats[property_name] = {
+                **test_result,
+                "pass_count": pass_count
+            }
+
+        # Store the enriched result data for direct use in HTML template
+        data["property_stats"] = enriched_property_stats
 
         # Calculate properties statistics
         data["all_properties_count"] = len(self.test_result)
         data["executed_properties_count"] = sum(1 for result in self.test_result.values() if result.get("executed", 0) > 0)
 
         # Calculate detailed property statistics for table headers
-        property_stats_summary = self._calculate_property_stats_summary(self.test_result)
+        property_stats_summary = self._calculate_property_stats_summary(enriched_property_stats)
         data["property_stats_summary"] = property_stats_summary
 
         # Process coverage data
@@ -415,6 +378,11 @@ class BugReportGenerator:
 
         # Load crash and ANR events from crash-dump.log
         crash_events, anr_events = self._load_crash_dump_data()
+
+        # Add screenshot ID information to crash and ANR events
+        self._add_screenshot_ids_to_events(crash_events)
+        self._add_screenshot_ids_to_events(anr_events)
+
         data["crash_events"] = crash_events
         data["anr_events"] = anr_events
 
@@ -422,112 +390,11 @@ class BugReportGenerator:
 
     def _parse_step_data(self, raw_step_info: str) -> StepData:
         step_data: StepData = json.loads(raw_step_info)
-        step_data["Info"] = json.loads(step_data["Info"])
+        if step_data["Type"] in {"Monkey", "Script", "ScriptInfo"}:
+            step_data["Info"] = json.loads(step_data["Info"])
         return step_data
 
-    @catchException("Error when marking screenshot")
-    def _mark_screenshot(self, step_data: StepData):
-        step_type = step_data["Type"]
-        screenshot_name = step_data["Screenshot"]
-        if not screenshot_name:
-            return
 
-        if step_type == "Monkey":
-            act = step_data["Info"].get("act")
-            pos = step_data["Info"].get("pos")
-            if act in ["CLICK", "LONG_CLICK"] or act.startswith("SCROLL"):
-                self._mark_screenshot_interaction(step_type, screenshot_name, act, pos)
-
-        elif step_type == "Script":
-            act = step_data["Info"].get("method")
-            pos = step_data["Info"].get("params")
-            if act in ["click", "setText", "swipe"]:
-                self._mark_screenshot_interaction(step_type, screenshot_name, act, pos)
-
-
-    def _mark_screenshot_interaction(self, step_type: str, screenshot_name: str, action_type: str, position: Union[List, Tuple]) -> bool:
-        """
-        Mark interaction on screenshot with colored rectangle
-
-        Args:
-            step_type (str): Type of the step (Monkey or Script)
-            screenshot_name (str): Name of the screenshot file
-            action_type (str): Type of action (CLICK/LONG_CLICK/SCROLL for Monkey, click/setText/swipe for Script)
-            position: Position coordinates or parameters (format varies by action type)
-
-        Returns:
-            bool: True if marking was successful, False otherwise
-        """
-        screenshot_path: Path = self.data_path.screenshots_dir / screenshot_name
-        if not screenshot_path.exists():
-            logger.error(f"Screenshot file {screenshot_path} not exists.")
-            return False
-
-        img = Image.open(screenshot_path).convert("RGB")
-        draw = ImageDraw.Draw(img)
-        line_width = 5
-
-        if step_type == "Monkey":
-            if len(position) < 4:
-                logger.warning(f"Monkey action requires 4 coordinates, got {len(position)}. Skip drawing.")
-                return False
-
-            x1, y1, x2, y2 = map(int, position[:4])
-
-            if action_type == "CLICK":
-                for i in range(line_width):
-                    draw.rectangle([x1 - i, y1 - i, x2 + i, y2 + i], outline=(255, 0, 0))
-            elif action_type == "LONG_CLICK":
-                for i in range(line_width):
-                    draw.rectangle([x1 - i, y1 - i, x2 + i, y2 + i], outline=(0, 0, 255))
-            elif action_type.startswith("SCROLL"):
-                for i in range(line_width):
-                    draw.rectangle([x1 - i, y1 - i, x2 + i, y2 + i], outline=(0, 255, 0))
-
-        elif step_type == "Script":
-            if action_type == "click":
-
-                if len(position) < 2:
-                    logger.warning(f"Script click action requires 2 coordinates, got {len(position)}. Skip drawing.")
-                    return False
-                
-                x, y = map(float, position[:2])
-                x1, y1, x2, y2 = x - 50, y - 50, x + 50, y + 50
-
-                for i in range(line_width):
-                    draw.rectangle([x1 - i, y1 - i, x2 + i, y2 + i], outline=(255, 0, 0))
-                    
-            elif action_type == "swipe":
-
-                if len(position) < 4:
-                    logger.warning(f"Script swipe action requires 4 coordinates, got {len(position)}. Skip drawing.")
-                    return False
-                
-                x1, y1, x2, y2 = map(float, position[:4])
-                
-                # mark start and end positions with rectangles
-                start_x1, start_y1, start_x2, start_y2 = x1 - 50, y1 - 50, x1 + 50, y1 + 50
-                for i in range(line_width):
-                    draw.rectangle([start_x1 - i, start_y1 - i, start_x2 + i, start_y2 + i], outline=(255, 0, 0))
-
-                end_x1, end_y1, end_x2, end_y2 = x2 - 50, y2 - 50, x2 + 50, y2 + 50
-                for i in range(line_width):
-                    draw.rectangle([end_x1 - i, end_y1 - i, end_x2 + i, end_y2 + i], outline=(255, 0, 0))
-                
-                # draw line between start and end positions
-                draw.line([(x1, y1), (x2, y2)], fill=(255, 0, 0), width=line_width)
-                
-                # add text labels for start and end positions
-                font = ImageFont.truetype("arial.ttf", 80)
-                    
-                # draw "start" at start position
-                draw.text((x1 - 20, y1 - 70), "start", fill=(255, 0, 0), font=font)
-                    
-                # draw "end" at end position
-                draw.text((x2 - 15, y2 - 70), "end", fill=(255, 0, 0), font=font)
-
-        img.save(screenshot_path)
-        return True
 
     @catchException("Error rendering template")
     def _generate_html_report(self, data: ReportData):
@@ -538,7 +405,7 @@ class BugReportGenerator:
         timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
         # Ensure coverage_trend has data
-        if not data["coverage_trend"]:
+        if not data.get("coverage_trend"):
             logger.warning("No coverage trend data")
             # Use the same field names as in coverage.log file
             data["coverage_trend"] = [{"stepsCount": 0, "coverage": 0, "testedActivitiesCount": 0}]
@@ -550,6 +417,8 @@ class BugReportGenerator:
         # Prepare template data
         template_data = {
             'timestamp': timestamp,
+            'test_time': data.get("test_time", ""),
+            'log_stamp': data.get("timestamp", ""),
             'bugs_found': data["bugs_found"],
             'total_testing_time': data["total_testing_time"],
             'executed_events': data["executed_events"],
@@ -572,6 +441,8 @@ class BugReportGenerator:
             'activity_count_history': data["activity_count_history"],
             'crash_events': data["crash_events"],
             'anr_events': data["anr_events"],
+            'triggered_crash_count': len(data["crash_events"]),
+            'triggered_anr_count': len(data["anr_events"]),
             'property_stats_summary': data["property_stats_summary"]
         }
 
@@ -585,47 +456,6 @@ class BugReportGenerator:
         html_content = template.render(**template_data)
 
         return html_content
-
-    def _add_screenshot_info(self, step_data: StepData, step_index: int, data: Dict):
-        """
-        Add screenshot information to data structure
-
-        Args:
-            step_data: data for the current step
-            step_index: Current step index
-            data: Data dictionary to update
-        """
-        caption = ""
-
-        if step_data["Type"] == "Monkey":
-            # Extract 'act' attribute for Monkey type and add MonkeyStepsCount
-            monkey_steps_count = step_data.get('MonkeyStepsCount', 'N/A')
-            action = step_data['Info'].get('act', 'N/A')
-            caption = f"Monkey Step {monkey_steps_count}: {action}"
-        elif step_data["Type"] == "Script":
-            # Extract 'method' attribute for Script type
-            caption = f"{step_data['Info'].get('method', 'N/A')}"
-        elif step_data["Type"] == "ScriptInfo":
-            # Extract 'propName' and 'state' attributes for ScriptInfo type
-            prop_name = step_data["Info"].get('propName', '')
-            state = step_data["Info"].get('state', 'N/A')
-            caption = f"{prop_name}: {state}" if prop_name else f"{state}"
-
-        screenshot_name = step_data["Screenshot"]
-        # Use relative path string instead of Path object
-        relative_screenshot_path = f"output_{self.log_timestamp}/screenshots/{screenshot_name}"
-
-        data["screenshot_info"][screenshot_name] = {
-            "type": step_data["Type"],
-            "caption": caption,
-            "step_index": step_index
-        }
-
-        self.screenshots.append({
-            'id': step_index,
-            'path': relative_screenshot_path,  # Now using string path
-            'caption': f"{step_index}. {caption}"
-        })
 
     def _process_script_info(self, property_name: str, state: str, step_index: int, screenshot: str,
                              current_property: str, current_test: Dict, property_violations: Dict) -> Tuple:
@@ -653,7 +483,6 @@ class BugReportGenerator:
                     "end": None,
                     "screenshot_start": screenshot
                 }
-
             elif state in ["pass", "fail", "error"]:
                 if current_property == property_name:
                     # Update test end information
@@ -841,20 +670,28 @@ class BugReportGenerator:
             "total_properties": 0,
             "total_precond_satisfied": 0,
             "total_executed": 0,
+            "total_passes": 0,
             "total_fails": 0,
             "total_errors": 0,
             "properties_with_errors": 0
         }
 
         for property_name, result in test_result.items():
+            executed_count = result.get("executed", result.get("executed_total", 0))
+            fail_count = result.get("fail", 0)
+            error_count = result.get("error", 0)
+            pass_count = result.get("pass_count",
+                                    max(executed_count - fail_count - error_count, 0))
+
             stats_summary["total_properties"] += 1
             stats_summary["total_precond_satisfied"] += result.get("precond_satisfied", 0)
-            stats_summary["total_executed"] += result.get("executed", 0)
-            stats_summary["total_fails"] += result.get("fail", 0)
-            stats_summary["total_errors"] += result.get("error", 0)
+            stats_summary["total_executed"] += executed_count
+            stats_summary["total_passes"] += pass_count
+            stats_summary["total_fails"] += fail_count
+            stats_summary["total_errors"] += error_count
 
             # Count properties that have errors or fails
-            if result.get("fail", 0) > 0 or result.get("error", 0) > 0:
+            if fail_count > 0 or error_count > 0:
                 stats_summary["properties_with_errors"] += 1
 
         return stats_summary
@@ -877,11 +714,11 @@ class BugReportGenerator:
             with open(self.data_path.crash_dump_log, "r", encoding="utf-8") as f:
                 content = f.read()
 
-            # Parse crash events
-            crash_events = self._parse_crash_events(content)
+            # Parse crash events with screenshot mapping
+            crash_events = self._parse_crash_events_with_screenshots(content)
 
-            # Parse ANR events
-            anr_events = self._parse_anr_events(content)
+            # Parse ANR events with screenshot mapping
+            anr_events = self._parse_anr_events_with_screenshots(content)
 
             logger.debug(f"Found {len(crash_events)} crash events and {len(anr_events)} ANR events")
 
@@ -889,228 +726,40 @@ class BugReportGenerator:
 
         except Exception as e:
             logger.error(f"Error reading crash dump file: {e}")
+            return crash_events, anr_events
 
-
-    def _parse_crash_events(self, content: str) -> List[Dict]:
+    def _find_screenshot_id_by_filename(self, screenshot_filename: str) -> str:
         """
-        Parse crash events from crash-dump.log content
+        Find screenshot ID by filename in the screenshots list
 
         Args:
-            content: Content of crash-dump.log file
+            screenshot_filename: Name of the screenshot file
 
         Returns:
-            List[Dict]: List of crash event dictionaries
+            str: Screenshot ID if found, empty string otherwise
         """
-        crash_events = []
+        if not screenshot_filename:
+            return ""
 
-        # Pattern to match crash blocks
-        crash_pattern = r'(\d{14})\ncrash:\n(.*?)\n// crash end'
+        for screenshot in self.screenshots:
+            # Extract filename from path
+            screenshot_path = screenshot.get('path', '')
+            if screenshot_path.endswith(screenshot_filename):
+                return str(screenshot.get('id', ''))
 
-        for match in re.finditer(crash_pattern, content, re.DOTALL):
-            timestamp_str = match.group(1)
-            crash_content = match.group(2)
+        return ""
 
-            # Parse timestamp (format: YYYYMMDDHHMMSS)
-            try:
-                timestamp = datetime.strptime(timestamp_str, "%Y%m%d%H%M%S")
-                formatted_time = timestamp.strftime("%Y-%m-%d %H:%M:%S")
-            except ValueError:
-                formatted_time = timestamp_str
-
-            # Extract crash information
-            crash_info = self._extract_crash_info(crash_content)
-
-            crash_event = {
-                "time": formatted_time,
-                "exception_type": crash_info.get("exception_type", "Unknown"),
-                "process": crash_info.get("process", "Unknown"),
-                "stack_trace": crash_info.get("stack_trace", "")
-            }
-
-            crash_events.append(crash_event)
-
-        return crash_events
-
-    def _parse_anr_events(self, content: str) -> List[Dict]:
+    def _add_screenshot_ids_to_events(self, events: List[Dict]):
         """
-        Parse ANR events from crash-dump.log content
+        Add screenshot ID information to crash/ANR events
 
         Args:
-            content: Content of crash-dump.log file
-
-        Returns:
-            List[Dict]: List of ANR event dictionaries
+            events: List of crash or ANR event dictionaries
         """
-        anr_events = []
-
-        # Pattern to match ANR blocks
-        anr_pattern = r'(\d{14})\nanr:\n(.*?)\nanr end'
-
-        for match in re.finditer(anr_pattern, content, re.DOTALL):
-            timestamp_str = match.group(1)
-            anr_content = match.group(2)
-
-            # Parse timestamp (format: YYYYMMDDHHMMSS)
-            try:
-                timestamp = datetime.strptime(timestamp_str, "%Y%m%d%H%M%S")
-                formatted_time = timestamp.strftime("%Y-%m-%d %H:%M:%S")
-            except ValueError:
-                formatted_time = timestamp_str
-
-            # Extract ANR information
-            anr_info = self._extract_anr_info(anr_content)
-
-            anr_event = {
-                "time": formatted_time,
-                "reason": anr_info.get("reason", "Unknown"),
-                "process": anr_info.get("process", "Unknown"),
-                "trace": anr_info.get("trace", "")
-            }
-
-            anr_events.append(anr_event)
-
-        return anr_events
-
-    def _extract_crash_info(self, crash_content: str) -> Dict:
-        """
-        Extract crash information from crash content
-
-        Args:
-            crash_content: Content of a single crash block
-
-        Returns:
-            Dict: Extracted crash information
-        """
-        crash_info = {
-            "exception_type": "Unknown",
-            "process": "Unknown",
-            "stack_trace": ""
-        }
-
-        lines = crash_content.strip().split('\n')
-
-        for line in lines:
-            line = line.strip()
-
-            # Extract PID from CRASH line
-            if line.startswith("// CRASH:"):
-                # Pattern: // CRASH: process_name (pid xxxx) (dump time: ...)
-                pid_match = re.search(r'\(pid\s+(\d+)\)', line)
-                if pid_match:
-                    crash_info["process"] = pid_match.group(1)
-
-            # Extract exception type from Long Msg line
-            elif line.startswith("// Long Msg:"):
-                # Pattern: // Long Msg: ExceptionType: message
-                exception_match = re.search(r'// Long Msg:\s+([^:]+)', line)
-                if exception_match:
-                    crash_info["exception_type"] = exception_match.group(1).strip()
-
-        # Extract full stack trace (all lines starting with //)
-        stack_lines = []
-        for line in lines:
-            if line.startswith("//"):
-                # Remove the "// " prefix for cleaner display
-                clean_line = line[3:] if line.startswith("// ") else line[2:]
-                stack_lines.append(clean_line)
-
-        crash_info["stack_trace"] = '\n'.join(stack_lines)
-
-        return crash_info
-
-    def _extract_anr_info(self, anr_content: str) -> Dict:
-        """
-        Extract ANR information from ANR content
-
-        Args:
-            anr_content: Content of a single ANR block
-
-        Returns:
-            Dict: Extracted ANR information
-        """
-        anr_info = {
-            "reason": "Unknown",
-            "process": "Unknown",
-            "trace": ""
-        }
-
-        lines = anr_content.strip().split('\n')
-
-        for line in lines:
-            line = line.strip()
-
-            # Extract PID from ANR line
-            if line.startswith("// ANR:"):
-                # Pattern: // ANR: process_name (pid xxxx) (dump time: ...)
-                pid_match = re.search(r'\(pid\s+(\d+)\)', line)
-                if pid_match:
-                    anr_info["process"] = pid_match.group(1)
-
-            # Extract reason from Reason line
-            elif line.startswith("Reason:"):
-                # Pattern: Reason: Input dispatching timed out (...)
-                reason_match = re.search(r'Reason:\s+(.+)', line)
-                if reason_match:
-                    full_reason = reason_match.group(1).strip()
-                    # Simplify the reason by extracting the main part before parentheses
-                    simplified_reason = self._simplify_anr_reason(full_reason)
-                    anr_info["reason"] = simplified_reason
-
-        # Store the full ANR trace content
-        anr_info["trace"] = anr_content
-
-        return anr_info
-
-    def _simplify_anr_reason(self, full_reason: str) -> str:
-        """
-        Simplify ANR reason by extracting the main part
-
-        Args:
-            full_reason: Full ANR reason string
-
-        Returns:
-            str: Simplified ANR reason
-        """
-        # Common ANR reason patterns to simplify
-        simplification_patterns = [
-            # Input dispatching timed out (details...) -> Input dispatching timed out
-            (r'^(Input dispatching timed out)\s*\(.*\).*$', r'\1'),
-            # Broadcast of Intent (details...) -> Broadcast timeout
-            (r'^Broadcast of Intent.*$', 'Broadcast timeout'),
-            # Service timeout -> Service timeout
-            (r'^Service.*timeout.*$', 'Service timeout'),
-            # ContentProvider timeout -> ContentProvider timeout
-            (r'^ContentProvider.*timeout.*$', 'ContentProvider timeout'),
-        ]
-
-        # Apply simplification patterns
-        for pattern, replacement in simplification_patterns:
-            match = re.match(pattern, full_reason, re.IGNORECASE)
-            if match:
-                if callable(replacement):
-                    return replacement(match)
-                elif '\\1' in replacement:
-                    return re.sub(pattern, replacement, full_reason, flags=re.IGNORECASE)
-                else:
-                    return replacement
-
-        # If no pattern matches, try to extract the part before the first parenthesis
-        paren_match = re.match(r'^([^(]+)', full_reason)
-        if paren_match:
-            simplified = paren_match.group(1).strip()
-            # Remove trailing punctuation
-            simplified = re.sub(r'[.,;:]+$', '', simplified)
-            return simplified
-
-        # If all else fails, return the original but truncated
-        return full_reason[:50] + "..." if len(full_reason) > 50 else full_reason
-
-
-if __name__ == "__main__":
-    print("Generating bug report")
-    # OUTPUT_PATH = "<Your output path>"
-    OUTPUT_PATH = "P:/Python/Kea2/output/res_2025072011_5048015228"
-
-    report_generator = BugReportGenerator()
-    report_path = report_generator.generate_report(OUTPUT_PATH)
-    print(f"bug report generated: {report_path}")
+        for event in events:
+            crash_screen = event.get('crash_screen')
+            if crash_screen:
+                screenshot_id = self._find_screenshot_id_by_filename(crash_screen)
+                event['screenshot_id'] = screenshot_id
+            else:
+                event['screenshot_id'] = ""

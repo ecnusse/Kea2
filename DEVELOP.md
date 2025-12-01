@@ -1,31 +1,3 @@
-# Advance User Manuel
-
-### Enhance Kea2 performance
-
-Currently, we have an algorithm in `@precondition` decorator and `widgets.block.py` to enhence the performance of the tool. The algorithm only support basic selector (No parent-child relationship) in uiautomator2. If you have many properties with complex preconditions and observed performance issue, you're recommanded to specify it in xpath.
-
-| | **Recommand** | **Not recommand** |
-| -- | -- | -- |
-| **Selector** | `d(text="1").exist` | `d(text="1").child(text="2").exist` |
-
-If you need to specify `parent-child` relation ship in `@precondition`, specify it in xpath.
-
-for example: 
-
-```python
-# Do not use: 
-# @precondition(lambda self: 
-#      self.d(className="android.widget.ListView").child(text="Bluetooth")
-# ):
-# ...
-
-# Use
-@precondition(lambda self: 
-    self.d.xpath('//android.widget.ListView/*[@text="Bluetooth"]')
-):
-...
-```
-
 # Documentation for developers
 
 We are looking for maintainers and contributors for Kea2. If you have interest in maintaining Kea2, don't hesitate to contact us.
@@ -74,3 +46,7 @@ source .venv/bin/activate
 ```powershell
 \.venv\Scripts\activate.ps1
 ```
+
+## Fastbot Server
+
+Kea2 use a customized version of Fastbot. Which is open sourced at [ecnusse/Fastbot-Android](https://github.com/ecnusse/Fastbot_Android).

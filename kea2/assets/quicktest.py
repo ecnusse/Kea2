@@ -9,9 +9,27 @@ from kea2.u2Driver import U2Driver
 class Omni_Notes_Sample(unittest.TestCase):
 
     def setUp(self):
-        self.d = u2.connect()
+        self.d = u2.connect() 
+    
+    @prob(0.2)
+    @precondition(
+        lambda self: self.d(description="Navigate up").exists
+    )
+    def test_goBack(self):
+        print("Navigate back")
+        self.d(description="Navigate up").click()
+        sleep(0.5)
+    
+    @prob(0.2)
+    @precondition(
+        lambda self: self.d(description="drawer closed").exists
+    )
+    def test_openDrawer(self):
+        print("Open drawer")
+        self.d(description="drawer closed").click()
+        sleep(0.5)
 
-    @prob(0.7)  # The probability of executing the function when precondition is satisfied.
+    @prob(0.5)  # The probability of executing the function when precondition is satisfied.
     @precondition(
         lambda self: self.d(text="Omni Notes Alpha").exists
         and self.d(text="Settings").exists
@@ -45,6 +63,7 @@ class Omni_Notes_Sample(unittest.TestCase):
         assertion:
             The search input box is still being opened
         """
+        print("rotate the device")
         self.d.set_orientation("l")
         sleep(2)
         self.d.set_orientation("n")
@@ -53,21 +72,36 @@ class Omni_Notes_Sample(unittest.TestCase):
 
 
 URL = "https://github.com/federicoiosue/Omni-Notes/releases/download/6.2.0_alpha/OmniNotes-alphaRelease-6.2.0.apk"
+FALL_BACK_URL = "https://gitee.com/XixianLiang/Kea2/raw/main/omninotes.apk"
 PACKAGE_NAME = "it.feio.android.omninotes.alpha"
 FILE_NAME = "omninotes.apk"
+
+
+def download_omninotes():
+    import socket
+    socket.setdefaulttimeout(30)
+    try:
+        import urllib.request
+        urllib.request.urlretrieve(URL, FILE_NAME)
+    except Exception as e:
+        print(f"[WARN] Download from {URL} failed: {e}. Try to download from fallback URL {FALL_BACK_URL}", flush=True)
+        try:
+            urllib.request.urlretrieve(FALL_BACK_URL, FILE_NAME)
+        except Exception as e2:
+            print(f"[ERROR] Download from fallback URL {FALL_BACK_URL} also failed: {e2}", flush=True)
+            raise e2
 
 
 def check_installation(serial=None):
     import os
     from pathlib import Path
-    if not os.path.exists(Path(".") / FILE_NAME):
-        print(f"[INFO] omninote.apk not exists. Downloading from {URL}", flush=True)
-        import urllib.request
-        urllib.request.urlretrieve(URL, FILE_NAME)
-
+    
     d = u2.connect(serial)
     # automatically install omni-notes
     if PACKAGE_NAME not in d.app_list():
+        if not os.path.exists(Path(".") / FILE_NAME):
+            print(f"[INFO] omninote.apk not exists. Downloading from {URL}", flush=True)
+            download_omninotes()
         print("[INFO] Installing omninotes.", flush=True)
         d.app_install(FILE_NAME)
     d.stop_uiautomator()

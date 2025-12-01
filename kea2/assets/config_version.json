@@ -1,0 +1,16 @@
+{
+  "compatibility infos": [
+    {
+      "name": "previous version",
+      "description": "The default initial version, <=0.3.6",
+      "from": "0.0.0",
+      "to": "0.3.6"
+    },
+    {
+      "name": "Hybrid test version 1.0.0",
+      "description": "Hybrid test was added in version 1.0.0. hybrid_test_config.py is required.",
+      "from": "1.0.0",
+      "to": ""
+    }
+  ]
+}

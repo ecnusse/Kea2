@@ -1,12 +1,10 @@
+from kea2 import precondition,prob,max_tries
+from time import sleep
 import unittest
 import uiautomator2 as u2
 
-from time import sleep
-from kea2 import precondition, prob, max_tries, KeaTestRunner, Options
-from kea2.u2Driver import U2Driver
 
-
-class Omni_Notes_Sample(unittest.TestCase):
+class Omni_Notes_Propertytest_Sample(unittest.TestCase):
 
     def setUp(self):
         self.d = u2.connect()
@@ -51,30 +49,3 @@ class Omni_Notes_Sample(unittest.TestCase):
         self.d.set_orientation("n")
         sleep(2)
         assert self.d(resourceId="it.feio.android.omninotes.alpha:id/search_src_text").exists()
-
-
-PACKAGE_NAME = "it.feio.android.omninotes.alpha"
-FILE_NAME = "omninotes.apk"
-
-def check_installation():
-    d = u2.connect()
-    # automatically install omni-notes
-    if PACKAGE_NAME not in d.app_list():
-        d.app_install(FILE_NAME)
-    d.stop_uiautomator()
-
-if __name__ == "__main__":
-    check_installation()
-    KeaTestRunner.setOptions(
-        Options(
-            driverName="d",
-            Driver=U2Driver,
-            packageNames=[PACKAGE_NAME],
-            # serial="emulator-5554",   # specify the serial
-            maxStep=5000,
-            # running_mins=10,  # specify the maximal running time in minutes, default value is 10m
-            # throttle=200,   # specify the throttle in milliseconds, default value is 200ms
-            # agent='native'  # 'native' for running the vanilla Fastbot, 'u2' for running Kea2
-        )
-    )
-    unittest.main(testRunner=KeaTestRunner)

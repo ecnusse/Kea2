@@ -142,6 +142,23 @@ def _set_runner_parser(subparsers: "argparse._SubParsersAction[argparse.Argument
         help="The root of device output dir. Kea2 will temporarily save the screenshots and result log into `<device-output-root>/output_*********/`. Make sure the root dir can be access.",
     )
 
+    # FBM sync options
+    parser.add_argument(
+        "--download-fbm",
+        dest="download_fbm",
+        action="store_true",
+        required=False,
+        help="When set, pull device FBM(s) at start, merge with PC FBM and push merged back to device",
+    )
+
+    parser.add_argument(
+        "--upload-fbm",
+        dest="upload_fbm",
+        action="store_true",
+        required=False,
+        help="When set, after run finishes pull device FBM(s) and merge into PC storage",
+    )
+
     parser.add_argument(
         "--act-whitelist-file",
         dest="act_whitelist_file",
@@ -275,6 +292,33 @@ def run(args=None):
         extra_args=args.extra,
     )
     
+    # FBM sync interface - delegate heavy lifting to FBMMerger
+    from kea2.fbm_parser import FBMMerger
+
+    def _download_and_merge_push(package_name: str):
+        merger = FBMMerger()
+        try:
+            return merger.download_merge_push(package_name, device=args.serial, transport_id=args.transport_id)
+        except Exception as e:
+            print(f"Error in download_merge_push for {package_name}: {e}")
+            return False
+
+    def _pull_and_merge_to_pc(package_name: str):
+        merger = FBMMerger()
+        try:
+            return merger.pull_and_merge_to_pc(package_name, device=args.serial, transport_id=args.transport_id)
+        except Exception as e:
+            print(f"Error in pull_and_merge_to_pc for {package_name}: {e}")
+            return False
+
+    # If requested, download/merge/push before test run
+    if getattr(args, 'download_fbm', False):
+        for pkg in args.package_names:
+            try:
+                _download_and_merge_push(pkg)
+            except Exception as e:
+                print(f"Error during download/merge/push for {pkg}: {e}")
+
     is_hybrid_test = True if options.unittest_args else False
     if is_hybrid_test:
         HybridTestRunner.setOptions(options)
@@ -285,3 +329,11 @@ def run(args=None):
         testRunner = KeaTestRunner
         argv = ["python3 -m unittest"] + options.propertytest_args
     unittest.main(module=None, argv=argv, testRunner=testRunner)
+
+    # After tests finish, if upload_fbm requested, pull device fbm and merge into PC
+    if getattr(args, 'upload_fbm', False):
+        for pkg in args.package_names:
+            try:
+                _pull_and_merge_to_pc(pkg)
+            except Exception as e:
+                print(f"Error during upload_fbm handling for {pkg}: {e}")

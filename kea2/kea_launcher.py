@@ -290,34 +290,10 @@ def run(args=None):
         propertytest_args=args.propertytest_args,
         unittest_args=args.unittest_args,
         extra_args=args.extra,
+        upload_fbm=getattr(args, 'upload_fbm', False),
+        download_fbm=getattr(args, 'download_fbm', False),
     )
-    
-    # FBM sync interface - delegate heavy lifting to FBMMerger
-    from kea2.fbm_parser import FBMMerger
 
-    def _download_and_merge_push(package_name: str):
-        merger = FBMMerger()
-        try:
-            return merger.download_merge_push(package_name, device=args.serial, transport_id=args.transport_id)
-        except Exception as e:
-            print(f"Error in download_merge_push for {package_name}: {e}")
-            return False
-
-    def _pull_and_merge_to_pc(package_name: str):
-        merger = FBMMerger()
-        try:
-            return merger.pull_and_merge_to_pc(package_name, device=args.serial, transport_id=args.transport_id)
-        except Exception as e:
-            print(f"Error in pull_and_merge_to_pc for {package_name}: {e}")
-            return False
-
-    # If requested, download/merge/push before test run
-    if getattr(args, 'download_fbm', False):
-        for pkg in args.package_names:
-            try:
-                _download_and_merge_push(pkg)
-            except Exception as e:
-                print(f"Error during download/merge/push for {pkg}: {e}")
 
     is_hybrid_test = True if options.unittest_args else False
     if is_hybrid_test:
@@ -329,11 +305,3 @@ def run(args=None):
         testRunner = KeaTestRunner
         argv = ["python3 -m unittest"] + options.propertytest_args
     unittest.main(module=None, argv=argv, testRunner=testRunner)
-
-    # After tests finish, if upload_fbm requested, pull device fbm and merge into PC
-    if getattr(args, 'upload_fbm', False):
-        for pkg in args.package_names:
-            try:
-                _pull_and_merge_to_pc(pkg)
-            except Exception as e:
-                print(f"Error during upload_fbm handling for {pkg}: {e}")

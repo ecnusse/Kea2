@@ -15,19 +15,12 @@ Notes:
 
 import os
 import threading
-import importlib
 
-# STORAGE_PREFIX: mimic the C++ macro behavior. Use environment or attempt platform detect.
-# if os.environ.get('ANDROID') == '1' or os.environ.get('ANDROID_BOOT_LOGO') is not None:
-#     STORAGE_PREFIX = "/sdcard/fastbot_"
-# else:
-#     STORAGE_PREFIX = ""
 STORAGE_PREFIX = "/sdcard/fastbot_"
 
 # Ensure working directory is the script directory so relative imports for generated code work
 script_dir = os.path.dirname(os.path.abspath(__file__))
-if os.getcwd() != script_dir:
-    os.chdir(script_dir)
+
 
 
 class FBMMerger:
@@ -75,7 +68,7 @@ class FBMMerger:
         Returns the model object on success, or None on failure.
         """
         try:
-            from fastbotx.ReuseModel import ReuseModel
+            from .fastbotx.ReuseModel import ReuseModel
         except Exception as e:
             print("Error importing fastbotx.ReuseModel:", e)
             return None
@@ -120,9 +113,10 @@ class FBMMerger:
 
         # parse using generated ReuseModel
         try:
-            ReuseModel_mod = importlib.import_module('fastbotx.ReuseModel')
-            ReuseEntry_mod = importlib.import_module('fastbotx.ReuseEntry')
-            ActivityTimes_mod = importlib.import_module('fastbotx.ActivityTimes')
+            import importlib
+            ReuseModel_mod = importlib.import_module('kea2.fastbotx.ReuseModel')
+            ReuseEntry_mod = importlib.import_module('kea2.fastbotx.ReuseEntry')
+            ActivityTimes_mod = importlib.import_module('kea2.fastbotx.ActivityTimes')
         except Exception as e:
             print("Error importing fastbotx generated modules:", e)
             return False
@@ -274,9 +268,9 @@ class FBMMerger:
         try:
             import flatbuffers
             import importlib
-            ReuseModel_mod = importlib.import_module('fastbotx.ReuseModel')
-            ReuseEntry_mod = importlib.import_module('fastbotx.ReuseEntry')
-            ActivityTimes_mod = importlib.import_module('fastbotx.ActivityTimes')
+            ReuseModel_mod = importlib.import_module('kea2.fastbotx.ReuseModel')
+            ReuseEntry_mod = importlib.import_module('kea2.fastbotx.ReuseEntry')
+            ActivityTimes_mod = importlib.import_module('kea2.fastbotx.ActivityTimes')
         except Exception as e:
             print("Error importing required generated modules:", e)
             return False
@@ -295,6 +289,20 @@ class FBMMerger:
 
         entry_offsets = []
 
+        # Ensure module objects (in case import returned a class due to package-level imports)
+        import inspect
+        import importlib as _importlib
+
+        def _ensure_mod(obj):
+            # if someone passed the class object (ActivityTimes), load the module that defines it
+            if inspect.isclass(obj):
+                return _importlib.import_module(obj.__module__)
+            return obj
+
+        ReuseEntry_mod = _ensure_mod(ReuseEntry_mod)
+        ActivityTimes_mod = _ensure_mod(ActivityTimes_mod)
+        ReuseModel_mod = _ensure_mod(ReuseModel_mod)
+
         # Build entries from aggregated map. Sort actions for deterministic output.
         for action_hash in sorted(aggregated.keys()):
             targets_map = aggregated[action_hash]
@@ -303,16 +311,46 @@ class FBMMerger:
             for activity in sorted(targets_map.keys()):
                 times = targets_map[activity]
                 act_off = cache_string(activity)
-                ActivityTimes_mod.ActivityTimesStart(builder)
+                # Compatibility: prefer module-level helper names but support both deprecated and new names
+                if hasattr(ActivityTimes_mod, 'ActivityTimesStart'):
+                    ActivityTimes_mod.ActivityTimesStart(builder)
+                elif hasattr(ActivityTimes_mod, 'Start'):
+                    ActivityTimes_mod.Start(builder)
+                else:
+                    raise RuntimeError('ActivityTimes builder start function not found')
+
                 if act_off:
-                    ActivityTimes_mod.ActivityTimesAddActivity(builder, act_off)
-                ActivityTimes_mod.ActivityTimesAddTimes(builder, int(times))
-                toff = ActivityTimes_mod.ActivityTimesEnd(builder)
+                    if hasattr(ActivityTimes_mod, 'ActivityTimesAddActivity'):
+                        ActivityTimes_mod.ActivityTimesAddActivity(builder, act_off)
+                    elif hasattr(ActivityTimes_mod, 'AddActivity'):
+                        ActivityTimes_mod.AddActivity(builder, act_off)
+                    else:
+                        raise RuntimeError('ActivityTimes add activity function not found')
+
+                if hasattr(ActivityTimes_mod, 'ActivityTimesAddTimes'):
+                    ActivityTimes_mod.ActivityTimesAddTimes(builder, int(times))
+                elif hasattr(ActivityTimes_mod, 'AddTimes'):
+                    ActivityTimes_mod.AddTimes(builder, int(times))
+                else:
+                    raise RuntimeError('ActivityTimes add times function not found')
+
+                if hasattr(ActivityTimes_mod, 'ActivityTimesEnd'):
+                    toff = ActivityTimes_mod.ActivityTimesEnd(builder)
+                elif hasattr(ActivityTimes_mod, 'End'):
+                    toff = ActivityTimes_mod.End(builder)
+                else:
+                    raise RuntimeError('ActivityTimes end function not found')
+
                 target_offsets.append(toff)
 
             # create vector of targets
             if target_offsets:
-                ReuseEntry_mod.ReuseEntryStartTargetsVector(builder, len(target_offsets))
+                if hasattr(ReuseEntry_mod, 'ReuseEntryStartTargetsVector'):
+                    ReuseEntry_mod.ReuseEntryStartTargetsVector(builder, len(target_offsets))
+                elif hasattr(ReuseEntry_mod, 'StartTargetsVector'):
+                    ReuseEntry_mod.StartTargetsVector(builder, len(target_offsets))
+                else:
+                    raise RuntimeError('ReuseEntry start targets vector function not found')
                 for toff in reversed(target_offsets):
                     builder.PrependUOffsetTRelative(toff)
                 targets_vec = builder.EndVector()
@@ -320,23 +358,33 @@ class FBMMerger:
                 targets_vec = 0
 
             # create entry using module helpers
-            ReuseEntry_mod.ReuseEntryStart(builder)
+            if hasattr(ReuseEntry_mod, 'ReuseEntryStart'):
+                ReuseEntry_mod.ReuseEntryStart(builder)
+            elif hasattr(ReuseEntry_mod, 'Start'):
+                ReuseEntry_mod.Start(builder)
+            else:
+                raise RuntimeError('ReuseEntry start function not found')
             try:
-                ReuseEntry_mod.ReuseEntryAddAction(builder, action_hash)
-            except Exception:
-                try:
+                if hasattr(ReuseEntry_mod, 'ReuseEntryAddAction'):
+                    ReuseEntry_mod.ReuseEntryAddAction(builder, action_hash)
+                elif hasattr(ReuseEntry_mod, 'AddAction'):
                     ReuseEntry_mod.AddAction(builder, action_hash)
-                except Exception:
-                    pass
+            except Exception:
+                pass
             if targets_vec:
                 try:
-                    ReuseEntry_mod.ReuseEntryAddTargets(builder, targets_vec)
-                except Exception:
-                    try:
+                    if hasattr(ReuseEntry_mod, 'ReuseEntryAddTargets'):
+                        ReuseEntry_mod.ReuseEntryAddTargets(builder, targets_vec)
+                    elif hasattr(ReuseEntry_mod, 'AddTargets'):
                         ReuseEntry_mod.AddTargets(builder, targets_vec)
-                    except Exception:
-                        pass
-            entry_off = ReuseEntry_mod.ReuseEntryEnd(builder)
+                except Exception:
+                    pass
+            if hasattr(ReuseEntry_mod, 'ReuseEntryEnd'):
+                entry_off = ReuseEntry_mod.ReuseEntryEnd(builder)
+            elif hasattr(ReuseEntry_mod, 'End'):
+                entry_off = ReuseEntry_mod.End(builder)
+            else:
+                raise RuntimeError('ReuseEntry end function not found')
             entry_offsets.append(entry_off)
 
         # model vector
@@ -553,7 +601,7 @@ class FBMMerger:
         try:
             if pc_file.exists():
                 print(f"Merging PC fbm {pc_file} with device fbm {pulled_tmp} -> {merged_tmp}")
-                ok = self.merge(str(pc_file), str(pulled_tmp), str(merged_tmp), merge_mode='sum')
+                ok = self.merge(str(pc_file), str(pulled_tmp), str(merged_tmp), merge_mode='max')
                 if ok:
                     try:
                         merged_tmp.replace(pc_file)

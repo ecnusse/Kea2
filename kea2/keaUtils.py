@@ -159,6 +159,10 @@ class Options:
     unittest_args: List[str] = None
     # Extra args (directly passed to fastbot)
     extra_args: List[str] = None
+    # Whether to pull device FBM and merge into PC after test finishes
+    upload_fbm: bool = False
+    # Whether to pull device FBM(s) at start, merge with PC FBM and push merged back to device
+    download_fbm: bool = False
 
     def __setattr__(self, name, value):
         if value is None:
@@ -416,6 +420,8 @@ class KeaTestRunner(TextTestRunner, KeaOptionSetter):
 
     def run(self, test):
 
+        self._download_fbm()
+
         self.allProperties = dict()
         self.collectAllProperties(test)
 
@@ -545,6 +551,8 @@ class KeaTestRunner(TextTestRunner, KeaOptionSetter):
 
         if self.options.agent == "u2":
             self._generate_bug_report()
+
+        self._upload_fbm()
 
         self.tearDown()
         return result
@@ -788,6 +796,47 @@ class KeaTestRunner(TextTestRunner, KeaOptionSetter):
         except Exception:
             # Ignore exceptions in __del__ to avoid "Exception ignored" warnings
             pass
+
+    def _upload_fbm(self):
+        """If upload_fbm is enabled in options, pull device FBM(s) and merge into PC storage.
+
+        This is separated into a helper so it can be called from other places and is easier
+        to test. Errors are caught and logged to avoid breaking the main test flow.
+        """
+        if not getattr(self.options, 'upload_fbm', False):
+            return
+
+        try:
+            from kea2.fbm_parser import FBMMerger
+            merger = FBMMerger()
+            for pkg in self.options.packageNames:
+                try:
+                    merger.pull_and_merge_to_pc(pkg, device=self.options.serial, transport_id=self.options.transport_id)
+                except Exception as e:
+                    print(f"Error during upload_fbm handling for {pkg}: {e}", flush=True)
+        except Exception as e:
+            print(f"Error initializing FBM merger for upload: {e}", flush=True)
+
+
+    def _download_fbm(self):
+        """If options.download_fbm is True, pull device FBM(s), merge with local PC FBM and push merged back to device.
+
+        This module-level helper can be called from CLI/launcher before tests start. It catches
+        exceptions and logs errors without raising to avoid interrupting the test flow.
+        """
+        if not getattr(self.options, 'download_fbm', False):
+            return
+
+        try:
+            from kea2.fbm_parser import FBMMerger
+            merger = FBMMerger()
+            for pkg in self.options.packageNames:
+                try:
+                    merger.download_merge_push(pkg, device=self.options.serial, transport_id=self.options.transport_id)
+                except Exception as e:
+                    print(f"Error during download_merge_push for {pkg}: {e}", flush=True)
+        except Exception as e:
+            print(f"Error initializing FBM merger for download: {e}", flush=True)
 
 
 class KeaTextTestResult(BetterConsoleLogExtensionMixin, TextTestResult):

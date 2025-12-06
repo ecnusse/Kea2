@@ -34,7 +34,7 @@ class ReuseEntry(object):
             x = self._tab.Vector(o)
             x += flatbuffers.number_types.UOffsetTFlags.py_type(j) * 4
             x = self._tab.Indirect(x)
-            from fastbotx.ActivityTimes import ActivityTimes
+            from .ActivityTimes import ActivityTimes
             obj = ActivityTimes()
             obj.Init(self._tab.Bytes, x)
             return obj

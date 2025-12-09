@@ -2402,6 +2402,10 @@
                 const allItems = Array.from(container.getElementsByClassName(itemClass));
                 const paginationElement = document.getElementById(paginationId);
                 
+                if (containerId === 'property-stats-container') {
+                    closePropertyErrorDetails(container);
+                }
+
                 console.log('goToPage called with:', {pageNumber, containerId, itemClass, itemsPerPage, paginationId});
                 console.log('Total items found:', allItems.length);
                 
@@ -2946,6 +2950,18 @@
                 }, 3000);
             }
         });
+
+        // Close opened Property Checking Statistics error details when pagination changes
+        function closePropertyErrorDetails(container) {
+            if (!container) return;
+
+            const openDetails = container.querySelectorAll('.property-detail-row.show');
+            openDetails.forEach(function(detailRow) {
+                const collapseInstance = bootstrap.Collapse.getInstance(detailRow) ||
+                    new bootstrap.Collapse(detailRow, { toggle: false });
+                collapseInstance.hide();
+            });
+        }
         
         // Global activity search functions
         function performActivitySearch(searchInput) {
@@ -3147,6 +3163,10 @@
             const allItems = Array.from(container.getElementsByClassName(itemClass));
             const paginationElement = document.getElementById(paginationId);
             
+            if (containerId === 'property-stats-container') {
+                closePropertyErrorDetails(container);
+            }
+
             // Get items that should be visible based on search filter
             const filteredItems = allItems.filter(item => {
                 const searchVisible = item.getAttribute('data-search-visible');

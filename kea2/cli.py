@@ -103,7 +103,90 @@ def cmd_merge(args):
             print(f"📈 Merged {merge_summary.get('merged_directories', 0)} directories", flush=True)
 
     except Exception as e:
-        logger.error(f"Error during merge operation: {e}")      
+        logger.error(f"Error during merge operation: {e}")
+
+
+def cmd_mergefbm(args):
+    """Merge all FBM files in the specified folder and its subfolders using sum mode"""
+    from .fbm_parser import FBMMerger
+    import glob
+    import shutil
+    
+    try:
+        # Validate input path
+        input_path = Path(args.path).resolve()
+        if not input_path.exists():
+            logger.error(f"Input directory does not exist: {input_path}")
+            return
+        if not input_path.is_dir():
+            logger.error(f"Input path is not a directory: {input_path}")
+            return
+
+        # Find all FBM files in the directory and its subdirectories
+        fbm_files = glob.glob(str(input_path / "**" / "*.fbm"), recursive=True)
+        
+        if not fbm_files:
+            logger.error(f"No FBM files found in {input_path} or its subdirectories")
+            return
+        
+        logger.debug(f"Found {len(fbm_files)} FBM files to merge:")
+        for fbm_file in fbm_files:
+            logger.debug(f"  - {fbm_file}")
+        
+        # Set default output file if not provided
+        if not args.output:
+            output_file = input_path / "merged.fbm"
+        else:
+            output_file = Path(args.output).resolve()
+        
+        # Initialize merger
+        merger = FBMMerger()
+        
+        # Handle different cases
+        if len(fbm_files) == 1:
+            # Only one file, just copy it to output
+            shutil.copyfile(fbm_files[0], output_file)
+            logger.info(f"Only one FBM file found, copied to {output_file}")
+        else:
+            # Merge files iteratively: start with the first file and merge with each subsequent file
+            # Create a temporary file for the intermediate merged result
+            temp_output = input_path / f".tmp_merged.fbm"
+            
+            # Start with the first file as the initial merged result
+            shutil.copyfile(fbm_files[0], temp_output)
+            
+            # Iterate through the remaining files and merge them one by one
+            for i in range(1, len(fbm_files)):
+                current_file = fbm_files[i]
+                next_temp = input_path / f".tmp_merged_{i}.fbm"
+                
+                logger.debug(f"Merging {temp_output} and {current_file} into {next_temp}")
+                success = merger.merge(str(temp_output), str(current_file), str(next_temp), merge_mode='sum')
+                
+                if not success:
+                    logger.error(f"Failed to merge {temp_output} and {current_file}")
+                    # Clean up temporary files
+                    for f in [temp_output, next_temp]:
+                        if f.exists() and f.name.startswith(".tmp_"):
+                            f.unlink()
+                    return
+                
+                # Remove the previous temporary file and update to the new one
+                temp_output.unlink()
+                temp_output = next_temp
+            
+            # Move the final merged file to the output location
+            if temp_output != output_file:
+                temp_output.replace(output_file)
+        
+        print(f"✅ All FBM files merged successfully!", flush=True)
+        print(f"📊 Merged FBM file: {output_file}", flush=True)
+        print(f"📈 Merged {len(fbm_files)} FBM files", flush=True)
+        
+    except Exception as e:
+        logger.error(f"Error during FBM merge operation: {e}")
+        import traceback
+        logger.debug(traceback.format_exc())
 
 
 def cmd_run(args):
@@ -158,6 +241,27 @@ _commands = [
                 type=str,
                 required=False,
                 help="Output directory for merged report (optional)"
+            )
+        ]
+    ),
+    dict(
+        action=cmd_mergefbm,
+        command="mergefbm",
+        help="merge all FBM files in the specified folder and its subfolders using sum mode",
+        flags=[
+            dict(
+                name=["path"],
+                args=["-p", "--path"],
+                type=str,
+                required=True,
+                help="Path to the folder containing FBM files to merge"
+            ),
+            dict(
+                name=["output"],
+                args=["-o", "--output"],
+                type=str,
+                required=False,
+                help="Output file path for merged FBM file (optional, default: merged.fbm in the input folder)"
             )
         ]
     )

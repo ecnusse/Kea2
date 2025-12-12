@@ -15,12 +15,13 @@ Notes:
 
 import os
 import threading
+import uuid
+from .fs_lock import FileLock, LockTimeoutError
 
 STORAGE_PREFIX = "/sdcard/fastbot_"
 
 # Ensure working directory is the script directory so relative imports for generated code work
 script_dir = os.path.dirname(os.path.abspath(__file__))
-
 
 
 class FBMMerger:
@@ -62,11 +63,25 @@ class FBMMerger:
             return False
         return True
 
+    def _ensure_fbm_suffix(self, path: str, param_name: str = 'file') -> bool:
+        """Ensure the path ends with .fbm (case-insensitive). Print error and return False otherwise."""
+        if not path:
+            print(f"Error: {param_name} path is empty")
+            return False
+        if not str(path).lower().endswith('.fbm'):
+            print(f"Error: expected .fbm file for {param_name}: '{path}'")
+            return False
+        return True
+
     def load_model(self, file_path):
         """Load and return ReuseModel root object from a FBM file.
 
         Returns the model object on success, or None on failure.
         """
+        # suffix check
+        if not self._ensure_fbm_suffix(file_path, 'file_path'):
+            return None
+
         try:
             from .fastbotx.ReuseModel import ReuseModel
         except Exception as e:
@@ -210,8 +225,16 @@ class FBMMerger:
             entries.append((action, targets))
         return entries
 
-    def merge(self, file_a, file_b, out_file, merge_mode='sum'):
+    def merge(self, file_a, file_b, out_file, merge_mode='sum', debug=False):
         """Merge two FBM files into out_file. Returns True on success."""
+        # suffix checks
+        if not self._ensure_fbm_suffix(file_a, 'file_a'):
+            return False
+        if not self._ensure_fbm_suffix(file_b, 'file_b'):
+            return False
+        if out_file and not self._ensure_fbm_suffix(out_file, 'out_file'):
+            return False
+
         if not os.path.exists(file_a):
             print(f"Error: file not found: {file_a}")
             return False
@@ -241,30 +264,49 @@ class FBMMerger:
         # Aggregate by action hash. For each action, merge targets by activity summing times.
         aggregated = {}  # action_hash -> { activity_str -> total_times }
 
-        def _accumulate(entries):
-            for action_hash, targets in entries:
-                ah = int(action_hash)
-                if ah not in aggregated:
-                    aggregated[ah] = {}
-                for activity, times in targets:
-                    if not activity:
-                        continue
-                    try:
-                        t = int(times)
-                    except Exception:
-                        t = 0
-                    if merge_mode == 'max':
-                        aggregated[ah][activity] = max(aggregated[ah].get(activity, 0), t)
-                    else:
-                        aggregated[ah][activity] = aggregated[ah].get(activity, 0) + t
-
-        _accumulate(entries_a)
-        _accumulate(entries_b)
+        # use refactored accumulate helper; honor debug flag
+        self._accumulate_entries(entries_a, aggregated, merge_mode=merge_mode, debug=debug)
+        self._accumulate_entries(entries_b, aggregated, merge_mode=merge_mode, debug=debug)
         total_actions = len(aggregated)
         print(f"Merging: {len(entries_a)} entries from {file_a} + {len(entries_b)} entries from {file_b} -> {total_actions} unique actions")
 
-        # Build new FlatBuffer
-        # Use module-level functions from generated files for builder operations
+        # Build new FlatBuffer and save
+        return self._write_aggregated_to_file(aggregated, out_file)
+
+    def _accumulate_entries(self, entries, aggregated, merge_mode='sum', debug=False):
+        """Accumulate entries into aggregated map.
+
+        entries: iterable of (action_hash, [(activity, times), ...])
+        aggregated: dict to update
+        merge_mode: 'sum' or 'max'
+        debug: if True, print detailed per-action logs
+        """
+        for action_hash, targets in entries:
+            ah = int(action_hash)
+            if ah not in aggregated:
+                aggregated[ah] = {}
+            for activity, times in targets:
+                if not activity:
+                    continue
+                try:
+                    t = int(times)
+                except Exception:
+                    t = 0
+                old = aggregated[ah].get(activity, 0)
+                if merge_mode == 'max':
+                    new = max(old, t)
+                else:
+                    new = old + t
+                aggregated[ah][activity] = new
+                if debug:
+                    print(f"FBM_ACCUM DEBUG action={ah} activity='{activity}' old={old} add={t} new={new}")
+
+    def _write_aggregated_to_file(self, aggregated, out_file):
+        """Construct a FlatBuffer from aggregated map and save to out_file.
+
+        aggregated: dict[action_hash]->{activity: times}
+        out_file: path to write (if None, default path under script_dir)
+        """
         try:
             import flatbuffers
             import importlib
@@ -435,24 +477,39 @@ class FBMMerger:
             out_dir = os.path.dirname(out_file) or self.script_dir
             os.makedirs(out_dir, exist_ok=True)
 
-            # Create a unique temp file in the target directory to avoid collisions
+            # Write to a unique temporary file in the target directory and atomically replace
             fd, tmp_path = tempfile.mkstemp(prefix='.tmp_fbm_', dir=out_dir)
-            # Write bytes via file descriptor for best control
-            with os.fdopen(fd, 'wb') as f:
-                f.write(buf)
-                try:
-                    f.flush()
-                    os.fsync(f.fileno())
-                except Exception:
-                    # flush/fsync best-effort
-                    pass
-
-            # Atomic replace
             try:
-                os.replace(tmp_path, out_file)
-            except Exception:
-                # fallback to os.rename on some platforms
-                os.rename(tmp_path, out_file)
+                with os.fdopen(fd, 'wb') as f:
+                    f.write(buf)
+                    try:
+                        f.flush()
+                        os.fsync(f.fileno())
+                    except Exception:
+                        # flush/fsync best-effort
+                        pass
+
+                # Atomic replace; try os.replace first, then os.rename as fallback
+                try:
+                    os.replace(tmp_path, out_file)
+                except Exception:
+                    try:
+                        os.rename(tmp_path, out_file)
+                    except Exception:
+                        # last-resort: write directly to out_file
+                        try:
+                            with open(out_file, 'wb') as f:
+                                f.write(buf)
+                        except Exception:
+                            # if even that fails, attempt to cleanup tmp_path below
+                            pass
+            finally:
+                # best-effort cleanup of tmp_path if it still exists
+                try:
+                    if tmp_path and os.path.exists(tmp_path):
+                        os.remove(tmp_path)
+                except Exception:
+                    pass
 
             print(f"Merged FBM written to: {out_file} (size {len(buf)} bytes)")
             return True
@@ -481,86 +538,6 @@ class FBMMerger:
     def _remote_fbm_path(self, package_name: str) -> str:
         return f"/sdcard/fastbot_{package_name}.fbm"
 
-    def download_merge_push(self, package_name: str, device: str = None, transport_id: str = None):
-        """Pull device FBM for package, merge with PC fbm and push merged back to device.
-
-        Returns True on success, False otherwise. Handles missing files gracefully.
-        """
-        try:
-            from kea2.adbUtils import pull_file, push_file
-        except Exception:
-            # try relative import
-            try:
-                from adbUtils import pull_file, push_file  # type: ignore
-            except Exception as e:
-                print("ADB utilities not available:", e)
-                return False
-
-        pc_dir = self._pc_fbm_dir()
-        pc_dir.mkdir(parents=True, exist_ok=True)
-        pc_file = pc_dir / f"fastbot_{package_name}.fbm"
-        pulled_tmp = pc_dir / f"fastbot_{package_name}.from_device.fbm"
-        merged_tmp = pc_dir / f"fastbot_{package_name}.merged.fbm"
-
-        remote = self._remote_fbm_path(package_name)
-        try:
-            print(f"Attempting to pull {remote} to {pulled_tmp}")
-            pull_file(remote, str(pulled_tmp), device=device, transport_id=transport_id)
-        except Exception as e:
-            print(f"pull_file failed for {remote}: {e}")
-
-        # If device fbm not pulled, skip merge but report
-        if not pulled_tmp.exists() or pulled_tmp.stat().st_size == 0:
-            print(f"No FBM on device for {package_name}, skipping download-merge-push.")
-            try:
-                if pulled_tmp.exists():
-                    pulled_tmp.unlink()
-            except Exception:
-                pass
-            return False
-
-        # Merge
-        try:
-            if pc_file.exists():
-                print(f"Merging PC fbm {pc_file} with device fbm {pulled_tmp}")
-                ok = self.merge(str(pc_file), str(pulled_tmp), str(merged_tmp), merge_mode='max')
-                if not ok:
-                    print("Merge failed; will not push to device.")
-                    return False
-            else:
-                # no PC fbm, use pulled as merged
-                import shutil
-                shutil.copyfile(str(pulled_tmp), str(merged_tmp))
-
-            # push merged back to device
-            try:
-                print(f"Pushing merged fbm {merged_tmp} to device:{remote}")
-                push_file(str(merged_tmp), remote, device=device, transport_id=transport_id)
-            except Exception as e:
-                print(f"push_file failed: {e}")
-                return False
-
-            # replace pc_file with merged result
-            try:
-                import shutil
-                shutil.copyfile(str(merged_tmp), str(pc_file))
-            except Exception:
-                pass
-
-            print(f"[FBM] download_merge_push SUCCESS for package '{package_name}': pc='{pc_file}', device='{remote}'")
-            return True
-        finally:
-            # cleanup intermediates
-            try:
-                if pulled_tmp.exists():
-                    pulled_tmp.unlink()
-            except Exception:
-                pass
-            try:
-                if merged_tmp.exists():
-                    merged_tmp.unlink()
-            except Exception:
-                pass
 
     def pull_and_merge_to_pc(self, package_name: str, device: str = None, transport_id: str = None):
         """Pull device FBM for package and merge it into PC fbm (PC file will be updated).
@@ -579,8 +556,10 @@ class FBMMerger:
         pc_dir = self._pc_fbm_dir()
         pc_dir.mkdir(parents=True, exist_ok=True)
         pc_file = pc_dir / f"fastbot_{package_name}.fbm"
-        pulled_tmp = pc_dir / f"fastbot_{package_name}.from_device.fbm"
-        merged_tmp = pc_dir / f"fastbot_{package_name}.merged.fbm"
+        # generate a short random suffix for all intermediate files to avoid clashes between processes
+        rand = uuid.uuid4().hex[:8]
+        pulled_tmp = pc_dir / f"fastbot_{package_name}.from_device.{rand}.fbm"
+        merged_tmp = pc_dir / f"fastbot_{package_name}.merged.{rand}.fbm"
 
         remote = self._remote_fbm_path(package_name)
         try:
@@ -598,28 +577,39 @@ class FBMMerger:
                 pass
             return False
 
+        # --- Try snapshot/delta workflow first ---
+        snapshot_remote = f"/sdcard/fastbot_{package_name}.snapshot.fbm"
+        pulled_snap_tmp = pc_dir / f"fastbot_{package_name}.snapshot.from_device.{rand}.fbm"
+        delta_tmp = pc_dir / f"fastbot_{package_name}.delta.{rand}.fbm"
         try:
-            if pc_file.exists():
-                print(f"Merging PC fbm {pc_file} with device fbm {pulled_tmp} -> {merged_tmp}")
-                ok = self.merge(str(pc_file), str(pulled_tmp), str(merged_tmp), merge_mode='max')
-                if ok:
-                    try:
-                        merged_tmp.replace(pc_file)
-                    except Exception:
-                        import shutil
-                        shutil.copyfile(str(merged_tmp), str(pc_file))
-                else:
-                    print("Merge failed; PC fbm not updated.")
-                    return False
+            # attempt to pull snapshot (may fail silently)
+            try:
+                pull_file(snapshot_remote, str(pulled_snap_tmp), device=device, transport_id=transport_id)
+            except Exception:
+                # snapshot may not exist on device; ignore error and proceed (treat as empty)
+                pass
+
+            # Compute delta using snapshot if it exists, otherwise treat snapshot as empty (delta == current)
+            snapshot_path = str(pulled_snap_tmp) if pulled_snap_tmp.exists() and pulled_snap_tmp.stat().st_size > 0 else None
+            if snapshot_path:
+                print(f"Snapshot found on device for {package_name}, computing delta -> {delta_tmp}")
             else:
-                # no PC fbm, just move pulled into pc_file
-                try:
-                    pulled_tmp.replace(pc_file)
-                except Exception:
-                    import shutil
-                    shutil.copyfile(str(pulled_tmp), str(pc_file))
-            print(f"[FBM] pull_and_merge_to_pc SUCCESS for package '{package_name}': pc='{pc_file}', device='{remote}'")
-            return True
+                print(f"No snapshot on device for {package_name}; treating snapshot as empty -> computing delta -> {delta_tmp}")
+
+            ok = self.compute_delta(snapshot_path, str(pulled_tmp), str(delta_tmp))
+            if not ok:
+                print("Delta computation failed; not performing merge.")
+                return False
+
+            print(f"Applying delta to PC core fbm: {delta_tmp} -> {pc_file}")
+            # apply_delta_to_pc will perform necessary locking around pc_file operations
+            applied = self.apply_delta_to_pc(str(pc_file), str(delta_tmp))
+            if applied:
+                print(f"[FBM] delta applied to PC for package '{package_name}'")
+                return True
+            else:
+                print("Applying delta failed; not performing merge.")
+                return False
         finally:
             # cleanup
             try:
@@ -632,3 +622,192 @@ class FBMMerger:
                     merged_tmp.unlink()
             except Exception:
                 pass
+            try:
+                if pulled_snap_tmp.exists():
+                    pulled_snap_tmp.unlink()
+            except Exception:
+                pass
+            try:
+                if delta_tmp.exists():
+                    delta_tmp.unlink()
+            except Exception:
+                pass
+
+    # --- New workflow helpers ---
+    def create_device_snapshot(self, package_name: str, snapshot_remote: str = None, device: str = None, transport_id: str = None) -> bool:
+        """Create an on-device snapshot (copy) of the fbm file.
+
+        Attempts `adb shell cp <src> <dst>` first, falls back to pull/push if cp is not available.
+        Returns True on success.
+        """
+        src = self._remote_fbm_path(package_name)
+        dst = snapshot_remote or f"/sdcard/fastbot_{package_name}.snapshot.fbm"
+        try:
+            from kea2.adbUtils import adb_shell, pull_file, push_file
+        except Exception:
+            try:
+                from adbUtils import adb_shell, pull_file, push_file  # type: ignore
+            except Exception as e:
+                print("ADB utilities not available:", e)
+                return False
+
+        try:
+            print(f"Creating device snapshot: cp {src} {dst}")
+            adb_shell(["cp", src, dst], device=device, transport_id=transport_id)
+            return True
+        except Exception as e:
+            print(f"adb shell cp failed ({e}), trying pull/push fallback")
+            # fallback: pull then push to dst
+            try:
+                pc_tmp = os.path.join(self.script_dir, f"fastbot_{package_name}.snapshot.from_device.fbm")
+                pull_file(src, pc_tmp, device=device, transport_id=transport_id)
+                push_file(pc_tmp, dst, device=device, transport_id=transport_id)
+                try:
+                    os.remove(pc_tmp)
+                except Exception:
+                    pass
+                return True
+            except Exception as e2:
+                print(f"Snapshot fallback failed: {e2}")
+                return False
+
+    def compute_delta(self, snapshot_file: str, current_file: str, out_delta_file: str, merge_mode: str = 'increment') -> bool:
+        """Compute delta between snapshot FBM and current FBM and write a delta FBM containing only positive increments.
+
+        merge_mode ignored except for compatibility; behavior: delta = max(0, current - snapshot)
+        """
+        # Allow missing snapshot: only validate snapshot suffix when a path is provided and exists.
+        if snapshot_file and os.path.exists(snapshot_file):
+            if not self._ensure_fbm_suffix(snapshot_file, 'snapshot_file'):
+                return False
+        else:
+            # no snapshot available on device; treat as empty snapshot
+            snapshot_file = None
+
+        # Validate current and output paths
+        if not self._ensure_fbm_suffix(current_file, 'current_file'):
+            return False
+        if out_delta_file and not self._ensure_fbm_suffix(out_delta_file, 'out_delta_file'):
+            return False
+
+        # Load snapshot model if provided; if loading fails, log warning and treat as empty
+        model_snap = None
+        if snapshot_file:
+            model_snap = self.load_model(snapshot_file)
+            if model_snap is None:
+                print(f"Warning: failed to load snapshot model from {snapshot_file}; treating snapshot as empty")
+                model_snap = None
+        model_cur = self.load_model(current_file)
+        if model_cur is None:
+            print(f"Failed to load current model from {current_file}")
+            return False
+
+        entries_snap = self.extract_entries(model_snap)
+        entries_cur = self.extract_entries(model_cur)
+
+        # convert snapshot to map for fast lookup (action_hash -> {activity: times})
+        # NOTE: aggregate duplicate activity entries by summing, same as we do for current entries
+        snap_map = {}
+        for action_hash, targets in entries_snap:
+            ah = int(action_hash)
+            snap_map.setdefault(ah, {})
+            for activity, times in targets:
+                if not activity:
+                    continue
+                try:
+                    t = int(times)
+                except Exception:
+                    t = 0
+                snap_map[ah][activity] = snap_map[ah].get(activity, 0) + t
+
+        # convert current entries into a consolidated map, summing duplicate activity entries if any
+        cur_map = {}
+        for action_hash, targets in entries_cur:
+            ah = int(action_hash)
+            cur_map.setdefault(ah, {})
+            for activity, times in targets:
+                if not activity:
+                    continue
+                try:
+                    t = int(times)
+                except Exception:
+                    t = 0
+                cur_map[ah][activity] = cur_map[ah].get(activity, 0) + t
+
+        # compute deltas: for each action/activity, delta = cur_total - snapshot_total
+        delta_map = {}
+        for ah, activities in cur_map.items():
+            for activity, cur_t in activities.items():
+                snap_t = snap_map.get(ah, {}).get(activity, 0)
+                inc = cur_t - snap_t
+                if inc > 0:
+                    delta_map.setdefault(ah, {})
+                    delta_map[ah][activity] = inc
+
+        if not delta_map:
+            # produce an empty fbm file (deterministic) or skip writing — choose to write an empty FBM so callers can rely on its existence
+            print("No positive deltas found; writing empty delta FBM")
+            return self._write_aggregated_to_file({}, out_delta_file)
+
+        return self._write_aggregated_to_file(delta_map, out_delta_file)
+
+    def apply_delta_to_pc(self, pc_fbm: str, delta_fbm: str, out_fbm: str = None) -> bool:
+        """Apply a delta FBM (containing increments) into the PC core FBM.
+
+        If out_fbm is None, overwrite pc_fbm atomically; otherwise write to out_fbm.
+        """
+        if not self._ensure_fbm_suffix(pc_fbm, 'pc_fbm'):
+            return False
+        if not self._ensure_fbm_suffix(delta_fbm, 'delta_fbm'):
+            return False
+        if out_fbm and not self._ensure_fbm_suffix(out_fbm, 'out_fbm'):
+            return False
+
+        # Perform the entire PC file operation (read/merge/replace) under a single FileLock
+        # Ensure temporary target file has a .fbm suffix so merge(...) accepts it.
+        from pathlib import Path
+        if out_fbm:
+            target = out_fbm
+        else:
+            try:
+                target = str(Path(pc_fbm).with_suffix('.updated.fbm'))
+            except Exception:
+                # fallback: append .updated.fbm
+                target = pc_fbm + '.updated.fbm'
+
+        try:
+            with FileLock(str(pc_fbm), timeout=60.0):
+                # If pc_fbm doesn't exist, just copy delta into pc (delta assumed to be absolute increments over empty)
+                if not os.path.exists(pc_fbm):
+                    try:
+                        import shutil
+                        if out_fbm:
+                            shutil.copyfile(delta_fbm, out_fbm)
+                        else:
+                            shutil.copyfile(delta_fbm, pc_fbm)
+                        return True
+                    except Exception as e:
+                        print(f"Failed to copy delta to pc_fbm: {e}")
+                        return False
+
+                # Merge pc_fbm and delta_fbm using sum mode into target
+                ok = self.merge(pc_fbm, delta_fbm, target, merge_mode='sum')
+                if not ok:
+                    print("Failed to merge delta into pc_fbm")
+                    return False
+
+                # If out_fbm was not provided, replace pc_fbm atomically by moving target
+                if not out_fbm:
+                    try:
+                        os.replace(target, pc_fbm)
+                    except Exception:
+                        import shutil
+                        try:
+                            shutil.copyfile(target, pc_fbm)
+                            os.remove(target)
+                        except Exception:
+                            pass
+                return True
+        except LockTimeoutError:
+            print(f"Timeout acquiring lock to merge/apply delta into {pc_fbm}")
+            return False

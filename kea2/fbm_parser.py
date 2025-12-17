@@ -523,17 +523,20 @@ class FBMMerger:
                 pass
             return False
 
-    # --- New methods: device <-> PC FBM sync helpers ---
     def _pc_fbm_dir(self):
         """Return PC directory to store fbm files.
-
-        Use a repository-local folder under the generated code package: `<script_dir>/fastbotx/merge_fbm`.
-        Each package will have its own file `fastbot_{package}.fbm` inside this folder.
-        This avoids depending on runtime options and centralizes merged FBM files.
         """
         from pathlib import Path
-        base = Path(self.script_dir) / 'fastbotx' / 'merge_fbm'
-        return base
+        try:
+            from .utils import getProjectRoot
+            proj_root = getProjectRoot()
+        except Exception:
+            proj_root = None
+
+        if proj_root:
+            return Path(proj_root) / 'configs' / 'merge_fbm'
+        else:
+            return Path.cwd() / 'configs' / 'merge_fbm'
 
     def _remote_fbm_path(self, package_name: str) -> str:
         return f"/sdcard/fastbot_{package_name}.fbm"

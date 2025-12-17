@@ -809,25 +809,6 @@ class KeaTestRunner(TextTestRunner, KeaOptionSetter):
             # Ignore exceptions in __del__ to avoid "Exception ignored" warnings
             pass
 
-    # def _upload_fbm(self):
-    #     """If upload_fbm is enabled in options, pull device FBM(s) and merge into PC storage.
-    #
-    #     This is separated into a helper so it can be called from other places and is easier
-    #     to test. Errors are caught and logged to avoid breaking the main test flow.
-    #     """
-    #     # if not getattr(self.options, 'upload_fbm', False):
-    #     #     return
-    #
-    #     try:
-    #         from kea2.fbm_parser import FBMMerger
-    #         merger = FBMMerger()
-    #         for pkg in self.options.packageNames:
-    #             try:
-    #                 merger.pull_and_merge_to_pc(pkg, device=self.options.serial, transport_id=self.options.transport_id)
-    #             except Exception as e:
-    #                 print(f"Error during upload_fbm handling for {pkg}: {e}", flush=True)
-    #     except Exception as e:
-    #         print(f"Error initializing FBM merger for upload: {e}", flush=True)
 
     def _finalize_and_merge_deltas(self):
         """Pull device fbms, compute deltas (snapshot->current) and merge deltas into PC core fbm.

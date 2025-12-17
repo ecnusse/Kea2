@@ -39,6 +39,18 @@ class FBMMerger:
         self._model_save_path = ""
         self._default_model_save_path = ""
 
+        # Prepare PC-side FBM directory under project configs/merge_fbm (or cwd fallback)
+        try:
+            from pathlib import Path
+            pc_dir = self._pc_fbm_dir()
+            # ensure Path object
+            pc_dir = Path(pc_dir)
+            pc_dir.mkdir(parents=True, exist_ok=True)
+            self._pc_dir = pc_dir
+        except Exception:
+            # best-effort: if directory creation fails, keep attribute None
+            self._pc_dir = None
+
     def check_dependencies(self):
         try:
             import flatbuffers  # noqa: F401
@@ -305,7 +317,7 @@ class FBMMerger:
         """Construct a FlatBuffer from aggregated map and save to out_file.
 
         aggregated: dict[action_hash]->{activity: times}
-        out_file: path to write (if None, default path under script_dir)
+        out_file: path to write (if None, default path under pc_dir)
         """
         try:
             import flatbuffers
@@ -463,7 +475,7 @@ class FBMMerger:
         try:
             # Ensure output path
             if not out_file:
-                out_file = os.path.join(self.script_dir, 'fastbot.model.fbm')
+                out_file = os.path.join(self._pc_dir, 'fastbot.model.fbm')
 
             # Finish builder (if not already finished)
             try:
@@ -474,7 +486,7 @@ class FBMMerger:
 
             buf = builder.Output()
 
-            out_dir = os.path.dirname(out_file) or self.script_dir
+            out_dir = os.path.dirname(out_file) or self._pc_dir
             os.makedirs(out_dir, exist_ok=True)
 
             # Write to a unique temporary file in the target directory and atomically replace
@@ -556,7 +568,7 @@ class FBMMerger:
                 print("ADB utilities not available:", e)
                 return False
 
-        pc_dir = self._pc_fbm_dir()
+        pc_dir = self._pc_dir
         pc_dir.mkdir(parents=True, exist_ok=True)
         pc_file = pc_dir / f"fastbot_{package_name}.fbm"
         # generate a short random suffix for all intermediate files to avoid clashes between processes
@@ -662,7 +674,7 @@ class FBMMerger:
             print(f"adb shell cp failed ({e}), trying pull/push fallback")
             # fallback: pull then push to dst
             try:
-                pc_tmp = os.path.join(self.script_dir, f"fastbot_{package_name}.snapshot.from_device.fbm")
+                pc_tmp = os.path.join(self._pc_dir, f"fastbot_{package_name}.snapshot.from_device.fbm")
                 pull_file(src, pc_tmp, device=device, transport_id=transport_id)
                 push_file(pc_tmp, dst, device=device, transport_id=transport_id)
                 try:

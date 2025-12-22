@@ -470,6 +470,7 @@ class FBMMerger:
         file and then move/replace into the final path. If out_file is empty, use a
         default path under the script directory.
         """
+        import os
         import tempfile
         tmp_path = None
         try:
@@ -523,6 +524,23 @@ class FBMMerger:
                 except Exception:
                     pass
 
+            # Set file permissions to 644
+            try:
+                # Check if it's Windows system
+                if os.name == 'nt':
+                    # Directly use icacls command to set permissions on Windows
+                    import subprocess
+                    # First disable inheritance and copy existing permissions, then set new permissions
+                    subprocess.run(["icacls", out_file, "/inheritance:d", "/grant", "Everyone:R", "/grant", "Administrators:F"], 
+                                  capture_output=True, text=True, check=True)
+                    print(f"Set Windows file permissions to simulate 644 for: {out_file}")
+                else:
+                    # Set permissions directly on Unix/Linux systems
+                    os.chmod(out_file, 0o644)
+                    print(f"Set file permissions to 644 for: {out_file}")
+            except Exception as e:
+                print(f"Warning: Failed to set file permissions for {out_file}: {e}")
+            
             print(f"Merged FBM written to: {out_file} (size {len(buf)} bytes)")
             return True
         except Exception as e:
@@ -798,8 +816,28 @@ class FBMMerger:
                         import shutil
                         if out_fbm:
                             shutil.copyfile(delta_fbm, out_fbm)
+                            target_path = out_fbm
                         else:
                             shutil.copyfile(delta_fbm, pc_fbm)
+                            target_path = pc_fbm
+                        
+                        # Set file permissions to 644
+                        try:
+                            # Check if it's Windows system
+                            if os.name == 'nt':
+                                # Directly use icacls command to set permissions on Windows
+                                import subprocess
+                                # First disable inheritance and copy existing permissions, then set new permissions
+                                subprocess.run(["icacls", target_path, "/inheritance:d", "/grant", "Everyone:R", "/grant", "Administrators:F"], 
+                                              capture_output=True, text=True, check=True)
+                                print(f"Set Windows file permissions to simulate 644 for: {target_path}")
+                            else:
+                                # Set permissions directly on Unix/Linux systems
+                                os.chmod(target_path, 0o644)
+                                print(f"Set file permissions to 644 for: {target_path}")
+                        except Exception as e:
+                            print(f"Warning: Failed to set file permissions for {target_path}: {e}")
+                        
                         return True
                     except Exception as e:
                         print(f"Failed to copy delta to pc_fbm: {e}")
@@ -826,3 +864,8 @@ class FBMMerger:
         except LockTimeoutError:
             print(f"Timeout acquiring lock to merge/apply delta into {pc_fbm}")
             return False
+
+
+
+
+

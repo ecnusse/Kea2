@@ -176,6 +176,15 @@ def _set_runner_parser(subparsers: "argparse._SubParsersAction[argparse.Argument
     )
 
     parser.add_argument(
+        "--restart-app-period",
+        dest="restart_app_period",
+        type=int,
+        required=False,
+        default=0,
+        help="The period (in the numbers of monkey events) to restart the app under test. 0 means no restart.",
+    )
+
+    parser.add_argument(
         "extra",
         nargs=argparse.REMAINDER,
         help="Extra args (e.g. propertytest & --). See docs (https://github.com/ecnusse/Kea2/blob/main/docs/manual_en.md) for details.",
@@ -217,6 +226,8 @@ def driver_info_logger(args):
             print("  post_failure_screenshots:", args.post_failure_screenshots, flush=True)
     if args.max_step:
         print("  max_step:", args.max_step, flush=True)
+    if args.restart_app_period > 0:
+        print("  restart_app_period:", args.restart_app_period, flush=True)
 
 
 def parse_args(argv: List):
@@ -287,6 +298,7 @@ def run(args=None):
         device_output_root=args.device_output_root,
         act_whitelist_file=args.act_whitelist_file,
         act_blacklist_file=args.act_blacklist_file,
+        restart_app_period=args.restart_app_period,
         propertytest_args=args.propertytest_args,
         unittest_args=args.unittest_args,
         extra_args=args.extra,

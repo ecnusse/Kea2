@@ -128,6 +128,7 @@ You can launch Kea2 by shell commands `kea2 run`.
 | --take-screenshots | Take the UI screenshot at every Monkey event. The screenshots will be automatically pulled from the mobile device to your host machine periodically (the period is specified by `--profile-period`). |  |
 | --pre-failure-screenshots | Dump n screenshots before failure. 0 means take screenshots for every step. This option is only valid when `--take-screenshots` is set. | `0` |
 | --post-failure-screenshots | Dump n screenshots after failure. Should be smaller than `--pre-failure-screenshots`. This option is only valid when `--take-screenshots` is set. | `0` |
+| --restart-app-period | The period (in the numbers of monkey events) to restart the app under test. | `0` (never restart) |
 | --device-output-root | The root of device output dir. Kea2 will temporarily save the screenshots and result log into `"<device-output-root>/output_*********/"`. Make sure the root dir can be access. | `/sdcard` |
 | --act-whitelist-file | Activity WhiteList File. Only the activities listed in the file can be explored during testing. | |
 | --act-blacklist-file | Activity BlackList File. The activities listed in the file will be avoided during testing. | |

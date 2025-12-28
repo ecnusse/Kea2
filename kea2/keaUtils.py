@@ -8,7 +8,7 @@ import os
 from collections import deque
 from copy import deepcopy
 from pathlib import Path
-from time import perf_counter
+from time import perf_counter, sleep
 from typing import Callable, Any, Deque, Dict, List, Literal, NewType, Tuple, Union
 from contextvars import ContextVar
 from unittest import TextTestRunner, registerResult, TestSuite, TestCase, TextTestResult, defaultTestLoader, SkipTest
@@ -155,6 +155,8 @@ class Options:
     act_blacklist_file: str = None
     # propertytest sub-commands args (eg. discover -s xxx -p xxx)
     propertytest_args: List[str] = None
+    # period (N steps) to restart the app under test
+    restart_app_period: int = None
     # unittest sub-commands args (Feat 4)
     unittest_args: List[str] = None
     # Extra args (directly passed to fastbot)
@@ -479,22 +481,30 @@ class KeaTestRunner(TextTestRunner, KeaOptionSetter):
                 start_time = perf_counter()
                 fb_is_running = True
                 self.stepsCount = 0
+
                 while self.stepsCount < self.options.maxStep:
                     if self.shouldStop(start_time):
                         logger.info("Exploration time up (--running-minutes).")
                         break
+
+                    if self.options.restart_app_period and self.stepsCount and self.stepsCount % self.options.restart_app_period == 0:
+                        self.stepsCount += 1
+                        logger.info(f"Sending monkeyEvent {self._monkey_event_count}")
+                        logger.info("Kill all test apps to restart the app under test.")
+                        for app in self.options.packageNames:
+                            logger.info(f"Stopping app: {app}")
+                            self.scriptDriver.app_stop(app)
+                        sleep(3)
+                        fb.sendInfo("kill_apps")
+                        continue
+
                     try:
                         if fb.executed_prop:
                             fb.executed_prop = False
                             xml_raw = fb.dumpHierarchy()
                         else:
                             self.stepsCount += 1
-                            logger.info("Sending monkeyEvent {}".format(
-                                f"({self.stepsCount} / {self.options.maxStep})" if self.options.maxStep != float("inf")
-                                else f"({self.stepsCount})"
-                                )
-                            )
-
+                            logger.info(f"Sending monkeyEvent {self._monkey_event_count}")
                             xml_raw = fb.stepMonkey(self._monkeyStepInfo)
                         propsSatisfiedPrecond = self.getValidProperties(xml_raw, result)
                     except u2.HTTPError:
@@ -579,6 +589,10 @@ class KeaTestRunner(TextTestRunner, KeaOptionSetter):
         r = self._get_block_widgets()
         r["steps_count"] = self.stepsCount
         return r
+
+    @property
+    def _monkey_event_count(self):
+        return f"({self.stepsCount} / {self.options.maxStep})" if self.options.maxStep != float("inf") else f"({self.stepsCount})"
 
     def _get_block_widgets(self):
         block_dict = self._getBlockedWidgets()

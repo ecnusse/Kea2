@@ -140,6 +140,107 @@
             box-shadow: 0 3px 10px rgba(0, 0, 0, 0.1);
             margin-bottom: 8px;
         }
+
+        .screenshot-placeholder {
+            width: 300px;
+            height: 400px;
+            border-radius: 8px;
+            background: linear-gradient(180deg, rgba(52, 152, 219, 0.08), rgba(255, 255, 255, 0.98));
+            border: 1px solid rgba(52, 152, 219, 0.18);
+            box-shadow: 0 8px 24px rgba(44, 62, 80, 0.08);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 8px;
+            color: #6c757d;
+        }
+
+        .screenshot-placeholder::before {
+            content: "";
+            position: absolute;
+            inset: 10px;
+            border-radius: 10px;
+            border: 1px dashed rgba(52, 152, 219, 0.25);
+            pointer-events: none;
+        }
+
+        .screenshot-item .screenshot-placeholder {
+            position: relative;
+            overflow: hidden;
+        }
+
+        .screenshot-placeholder::after {
+            content: "";
+            position: absolute;
+            inset: 0;
+            background:
+                radial-gradient(circle at 20% 25%, rgba(46, 204, 113, 0.18), transparent 42%),
+                radial-gradient(circle at 80% 70%, rgba(52, 152, 219, 0.16), transparent 48%);
+            pointer-events: none;
+            opacity: 0.9;
+        }
+
+        .screenshot-placeholder .placeholder-content {
+            position: relative;
+            z-index: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 12px;
+            text-align: center;
+        }
+
+        .screenshot-placeholder .placeholder-icon {
+            width: 92px;
+            height: 92px;
+            border-radius: 999px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 16px 32px rgba(52, 152, 219, 0.22);
+            border: 1px solid rgba(52, 152, 219, 0.22);
+            background: radial-gradient(circle at 30% 30%, rgba(255, 255, 255, 0.9), rgba(52, 152, 219, 0.10));
+        }
+
+        .screenshot-placeholder .placeholder-icon i {
+            font-size: 40px;
+            color: var(--primary-color);
+        }
+
+        .screenshot-placeholder .placeholder-icon.info i {
+            color: #6c757d;
+        }
+
+        .screenshot-placeholder .placeholder-icon.reboot {
+            background: conic-gradient(from 210deg, rgba(46, 204, 113, 0.22), rgba(52, 152, 219, 0.22), rgba(46, 204, 113, 0.22));
+        }
+
+        .screenshot-placeholder .placeholder-text {
+            font-size: 13px;
+            font-weight: 600;
+            letter-spacing: 0.2px;
+            color: rgba(44, 62, 80, 0.78);
+            padding: 6px 10px;
+            border-radius: 999px;
+            background: rgba(255, 255, 255, 0.72);
+            border: 1px solid rgba(52, 152, 219, 0.14);
+            box-shadow: 0 6px 18px rgba(44, 62, 80, 0.06);
+        }
+
+        .screenshot-item:hover .screenshot-placeholder {
+            border-color: rgba(52, 152, 219, 0.28);
+            box-shadow: 0 12px 30px rgba(44, 62, 80, 0.10);
+        }
+
+        .screenshot-item:hover .placeholder-icon.reboot i {
+            animation: reboot-spin 1.4s ease-in-out infinite;
+        }
+
+        @keyframes reboot-spin {
+            0% { transform: rotate(0deg); }
+            60% { transform: rotate(220deg); }
+            100% { transform: rotate(360deg); }
+        }
         
         .screenshot-caption {
             font-size: 13px;
@@ -523,6 +624,10 @@
             background-color: white;
             border-radius: 0 0 8px 8px;
             box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        }
+
+        .pagination-container.pagination-violations {
+            padding: 10px 16px;
         }
         
         .activity-item {
@@ -1435,20 +1540,58 @@
 
         <!-- Screenshots Section -->
         {% if take_screenshots %}
-        {% if screenshots %}
+        {% if screenshots or kill_apps_events %}
         <div class="section-block">
             <h2 class="section-title">Test Screenshots</h2>
             <div class="card">
                 <div class="card-body">
                     <div class="screenshots-container" id="screenshots">
-                        {% for screenshot in screenshots %}
-                        <div class="screenshot-item">
-                            <a href="{{ screenshot.path }}" target="_blank">
-                                <img src="{{ screenshot.path }}" class="screenshot-img" id="{{ screenshot.id }}">
-                            </a>
-                            <div class="screenshot-caption">{{ screenshot.caption }}</div>
-                        </div>
-                        {% endfor %}
+                        {% if screenshots %}
+                            {% for screenshot in screenshots %}
+                            <div class="screenshot-item">
+                                {% if screenshot.path %}
+                                    <a href="{{ screenshot.path }}" target="_blank">
+                                        <img src="{{ screenshot.path }}" class="screenshot-img" id="{{ screenshot.id }}">
+                                    </a>
+                                {% else %}
+                                    <div class="screenshot-placeholder" id="{{ screenshot.id }}">
+                                        {% if screenshot.info == "kill_apps" %}
+                                            <div class="placeholder-content">
+                                                <span class="placeholder-icon reboot">
+                                                    <i class="bi bi-bootstrap-reboot"></i>
+                                                </span>
+                                                <div class="placeholder-text">Restart app</div>
+                                            </div>
+                                        {% else %}
+                                            <div class="placeholder-content">
+                                                <span class="placeholder-icon info">
+                                                    <i class="bi bi-info-circle"></i>
+                                                </span>
+                                                <div class="placeholder-text">Info event</div>
+                                            </div>
+                                        {% endif %}
+                                    </div>
+                                {% endif %}
+                                <div class="screenshot-caption">{{ screenshot.caption }}</div>
+                            </div>
+                            {% endfor %}
+                        {% else %}
+                            {% for ev in kill_apps_events %}
+                            <div class="screenshot-item">
+                                <div class="screenshot-placeholder" id="{{ ev.step_index }}">
+                                    <div class="placeholder-content">
+                                        <span class="placeholder-icon reboot">
+                                            <i class="bi bi-bootstrap-reboot"></i>
+                                        </span>
+                                        <div class="placeholder-text">Restart app</div>
+                                    </div>
+                                </div>
+                                <div class="screenshot-caption">
+                                    {{ ev.step_index }}. Monkey Step {{ ev.monkey_steps_count }}: restart app
+                                </div>
+                            </div>
+                            {% endfor %}
+                        {% endif %}
                     </div>
                 </div>
             </div>
@@ -1630,7 +1773,7 @@
                     </thead>
                     <tbody id="property-violations-container">
                         {% for violation in property_violations %}
-                        <tr class="property-violation-row" data-page="1">
+                        <tr class="property-violation-row" data-page="1" data-status="{{ violation.state|default('fail') }}">
                             <td>{{ violation.index }}</td>
                             <td><span class="badge bg-light text-dark badge-custom">{{ violation.property_name }}</span></td>
                             <td>
@@ -1645,8 +1788,8 @@
                 </table>
 
                 <!-- Pagination for Property Violations -->
-                <div class="d-flex justify-content-between align-items-center mt-3">
-                    <div class="d-flex align-items-center">
+                <div class="d-flex justify-content-between align-items-center mt-3 pagination-container pagination-violations">
+                    <div class="d-flex align-items-center gap-3">
                         <label for="violations-page-size" class="form-label me-2 mb-0">Show:</label>
                         <select class="form-select form-select-sm" id="violations-page-size" style="width: auto;">
                             <option value="5">5</option>
@@ -1654,6 +1797,11 @@
                             <option value="20">20</option>
                             <option value="50">50</option>
                             <option value="100">100</option>
+                        </select>
+                        <label for="violations-status-filter" class="form-label mb-0">Status:</label>
+                        <select class="form-select form-select-sm" id="violations-status-filter" style="width: auto;">
+                            <option value="all" selected>All</option>
+                            <option value="fail">Fail only</option>
                         </select>
                     </div>
                     <nav aria-label="Property Violations Pagination">
@@ -2232,6 +2380,7 @@
             
             // Initialize pagination for Property tables
             initPagination('property-violations-container', 'property-violation-row', 'violations-pagination', 'violations-page-size');
+            initViolationFilter();
             initPagination('property-stats-container', 'property-stat-row', 'stats-pagination', 'stats-page-size');
             
             // Initialize sorting for Property Checking Statistics
@@ -3155,6 +3304,33 @@
                     }
                 }
             }
+        }
+
+        function initViolationFilter() {
+            const filterSelect = document.getElementById('violations-status-filter');
+            const container = document.getElementById('property-violations-container');
+
+            if (!filterSelect || !container) return;
+
+            filterSelect.addEventListener('change', function() {
+                const filterValue = this.value;
+                const rows = Array.from(container.getElementsByClassName('property-violation-row'));
+
+                rows.forEach(function(row) {
+                    const status = row.getAttribute('data-status') || 'fail';
+                    if (filterValue === 'all') {
+                        row.removeAttribute('data-search-visible');
+                    } else {
+                        row.setAttribute('data-search-visible', status === filterValue ? 'true' : 'false');
+                    }
+                });
+
+                initPagination('property-violations-container', 'property-violation-row', 'violations-pagination', 'violations-page-size');
+
+                const currentPageSize = document.getElementById('violations-page-size') ?
+                    parseInt(document.getElementById('violations-page-size').value) : 10;
+                goToPage(1, 'property-violations-container', 'property-violation-row', currentPageSize, 'violations-pagination');
+            });
         }
         
         // Global pagination and navigation functions

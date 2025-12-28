@@ -311,16 +311,19 @@ class ScreenshotsMixin:
         screenshot_name = step_data["Screenshot"]
         if not screenshot_name:
             return
+        info = step_data.get("Info")
+        if not isinstance(info, dict):
+            return
 
         if step_type == "Monkey":
-            act = step_data["Info"].get("act")
-            pos = step_data["Info"].get("pos")
+            act = info.get("act")
+            pos = info.get("pos")
             if act in ["CLICK", "LONG_CLICK"] or act.startswith("SCROLL"):
                 self._mark_screenshot_interaction(step_type, screenshot_name, act, pos)
 
         elif step_type == "Script":
-            act = step_data["Info"].get("method")
-            pos = step_data["Info"].get("params")
+            act = info.get("method")
+            pos = info.get("params")
             if act in ["click", "setText", "swipe"]:
                 self._mark_screenshot_interaction(step_type, screenshot_name, act, pos)
 
@@ -425,19 +428,30 @@ class ScreenshotsMixin:
             data: Data dictionary to update
         """
         caption = ""
+        info = step_data.get("Info")
 
         if step_data["Type"] == "Monkey":
             # Extract 'act' attribute for Monkey type and add MonkeyStepsCount
             monkey_steps_count = step_data.get('MonkeyStepsCount', 'N/A')
-            action = step_data['Info'].get('act', 'N/A')
+            if isinstance(info, dict):
+                action = info.get('act', 'N/A')
+            else:
+                action = str(info) if info else 'N/A'
             caption = f"Monkey Step {monkey_steps_count}: {action}"
         elif step_data["Type"] == "Script":
             # Extract 'method' attribute for Script type
-            caption = f"{step_data['Info'].get('method', 'N/A')}"
+            if isinstance(info, dict):
+                caption = f"{info.get('method', 'N/A')}"
+            else:
+                caption = str(info) if info else "N/A"
         elif step_data["Type"] == "ScriptInfo":
             # Extract 'propName' and 'state' attributes for ScriptInfo type
-            prop_name = step_data["Info"].get('propName', '')
-            state = step_data["Info"].get('state', 'N/A')
+            if isinstance(info, dict):
+                prop_name = info.get('propName', '')
+                state = info.get('state', 'N/A')
+            else:
+                prop_name = ''
+                state = str(info) if info else 'N/A'
             caption = f"{prop_name}: {state}" if prop_name else f"{state}"
         elif step_data["Type"] == "Fuzz":
             monkey_steps_count = step_data.get('MonkeyStepsCount', 'N/A')

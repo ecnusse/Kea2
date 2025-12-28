@@ -3,7 +3,7 @@ import threading
 from pathlib import Path
 
 from .adbUtils import ADBDevice
-from .utils import getLogger
+from .utils import getLogger, catchException, timer
 
 from typing import TYPE_CHECKING
 if TYPE_CHECKING:
@@ -34,36 +34,32 @@ class ResultSyncer:
         """Thread function that waits for sync event and then syncs data"""
         while self.running:
             # Wait for sync event with a timeout to periodically check if still running
-            if self.sync_event.wait(timeout=3):
+            if self.sync_event.wait(timeout=1):
                 self._sync_device_data()
                 self.sync_event.clear()
 
+    @timer("Data Sync cost %cost_time seconds")
     def close(self):
         self.running = False
         self.sync_event.set()
         if self.thread and self.thread.is_alive():
+            logger.info("Syncing result data from device. Please wait...")
             self.thread.join(timeout=10)
         self._sync_device_data()
         try:
             logger.debug(f"Removing device output directory: {self.device_output_dir}")
             remove_device_dir = ["rm", "-rf", self.device_output_dir]
-            # adb_shell(remove_device_dir)
             self.dev.shell(remove_device_dir)
         except Exception as e:
             logger.error(f"Error removing device output directory: {e}", flush=True)
 
+    @catchException("Error during device data sync.")    
     def _sync_device_data(self):
         """
         Sync the device data to the local directory.
         """
-        try:
-            logger.debug("Syncing data")
+        logger.debug("Syncing data")
+        self.dev.sync.pull_dir(self.device_output_dir, self.output_dir, exist_ok=True)
 
-            self.dev.sync.pull_dir(self.device_output_dir, self.output_dir, exist_ok=True)
-            # pull_file(self.device_output_dir, str(self.output_dir))
-
-            remove_pulled_screenshots = ["find", self.device_output_dir, "-name", '"*.png"', "-delete"]
-            self.dev.shell(remove_pulled_screenshots)
-            # adb_shell(remove_pulled_screenshots)
-        except Exception as e:
-            logger.error(f"Error in data sync: {e}")
+        remove_pulled_screenshots = ["find", self.device_output_dir, "-name", '"*.png"', "-delete"]
+        self.dev.shell(remove_pulled_screenshots)

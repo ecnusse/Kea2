@@ -129,6 +129,14 @@ class FastbotManager:
             path="/dumpHierarchy",
         )
         return r.json()['result']
+    
+    @retry(Exception, tries=2, delay=2)
+    def sendInfo(self, info: str):
+        r = self.request(
+            method="POST",
+            path="/sendInfo",
+            data=info
+        )
 
     @property
     def device_output_dir(self):

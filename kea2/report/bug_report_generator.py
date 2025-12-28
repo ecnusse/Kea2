@@ -59,6 +59,7 @@ class ReportData(TypedDict):
     activity_count_history: Dict[str, int]  # Activity traversal count from final coverage data
     crash_events: List[Dict]  # Crash events from crash-dump.log
     anr_events: List[Dict]  # ANR events from crash-dump.log
+    kill_apps_events: List[Dict]  # kill_apps info events from steps.log
 
 
 class PropertyExecResult(TypedDict):
@@ -250,6 +251,7 @@ class BugReportGenerator(CrashAnrMixin, PathParserMixin, ScreenshotsMixin):
             "activity_count_history": {},
             "crash_events": [],
             "anr_events": [],
+            "kill_apps_events": [],
         }
 
         # Parse steps.log file to get test step numbers and screenshot mappings
@@ -282,6 +284,25 @@ class BugReportGenerator(CrashAnrMixin, PathParserMixin, ScreenshotsMixin):
                 # Count Monkey events separately
                 if step_type == "Monkey" or step_type == "Fuzz":
                     monkey_events_count += 1
+
+                # Record restart-app marker events (no screenshot expected)
+                if step_type == "Monkey" and info == "kill_apps":
+                    monkey_steps_count = step_data.get("MonkeyStepsCount", "N/A")
+                    caption = f"Monkey Step {monkey_steps_count}: restart app"
+
+                    data["kill_apps_events"].append({
+                        "step_index": step_index,
+                        "monkey_steps_count": monkey_steps_count,
+                    })
+
+                    # Show this info event in the Test Screenshots timeline
+                    self.screenshots.append({
+                        "id": step_index,
+                        "path": "",
+                        "caption": f"{step_index}. {caption}",
+                        "kind": "info",
+                        "info": "kill_apps",
+                    })
 
                 # If screenshots are enabled, mark the screenshot
                 if self.take_screenshots and step_data["Screenshot"]:
@@ -390,8 +411,12 @@ class BugReportGenerator(CrashAnrMixin, PathParserMixin, ScreenshotsMixin):
 
     def _parse_step_data(self, raw_step_info: str) -> StepData:
         step_data: StepData = json.loads(raw_step_info)
-        if step_data["Type"] in {"Monkey", "Script", "ScriptInfo"}:
-            step_data["Info"] = json.loads(step_data["Info"])
+        if step_data.get("Type") in {"Monkey", "Script", "ScriptInfo"}:
+            info = step_data.get("Info")
+            if isinstance(info, str):
+                stripped = info.strip()
+                if stripped and stripped[0] in "{[":
+                    step_data["Info"] = json.loads(stripped)
         return step_data
 
 
@@ -443,7 +468,8 @@ class BugReportGenerator(CrashAnrMixin, PathParserMixin, ScreenshotsMixin):
             'anr_events': data["anr_events"],
             'triggered_crash_count': len(data["crash_events"]),
             'triggered_anr_count': len(data["anr_events"]),
-            'property_stats_summary': data["property_stats_summary"]
+            'property_stats_summary': data["property_stats_summary"],
+            'kill_apps_events': data.get("kill_apps_events", []),
         }
 
         # Check if template exists, if not create it
@@ -498,7 +524,8 @@ class BugReportGenerator(CrashAnrMixin, PathParserMixin, ScreenshotsMixin):
                             "start": current_test["start"],
                             "end": current_test["end"],
                             "screenshot_start": current_test["screenshot_start"],
-                            "screenshot_end": screenshot
+                            "screenshot_end": screenshot,
+                            "state": state
                         })
 
                     # Reset current test
@@ -524,7 +551,8 @@ class BugReportGenerator(CrashAnrMixin, PathParserMixin, ScreenshotsMixin):
                     data["property_violations"].append({
                         "index": index,
                         "property_name": property_name,
-                        "interaction_pages": [start_step, end_step]
+                        "interaction_pages": [start_step, end_step],
+                        "state": violation.get("state", "fail")
                     })
                     index += 1
 

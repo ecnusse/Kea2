@@ -10,6 +10,7 @@ dependencies = [
     "uiautomator2>=3.3.3",
     "adbutils>=2.9.3",
     "packaging>=25.0",
+    "flatbuffers>=2.0.0",
 ]
 authors = [
     { name = "Xixian Liang", email = "xixian@stu.ecnu.edu.cn" }
@@ -26,4 +27,3 @@ kea2 = [
     "assets/**/*", 
     "report/templates/**/*"
 ]
-

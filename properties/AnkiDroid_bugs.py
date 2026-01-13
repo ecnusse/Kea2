@@ -1,12 +1,12 @@
 from kea2 import precondition,max_tries
 from kea2.state import state
-from properties.ankiDroid_state_utils import ensure_card_types_default, add_card_type, last_card_type, pop_card_type
+from properties.ankiDroid_state_utils import ensure_card_types_default, add_card_type, last_card_type, pop_card_type, get_random_new_card_limit
 from time import sleep
 import unittest
 import uiautomator2 as u2
 import re
 import random
-
+import string
 
 try:
     state['card_number'] = int(state.get('card_number', 0))
@@ -20,6 +20,67 @@ class AnkiDroid_Propertytest_Sample(unittest.TestCase):
 
     def setUp(self):
         self.d = u2.connect()
+
+    @max_tries(1)
+    @precondition(
+        lambda self: self.d(resourceId="com.ichi2.anki:id/DeckPickerHoriz").exists
+    )
+    def test_open_card_types(self):
+        self.d(resourceId="com.ichi2.anki:id/DeckPickerHoriz").click()
+        sleep(0.5)
+        self.d(text='Add').click()
+        sleep(0.5)
+        self.d(resourceId="com.ichi2.anki:id/CardEditorCardsButton").click()
+
+    @max_tries(1)
+    @precondition(
+        lambda self: self.d(resourceId="com.ichi2.anki:id/fab_main").exists
+    )
+    def test_create_deck(self):
+        self.d(resourceId="com.ichi2.anki:id/fab_main").click()
+        sleep(0.5)
+        self.d(resourceId='com.ichi2.anki:id/add_deck_label').click()
+        sleep(0.5)
+        random_text = ''.join(random.choices(string.ascii_letters + string.digits, k=8))
+        self.d(resourceId='com.ichi2.anki:id/dialog_text_input').set_text(random_text)
+        sleep(0.5)
+        self.d(text='OK').click()
+
+    @precondition(
+        lambda self: self.d(resourceId="com.ichi2.anki:id/deckpicker_new").exists
+    )
+    def test_increase_new_card_limit(self):
+        original_num = int(self.d(resourceId='com.ichi2.anki:id/deckpicker_new').get_text())
+        print(f"Original new cards count on main screen: {original_num}")
+        self.d(resourceId='com.ichi2.anki:id/deckpicker_name').long_click()
+        sleep(0.5)
+        self.d(text='Custom study').click()
+        sleep(2)
+        self.d(text='Increase today\'s new card limit').click()
+        detail_text = self.d(resourceId='com.ichi2.anki:id/custom_study_details_text1').get_text()
+        print(f"Raw detail text: '{detail_text}'")
+        match = re.search(r'(\d+)', detail_text)
+        available_limit = int(match.group(1))
+        print(f"Parsed available limit: {available_limit}")
+        update_val = get_random_new_card_limit()
+        print(f"Randomly generated value to input: {update_val}")
+        self.d(resourceId='com.ichi2.anki:id/custom_study_details_edittext2').set_text(update_val)
+        self.d(text='OK').click()
+        sleep(1)
+        new_num = int(self.d(resourceId='com.ichi2.anki:id/deckpicker_new').get_text())
+        print(f"Final new cards count on main screen: {new_num}")
+        raw_total = original_num + update_val
+        # Constraints:
+        # Lower bound is always 0
+        # Upper bound is the 'available_limit' extracted from the text
+        lower_bound = 0
+        upper_bound = available_limit
+        # Final count cannot be less than 0 and cannot exceed available_limit
+        expected_num = max(lower_bound, min(raw_total, upper_bound))
+        print(f"Expected: clamped({original_num} + {update_val}) -> {expected_num}")
+        assert new_num == expected_num
+
+
 
     @max_tries(1)
     @precondition(

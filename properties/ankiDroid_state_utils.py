@@ -1,6 +1,7 @@
 from typing import Optional
 
 from kea2.state import state
+import random
 
 
 def ensure_card_types_default() -> None:
@@ -34,3 +35,16 @@ def pop_card_type(index: int = -1) -> str:
 def clear_card_types() -> None:
     """Reset card_types to its default single-item list."""
     state['card_types'] = ['Card 1']
+
+def get_random_new_card_limit():
+    p = random.random()
+
+    if p < 0.7:
+        return random.randint(-10, 10)
+    else:
+        choice = random.choice([
+            random.randint(-1000, -11),
+            random.randint(11, 1000)
+        ])
+        return choice
+

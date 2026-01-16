@@ -14,7 +14,7 @@ except Exception:
     state['card_number'] = 0
 
 ensure_card_types_default()
-
+state['tags'] = []
 
 class AnkiDroid_Propertytest_Sample(unittest.TestCase):
 
@@ -163,3 +163,24 @@ class AnkiDroid_Propertytest_Sample(unittest.TestCase):
         text = self.d(resourceId="com.ichi2.anki:id/subtitle").get_text()
         number = int(re.search(r'\d+', text).group())
         assert number == state['card_number']
+
+    @max_tries(1)
+    @precondition(
+        lambda self: self.d(resourceId="com.ichi2.anki:id/CardEditorTagButton").exists
+    )
+    def test_add_tags(self):
+        self.d(resourceId="com.ichi2.anki:id/CardEditorTagButton").click()
+        sleep(0.5)
+        self.d(resourceId='com.ichi2.anki:id/tags_dialog_action_add').click()
+        sleep(0.5)
+        tag_name = ''.join(random.choices("abc123XYZ", k=8))
+        self.d(resourceId='com.ichi2.anki:id/dialog_text_input').set_text(tag_name)
+        sleep(0.5)
+        self.d(text='OK').click()
+        sleep(0.5)
+        self.d(text='OK').click()
+        state['tags'].append(tag_name)
+        sleep(0.5)
+        tag_text = self.d(resourceId='com.ichi2.anki:id/CardEditorTagButton').get_text()
+        assert tag_name in tag_text
+

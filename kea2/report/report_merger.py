@@ -62,12 +62,15 @@ class TestReportMerger:
 
         # Calculate final statistics
         final_data = self._calculate_final_statistics(merged_property_stats, merged_coverage_data, merged_crash_anr_data, property_source_mapping)
+
+        source_directory_summaries = self._collect_directory_summaries(output_dir)
         
         # Add merge information to final data
         final_data['merge_info'] = {
             'merge_timestamp': datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
             'source_count': len(self.result_dirs),
             'source_directories': [str(Path(d).name) for d in self.result_dirs],
+            'source_directory_summaries': source_directory_summaries,
             'package_name': self._package_name or ""
         }
 
@@ -76,6 +79,128 @@ class TestReportMerger:
         
         logger.debug(f"Reports generated successfully in: {output_dir}")
         return report_file
+
+    def _collect_directory_summaries(self, output_dir: Optional[Path]) -> List[Dict]:
+        summaries: List[Dict] = []
+
+        for result_dir in self.result_dirs:
+            dir_name = result_dir.name
+            summary = {
+                "bugs_found": 0,
+                "total_testing_time": "00:00:00",
+                "executed_events": 0,
+                "coverage_percent": 0.0,
+                "executed_properties_count": 0,
+                "all_properties_count": 0,
+                "triggered_crash_count": 0,
+                "triggered_anr_count": 0,
+            }
+
+            report_path = None
+            html_files = list(result_dir.glob("*.html"))
+            if html_files:
+                html_file = html_files[0]
+                try:
+                    report_path = os.path.relpath(html_file.resolve(), output_dir.resolve()) if output_dir else str(html_file.resolve())
+                except ValueError:
+                    report_path = str(html_file.resolve())
+
+            result_files = list(result_dir.glob("result_*.json"))
+            if result_files:
+                try:
+                    with open(result_files[0], "r", encoding="utf-8") as f:
+                        test_results = json.load(f)
+                    summary["all_properties_count"] = len(test_results)
+                    summary["executed_properties_count"] = sum(
+                        1 for result in test_results.values() if result.get("executed", 0) > 0
+                    )
+                    summary["bugs_found"] = sum(
+                        1 for result in test_results.values()
+                        if result.get("fail", 0) > 0 or result.get("error", 0) > 0
+                    )
+                except Exception as exc:
+                    logger.warning(f"Failed to load property results for {dir_name}: {exc}")
+
+            output_dirs = list(result_dir.glob("output_*"))
+            if output_dirs:
+                output_subdir = output_dirs[0]
+                steps_log = output_subdir / "steps.log"
+                if steps_log.exists():
+                    executed_events, total_testing_time = self._parse_steps_log_summary(steps_log)
+                    summary["executed_events"] = executed_events
+                    summary["total_testing_time"] = total_testing_time
+
+                coverage_log = output_subdir / "coverage.log"
+                if coverage_log.exists():
+                    summary["coverage_percent"] = self._read_last_coverage_percent(coverage_log)
+
+                crash_dump_file = output_subdir / "crash-dump.log"
+                if crash_dump_file.exists():
+                    try:
+                        crash_events, anr_events = self._parse_crash_dump_file(crash_dump_file)
+                        summary["triggered_crash_count"] = len(crash_events)
+                        summary["triggered_anr_count"] = len(anr_events)
+                    except Exception as exc:
+                        logger.warning(f"Failed to parse crash dump for {dir_name}: {exc}")
+
+            summaries.append({
+                "dir_name": dir_name,
+                "report_path": report_path,
+                "summary": summary,
+            })
+
+        return summaries
+
+    def _parse_steps_log_summary(self, steps_log: Path) -> Tuple[int, str]:
+        executed_events = 0
+        first_step_time = None
+        last_step_time = None
+
+        with open(steps_log, "r", encoding="utf-8") as f:
+            for line in f:
+                if not line.strip():
+                    continue
+                try:
+                    step_data = json.loads(line)
+                except json.JSONDecodeError:
+                    continue
+
+                step_type = step_data.get("Type", "")
+                if step_type in {"Monkey", "Fuzz"}:
+                    executed_events += 1
+
+                step_time = step_data.get("Time")
+                if step_time:
+                    if first_step_time is None:
+                        first_step_time = step_time
+                    last_step_time = step_time
+
+        total_testing_time = "00:00:00"
+        if first_step_time and last_step_time:
+            try:
+                start_time = datetime.strptime(first_step_time, r"%Y-%m-%d %H:%M:%S.%f")
+                end_time = datetime.strptime(last_step_time, r"%Y-%m-%d %H:%M:%S.%f")
+                if end_time < start_time:
+                    start_time, end_time = end_time, start_time
+                total_seconds = int((end_time - start_time).total_seconds())
+                hours, remainder = divmod(total_seconds, 3600)
+                minutes, seconds = divmod(remainder, 60)
+                total_testing_time = f"{hours:02d}:{minutes:02d}:{seconds:02d}"
+            except ValueError as exc:
+                logger.warning(f"Failed to parse steps log time in {steps_log}: {exc}")
+
+        return executed_events, total_testing_time
+
+    def _read_last_coverage_percent(self, coverage_file: Path) -> float:
+        last_coverage = None
+        with open(coverage_file, "r", encoding="utf-8") as f:
+            for line in f:
+                if line.strip():
+                    last_coverage = json.loads(line)
+
+        if last_coverage:
+            return round(float(last_coverage.get("coverage", 0)), 2)
+        return 0.0
 
     def _determine_package_name(self) -> Tuple[Optional[str], bool]:
         """

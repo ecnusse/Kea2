@@ -927,7 +927,7 @@
         .merged-directories-list {
             max-height: 200px;
             overflow-y: auto;
-            overflow-x: hidden;
+            overflow-x: auto;
             padding: 12px;
             padding-right: 8px; /* Make room for scrollbar */
             background: #f8f9fa;
@@ -941,14 +941,17 @@
         }
 
         .directory-list-item {
-            display: flex;
+            display: grid;
+            grid-template-columns: 32px minmax(240px, 1.3fr) repeat(7, minmax(90px, 0.7fr));
+            column-gap: 12px;
             align-items: center;
-            padding: 6px 8px;
+            padding: 8px 10px;
             margin-bottom: 4px;
             background: white;
             border-radius: 4px;
             border: 1px solid #e9ecef;
             transition: all 0.2s ease;
+            min-width: 980px;
         }
 
         .directory-list-item:hover {
@@ -959,6 +962,18 @@
 
         .directory-list-item:last-child {
             margin-bottom: 0;
+        }
+
+        .directory-list-item.directory-list-header {
+            background: #eef7ff;
+            border-color: #cfe5f5;
+            font-weight: 600;
+        }
+
+        .directory-list-item.directory-list-header:hover {
+            background: #eef7ff;
+            border-color: #cfe5f5;
+            transform: none;
         }
 
         /* Property Search Container Styles */
@@ -1097,7 +1112,31 @@
             font-size: 14px;
             color: #2c3e50;
             word-break: break-all;
-            flex: 1;
+            font-family: 'Courier New', monospace;
+        }
+
+        .directory-summary-cell {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 2px;
+            text-align: center;
+            font-size: 12px;
+            font-family: 'Segoe UI', Roboto, -apple-system, sans-serif;
+        }
+
+        .directory-summary-header {
+            font-size: 11px;
+            color: #6c757d;
+            text-transform: uppercase;
+            letter-spacing: 0.02em;
+        }
+
+        .directory-summary-value {
+            font-weight: 600;
+            font-size: 13px;
+            color: #2c3e50;
         }
 
         .merged-directories-list::-webkit-scrollbar {
@@ -1306,12 +1345,74 @@
                                     </div>
                                     <div class="merged-directories-container">
                                         <div class="merged-directories-list">
+                                            {% if merge_info.source_directory_summaries is defined and merge_info.source_directory_summaries|length > 0 %}
+                                            <div class="directory-list-item directory-list-header">
+                                                <span class="directory-index">#</span>
+                                                <span class="directory-name">Directory</span>
+                                                <span class="directory-summary-cell directory-summary-header">
+                                                    <i class="bi bi-bug text-danger"></i>
+                                                    <span>Violations</span>
+                                                </span>
+                                                <span class="directory-summary-cell directory-summary-header">
+                                                    <i class="bi bi-clock-history text-primary"></i>
+                                                    <span>Test Time</span>
+                                                </span>
+                                                <span class="directory-summary-cell directory-summary-header">
+                                                    <i class="bi bi-activity text-success"></i>
+                                                    <span>Events</span>
+                                                </span>
+                                                <span class="directory-summary-cell directory-summary-header">
+                                                    <i class="bi bi-pie-chart text-warning"></i>
+                                                    <span>Coverage</span>
+                                                </span>
+                                                <span class="directory-summary-cell directory-summary-header">
+                                                    <i class="bi bi-list-check text-info"></i>
+                                                    <span>Exec Props</span>
+                                                </span>
+                                                <span class="directory-summary-cell directory-summary-header">
+                                                    <i class="bi bi-exclamation-octagon text-danger"></i>
+                                                    <span>Crash</span>
+                                                </span>
+                                                <span class="directory-summary-cell directory-summary-header">
+                                                    <i class="bi bi-hourglass-split text-warning"></i>
+                                                    <span>ANR</span>
+                                                </span>
+                                            </div>
+                                            {% for source in merge_info.source_directory_summaries %}
+                                            <div class="directory-list-item">
+                                                <span class="directory-index">{{ loop.index }}.</span>
+                                                <span class="directory-name">{{ source.dir_name }}</span>
+                                                <span class="directory-summary-cell">
+                                                    <span class="directory-summary-value value-danger">{{ source.summary.bugs_found|default(0) }}</span>
+                                                </span>
+                                                <span class="directory-summary-cell">
+                                                    <span class="directory-summary-value value-highlight">{{ source.summary.total_testing_time|default("00:00:00") }}</span>
+                                                </span>
+                                                <span class="directory-summary-cell">
+                                                    <span class="directory-summary-value value-success">{{ source.summary.executed_events|default(0) }}</span>
+                                                </span>
+                                                <span class="directory-summary-cell">
+                                                    <span class="directory-summary-value value-warning">{{ "%.2f"|format(source.summary.coverage_percent|default(0)) }}%</span>
+                                                </span>
+                                                <span class="directory-summary-cell">
+                                                    <span class="directory-summary-value value-highlight">{{ source.summary.executed_properties_count|default(0) }}/{{ source.summary.all_properties_count|default(0) }}</span>
+                                                </span>
+                                                <span class="directory-summary-cell">
+                                                    <span class="directory-summary-value value-danger">{{ source.summary.triggered_crash_count|default(0) }}</span>
+                                                </span>
+                                                <span class="directory-summary-cell">
+                                                    <span class="directory-summary-value value-warning">{{ source.summary.triggered_anr_count|default(0) }}</span>
+                                                </span>
+                                            </div>
+                                            {% endfor %}
+                                            {% else %}
                                             {% for dir_name in merge_info.source_directories %}
                                             <div class="directory-list-item">
                                                 <span class="directory-index">{{ loop.index }}.</span>
                                                 <span class="directory-name">{{ dir_name }}</span>
                                             </div>
                                             {% endfor %}
+                                            {% endif %}
                                         </div>
                                     </div>
                                 </div>

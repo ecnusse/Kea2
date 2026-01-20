@@ -2,7 +2,12 @@ from pathlib import Path
 import json
 from typing import Set
 
-from ..utils import getLogger
+try:
+    from ..utils import getLogger
+except ImportError:
+    def getLogger(name):
+        import logging
+        return logging.getLogger(name)
 
 logger = getLogger(__name__)
 
@@ -73,5 +78,25 @@ class WidgetCoverage:
 
 
 if __name__ == "__main__":
-    w = WidgetCoverage("/Users/atria/Desktop/coding/Kea2/output/res_2026011916_0842195130/output_2026011916_0842195130")
-    w.generate_coverage_report()
+    # Example usage: python widget_coverage.py /path/to/output_dir (can specify root dir too)
+    import sys
+    for arg in sys.argv[1:]:
+        path = Path(arg).resolve()
+        if not path.is_dir():
+            print(f"Provided path is not a directory: {arg}")
+            continue
+        output_dirs = []
+        if path.name.startswith("output_"):
+            output_dirs = [path]
+        else:
+            output_dirs = [
+                p for p in path.rglob("output_*")
+                if p.is_dir()
+            ]
+        if not output_dirs:
+            print(f"No output_* directories found in: {path}")
+            continue
+        for output_dir in output_dirs:
+            print(f"Processing output directory: {output_dir}")
+            w = WidgetCoverage(output_dir)
+            w.generate_coverage_report()

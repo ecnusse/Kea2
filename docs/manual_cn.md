@@ -227,50 +227,49 @@ python3 mytest.py
 以下是 `Options` 中的所有可用选项。
 
 ```python
-# 脚本中的驱动名称（如 self.d，则为 d）
-driverName: str = None
-# 驱动（当前只有 U2Driver）
-Driver: AbstractDriver = None
-# 包名列表，指定被测试的应用
-packageNames: List[str] = None
-# 目标设备序列号
-serial: str = None
-# 目标设备传输 ID
-transport_id: str = None
-# 测试 agent，默认 "u2"
-agent: "u2" | "native" = "u2"
-# 最大探索步数
-maxStep: Union[str, float] = float("inf")
-# 探索时长（分钟）
-running_mins: int = 10
-# 探索时等待时间（毫秒）
-throttle: int = 200
-# 日志和结果保存目录
-output_dir: str = "output"
-# 日志文件和结果文件的时间戳标识，默认当前时间戳
-log_stamp: str = None
-# 覆盖率采样周期
-profile_period: int = 25
-# 是否每步截图
-take_screenshots: bool = False
-# 失败前截取的截图数量，0 表示每步都截图
-pre_failure_screenshots: int = 0
-# 失败后截取的截图数量，需要小于等于 pre_failure_screenshots
-post_failure_screenshots: int = 0
-# 设备上的输出目录根路径
-device_output_root: str = "/sdcard/.kea2"
-# 是否启用调试模式
-debug: bool = False
-# Activity 白名单文件
-act_whitelist_file: str = None
-# Activity 黑名单文件
-act_blacklist_file: str = None
-# propertytest 子命令参数（例如 discover -s xxx -p xxx）
-propertytest_args: str = None
-# unittest 子命令参数（功能 4）
-unittest_args: List[str] = None
-# 额外参数（直接传递给 fastbot）
-extra_args: List[str] = None
+    # 脚本中的驱动名称（如 self.d，则为 d）
+    driverName: str = None
+    Driver: AbstractDriver = None
+    # 包名列表，指定被测试的应用
+    packageNames: List[str] = None
+    # 目标设备序列号
+    serial: str = None
+    # 目标设备传输 ID
+    transport_id: str = None
+    # 测试 agent，默认 "u2"
+    agent: "u2" | "native" = "u2"
+    # 最大探索步数（阶段 2~3 可用）
+    maxStep: Union[str, float] = float("inf")
+    # 探索时长（分钟）
+    running_mins: int = 10
+    # 探索时等待时间（毫秒）
+    throttle: int = 200
+    # 日志和结果保存目录
+    output_dir: str = "output"
+    # 日志文件和结果文件的时间戳标识，默认当前时间戳
+    log_stamp: str = None
+    # 覆盖率采样周期
+    profile_period: int = 25
+    # 是否每步截图
+    take_screenshots: bool = False
+    # 失败前截取的截图数量，0 表示每步都截图
+    pre_failure_screenshots: int = 0
+    # 失败后截取的截图数量，需要小于等于 pre_failure_screenshots
+    post_failure_screenshots: int = 0
+    # 设备上的输出目录根路径
+    device_output_root: str = "/sdcard/.kea2"
+    # 是否启用调试模式
+    debug: bool = False
+    # Activity 白名单文件
+    act_whitelist_file: str = None
+    # Activity 黑名单文件
+    act_blacklist_file: str = None
+    # propertytest 子命令参数（例如 discover -s xxx -p xxx）
+    propertytest_args: str = None
+    # unittest 子命令参数（功能 4）
+    unittest_args: List[str] = None
+    # 额外参数（直接传递给 fastbot）
+    extra_args: List[str] = None
 ```
 
 ## 管理 Kea2 报告
@@ -469,7 +468,7 @@ kea2 run -s "emulator-5554" -p it.feio.android.omninotes.alpha --running-minutes
 
 ## 提升 Kea2 性能的建议
 
-目前，我们在 `@precondition` 装饰器和 `widgets.block.py` 中实现了一个算法来提升工具性能。该算法仅支持 uiautomator2 的基础选择器（不支持父子关系）。如果你有许多带复杂前置条件的性质且观察到性能问题，建议使用 xpath 指定。
+目前，我们在 `@precondition` 装饰器和 `widgets.block.py` 中实现了一个算法来提升工具性能。该算法仅支持 uiautomator2 中的基础选择器（不支持父子关系）。如果你有许多带复杂前置条件的性质且遇到性能问题，建议在前置条件中使用 xpath。
 
 | | **推荐** | **不推荐** |
 | -- | -- | -- |
@@ -480,13 +479,13 @@ kea2 run -s "emulator-5554" -p it.feio.android.omninotes.alpha --running-minutes
 例如：
 
 ```python
-# 不推荐使用：
+# 不推荐：
 # @precondition(lambda self: 
 #      self.d(className="android.widget.ListView").child(text="Bluetooth")
 # ):
 # ...
 
-# 推荐使用：
+# 推荐：
 @precondition(lambda self: 
     self.d.xpath('//android.widget.ListView/*[@text="Bluetooth"]')
 ):

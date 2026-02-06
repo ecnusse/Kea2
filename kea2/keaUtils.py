@@ -202,6 +202,35 @@ class Options:
                 setattr(obj, f.name, value)
         return obj
 
+        _save_options_configs(self)
+
+    def to_dict(self):
+        from copy import deepcopy
+        obj = deepcopy(self)
+        for f in fields(obj):
+            v = getattr(obj, f.name)
+            if isinstance(v, Path):
+                setattr(obj, f.name, str(v))
+        return asdict(obj)
+
+    @classmethod
+    def from_dict(cls, data: Dict[str, Any]) -> "Options":
+        data = dict(data)
+        path_fields = {
+            "output_dir",
+            "device_output_root",
+            "act_whitelist_file",
+            "act_blacklist_file",
+        }
+        obj = cls.__new__(cls)
+        for f in fields(cls):
+            if f.name in data:
+                value = data[f.name]
+                if f.name in path_fields and value is not None:
+                    value = Path(value)
+                setattr(obj, f.name, value)
+        return obj
+
     def set_stamp(self, stamp: str = None):
         """for hybrid test run. set a new stamp for the Options instance to save logs and results.
         """

@@ -506,7 +506,7 @@ class KeaTestRunner(TextTestRunner, KeaOptionSetter, SetUpClassExtension):
                                 result.printError(test)
                                 result.updateExecutionInfo(test)
                                 if result.lastInvariantInfo.state in {"fail", "error"}:
-                                    fb.logScript(result.lastInvariantInfo)
+                                    self.fb.logScript(result.lastInvariantInfo)
 
                         # Trigger the result syncer to get the coverage result periodically (Set by profile_period)
                         if self.options.profile_period and self.stepsCount % self.options.profile_period == 0:

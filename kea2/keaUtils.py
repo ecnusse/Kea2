@@ -601,9 +601,10 @@ class KeaTestRunner(TextTestRunner, KeaOptionSetter):
                     break
             # if all the precond passed. make it the candidate prop.
             if valid:
-                if not hasattr(test, '_has_been_satisfied'):
-                    self.fb.sendFirstTimeSatisfiedSignal()
-                    test._has_been_satisfied = True
+                self.fb.sendFirstTimeSatisfiedSignal()
+                # if not hasattr(test, '_has_been_satisfied'):
+                #     self.fb.sendFirstTimeSatisfiedSignal()
+                #     test._has_been_satisfied = True
 
                 if result.getExcuted(test) >= getattr(prop, MAX_TRIES_MARKER, float("inf")):
                     print(f"{getFullPropName(test)} has reached its max_tries. Skip.", flush=True)

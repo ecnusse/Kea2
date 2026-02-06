@@ -106,11 +106,15 @@ class Kea2Tester:
         
         output_dir = self.options.output_dir
         
-        from .keaUtils import STAMP, LOGFILE, RESFILE
+        from .utils import StampManager
         
         bug_report_path = output_dir / "bug_report.html"
-        result_json_path = output_dir / RESFILE.name if hasattr(RESFILE, 'name') else output_dir / f"result_{STAMP}.json"
-        log_file_path = output_dir / LOGFILE.name if hasattr(LOGFILE, 'name') else output_dir / f"fastbot_{STAMP}.log"
+        stamp_manager = StampManager()
+        stamp = stamp_manager.stamp or self.options.log_stamp
+        result_name = stamp_manager.result_file.name if stamp_manager.result_file else f"result_{stamp}.json"
+        log_name = stamp_manager.log_file.name if stamp_manager.log_file else f"fastbot_{stamp}.log"
+        result_json_path = output_dir / result_name
+        log_file_path = output_dir / log_name
         
         return {
             'executed': True,

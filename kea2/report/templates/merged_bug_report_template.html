@@ -105,11 +105,11 @@
         }
 
         .crash-analysis-panel {
-            background-color: #ffffff;
-            border-radius: 14px;
-            padding: 1.75rem;
-            box-shadow: 0 6px 15px rgba(44, 62, 80, 0.08);
-            border: 1px solid rgba(0, 0, 0, 0.05);
+            background-color: transparent;
+            border-radius: 0;
+            padding: 0;
+            box-shadow: none;
+            border: none;
         }
 
         .crash-analysis-panel .btn-group .btn {
@@ -951,6 +951,40 @@
             transition: all 0.2s ease;
         }
 
+        .directory-summary {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            flex-wrap: wrap;
+            margin-left: 12px;
+        }
+
+        .directory-summary-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 4px 6px;
+            min-width: 64px;
+            background: #f8f9fa;
+            border-radius: 6px;
+            border: 1px solid #e9ecef;
+            line-height: 1.1;
+        }
+
+        .directory-summary-item .summary-value {
+            font-weight: 600;
+            font-size: 12px;
+            color: #2c3e50;
+        }
+
+        .directory-summary-item .summary-label {
+            font-size: 10px;
+            color: #6c757d;
+            text-transform: uppercase;
+            letter-spacing: 0.4px;
+        }
+
         .directory-list-item:hover {
             background: #e3f2fd;
             border-color: #17a2b8;
@@ -1222,42 +1256,56 @@
 
                     <!-- Statistics Cards -->
                     <div class="row g-4">
-                        <div class="col-lg-2 col-md-4 col-sm-6">
+                        <div class="col-lg-3 col-md-6 col-sm-12">
                             <div class="text-center">
                                 <i class="bi bi-bug text-danger" style="font-size: 2rem;"></i>
                                 <span class="stat-value value-danger">{{ bugs_found }}</span>
                                 <span class="stat-label">Property Violations</span>
                             </div>
                         </div>
-                        <div class="col-lg-2 col-md-4 col-sm-6">
+                        <div class="col-lg-3 col-md-6 col-sm-12">
+                            <div class="text-center">
+                                <i class="bi bi-shield-exclamation text-warning" style="font-size: 2rem;"></i>
+                                <span class="stat-value value-warning">{{ invariant_violations_count }}</span>
+                                <span class="stat-label">Invariant Violations</span>
+                            </div>
+                        </div>
+                        <div class="col-lg-3 col-md-6 col-sm-12">
                             <div class="text-center">
                                 <i class="bi bi-x-circle text-danger" style="font-size: 2rem;"></i>
                                 <span class="stat-value value-danger">{{ total_crash_count|default(0) }}</span>
                                 <span class="stat-label">Crashes</span>
                             </div>
                         </div>
-                        <div class="col-lg-2 col-md-4 col-sm-6">
+                        <div class="col-lg-3 col-md-6 col-sm-12">
                             <div class="text-center">
                                 <i class="bi bi-clock text-warning" style="font-size: 2rem;"></i>
                                 <span class="stat-value value-warning">{{ total_anr_count|default(0) }}</span>
                                 <span class="stat-label">ANRs</span>
                             </div>
                         </div>
-                        <div class="col-lg-2 col-md-4 col-sm-6">
+                        <div class="col-lg-3 col-md-6 col-sm-12">
                             <div class="text-center">
                                 <i class="bi bi-pie-chart text-info" style="font-size: 2rem;"></i>
                                 <span class="stat-value value-highlight">{{ "%.2f"|format(coverage_percent) }}%</span>
                                 <span class="stat-label">Activity Coverage</span>
                             </div>
                         </div>
-                        <div class="col-lg-2 col-md-4 col-sm-6">
+                        <div class="col-lg-3 col-md-6 col-sm-12">
                             <div class="text-center">
                                 <i class="bi bi-list-check text-primary" style="font-size: 2rem;"></i>
                                 <span class="stat-value value-highlight">{{ all_properties_count }}</span>
                                 <span class="stat-label">All Properties</span>
                             </div>
                         </div>
-                        <div class="col-lg-2 col-md-4 col-sm-6">
+                        <div class="col-lg-3 col-md-6 col-sm-12">
+                            <div class="text-center">
+                                <i class="bi bi-shield text-warning" style="font-size: 2rem;"></i>
+                                <span class="stat-value value-warning">{{ property_kind_summary.invariant|default(0) }}</span>
+                                <span class="stat-label">All Invariants</span>
+                            </div>
+                        </div>
+                        <div class="col-lg-3 col-md-6 col-sm-12">
                             <div class="text-center">
                                 <i class="bi bi-check-square text-success" style="font-size: 2rem;"></i>
                                 <span class="stat-value value-success">{{ executed_properties_count }}</span>
@@ -1306,12 +1354,55 @@
                                     </div>
                                     <div class="merged-directories-container">
                                         <div class="merged-directories-list">
-                                            {% for dir_name in merge_info.source_directories %}
-                                            <div class="directory-list-item">
-                                                <span class="directory-index">{{ loop.index }}.</span>
-                                                <span class="directory-name">{{ dir_name }}</span>
-                                            </div>
-                                            {% endfor %}
+                                            {% if merge_info.source_summaries %}
+                                                {% for summary in merge_info.source_summaries %}
+                                                <div class="directory-list-item">
+                                                    <span class="directory-index">{{ loop.index }}.</span>
+                                                    <span class="directory-name">{{ summary.dir_name }}</span>
+                                                    <div class="directory-summary">
+                                                        <div class="directory-summary-item" title="Property Violations">
+                                                            <span class="summary-value text-danger">{{ summary.property_violations }}</span>
+                                                            <span class="summary-label">PV</span>
+                                                        </div>
+                                                        <div class="directory-summary-item" title="Invariant Violations">
+                                                            <span class="summary-value text-warning">{{ summary.invariant_violations }}</span>
+                                                            <span class="summary-label">IV</span>
+                                                        </div>
+                                                        <div class="directory-summary-item" title="Total Testing Time">
+                                                            <span class="summary-value text-primary">{{ summary.total_testing_time }}</span>
+                                                            <span class="summary-label">Time</span>
+                                                        </div>
+                                                        <div class="directory-summary-item" title="Executed Events">
+                                                            <span class="summary-value text-success">{{ summary.executed_events }}</span>
+                                                            <span class="summary-label">Events</span>
+                                                        </div>
+                                                        <div class="directory-summary-item" title="Activity Coverage">
+                                                            <span class="summary-value text-info">{{ summary.coverage_percent }}</span>
+                                                            <span class="summary-label">Cover</span>
+                                                        </div>
+                                                        <div class="directory-summary-item" title="Executed Properties">
+                                                            <span class="summary-value text-primary">{{ summary.executed_properties }}</span>
+                                                            <span class="summary-label">Props</span>
+                                                        </div>
+                                                        <div class="directory-summary-item" title="Crashes">
+                                                            <span class="summary-value text-danger">{{ summary.crash_count }}</span>
+                                                            <span class="summary-label">Crash</span>
+                                                        </div>
+                                                        <div class="directory-summary-item" title="ANRs">
+                                                            <span class="summary-value text-warning">{{ summary.anr_count }}</span>
+                                                            <span class="summary-label">ANR</span>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                {% endfor %}
+                                            {% else %}
+                                                {% for dir_name in merge_info.source_directories %}
+                                                <div class="directory-list-item">
+                                                    <span class="directory-index">{{ loop.index }}.</span>
+                                                    <span class="directory-name">{{ dir_name }}</span>
+                                                </div>
+                                                {% endfor %}
+                                            {% endif %}
                                         </div>
                                     </div>
                                 </div>
@@ -1553,8 +1644,8 @@
                 </div>
 
                 <!-- Pagination for Crash Events -->
-                <div class="pagination-container d-flex justify-content-between align-items-center mt-3">
-                    <div class="d-flex align-items-center">
+                <div class="d-flex justify-content-between align-items-center mt-3 pagination-container pagination-violations">
+                    <div class="d-flex align-items-center gap-3">
                         <label for="events-page-size" class="form-label me-2 mb-0">Show:</label>
                         <select class="form-select form-select-sm" id="events-page-size" style="width: auto;">
                             <option value="5">5</option>
@@ -1607,18 +1698,31 @@
                 <small class="text-muted search-results-count" id="property-search-results"></small>
             </div>
 
+            <div class="mb-3">
+                <div class="btn-group" role="group" aria-label="Property kind filter">
+                    <input type="radio" class="btn-check" name="property-kind-filter" id="property-kind-all" autocomplete="off" checked>
+                    <label class="btn btn-outline-primary" for="property-kind-all">All ({{ property_kind_summary.all|default(0) }})</label>
+
+                    <input type="radio" class="btn-check" name="property-kind-filter" id="property-kind-property" autocomplete="off">
+                    <label class="btn btn-outline-info" for="property-kind-property">Property ({{ property_kind_summary.property|default(0) }})</label>
+
+                    <input type="radio" class="btn-check" name="property-kind-filter" id="property-kind-invariant" autocomplete="off">
+                    <label class="btn btn-outline-warning" for="property-kind-invariant">Invariant ({{ property_kind_summary.invariant|default(0) }})</label>
+                </div>
+            </div>
+
             <div class="table-responsive">
                 <table class="table table-custom">
                     <thead>
                         <tr>
                             <th>Index</th>
-                            <th>Property Name <span class="badge bg-primary ms-2" style="font-size: 0.9rem; font-weight: 600;">{{ property_stats_summary.total_properties if property_stats_summary is defined else property_stats|length }}</span></th>
-                            <th>Precondition Satisfied <span class="badge bg-success ms-2" style="font-size: 0.9rem; font-weight: 600;">{{ property_stats_summary.total_precond_satisfied if property_stats_summary is defined else 0 }}</span></th>
-                            <th>Total Executions <span class="badge bg-info ms-2" style="font-size: 0.9rem; font-weight: 600;">{{ property_stats_summary.total_executed if property_stats_summary is defined else 0 }}</span></th>
-                            <th>Passes <span class="badge bg-secondary ms-2" style="font-size: 0.9rem; font-weight: 600;">{{ property_stats_summary.total_passes if property_stats_summary is defined else 0 }}</span></th>
-                            <th>Fails <span class="badge bg-danger ms-2" style="font-size: 0.9rem; font-weight: 600;">{{ property_stats_summary.total_fails if property_stats_summary is defined else 0 }}</span> <i class="bi bi-arrow-down-up text-muted sort-icon" id="fails-sort" data-column="fails" data-order="none" style="cursor: pointer;"></i></th>
-                            <th>Errors <span class="badge bg-warning ms-2" style="font-size: 0.9rem; font-weight: 600;">{{ property_stats_summary.total_errors if property_stats_summary is defined else 0 }}</span> <i class="bi bi-arrow-down-up text-muted sort-icon" id="errors-sort" data-column="errors" data-order="none" style="cursor: pointer;"></i></th>
-                            <th>Skipped <span class="badge bg-light text-dark ms-2" style="font-size: 0.9rem; font-weight: 600;">{{ property_stats_summary.total_not_executed if property_stats_summary is defined else 0 }}</span></th>
+                            <th>Property Name <span class="badge bg-primary ms-2" id="property-stats-total-properties" style="font-size: 0.9rem; font-weight: 600;">{{ property_stats_summary.total_properties if property_stats_summary is defined else property_stats|length }}</span></th>
+                            <th>Precondition Satisfied <span class="badge bg-success ms-2" id="property-stats-total-precond" style="font-size: 0.9rem; font-weight: 600;">{{ property_stats_summary.total_precond_satisfied if property_stats_summary is defined else 0 }}</span></th>
+                            <th>Total Executions <span class="badge bg-info ms-2" id="property-stats-total-executed" style="font-size: 0.9rem; font-weight: 600;">{{ property_stats_summary.total_executed if property_stats_summary is defined else 0 }}</span></th>
+                            <th>Passes <span class="badge bg-secondary ms-2" id="property-stats-total-pass" style="font-size: 0.9rem; font-weight: 600;">{{ property_stats_summary.total_passes if property_stats_summary is defined else 0 }}</span></th>
+                            <th>Fails <span class="badge bg-danger ms-2" id="property-stats-total-fail" style="font-size: 0.9rem; font-weight: 600;">{{ property_stats_summary.total_fails if property_stats_summary is defined else 0 }}</span> <i class="bi bi-arrow-down-up text-muted sort-icon" id="fails-sort" data-column="fails" data-order="none" style="cursor: pointer;"></i></th>
+                            <th>Errors <span class="badge bg-warning ms-2" id="property-stats-total-error" style="font-size: 0.9rem; font-weight: 600;">{{ property_stats_summary.total_errors if property_stats_summary is defined else 0 }}</span> <i class="bi bi-arrow-down-up text-muted sort-icon" id="errors-sort" data-column="errors" data-order="none" style="cursor: pointer;"></i></th>
+                            <th>Skipped <span class="badge bg-light text-dark ms-2" id="property-stats-total-skipped" style="font-size: 0.9rem; font-weight: 600;">{{ property_stats_summary.total_not_executed if property_stats_summary is defined else 0 }}</span></th>
                         </tr>
                     </thead>
                     <tbody id="property-stats-container">
@@ -1626,6 +1730,7 @@
                         <tr class="property-stat-row" data-page="1"
                             data-index="{{ loop.index }}"
                             data-property-name="{{ property_name }}"
+                            data-kind="{{ test_result.kind|default('unknown') }}"
                             data-precond-satisfied="{{ test_result.precond_satisfied|default(0) }}"
                             data-executed="{{ test_result.executed_total|default(test_result.executed|default(0)) }}"
                             data-pass="{{ test_result.pass_count|default(0) }}"
@@ -1633,13 +1738,20 @@
                             data-errors="{{ test_result.error|default(0) }}"
                             data-not-executed="{{ test_result.not_executed|default(0) }}">
                             <td>{{ loop.index }}</td>
-                            <td><span class="badge bg-light text-dark badge-custom">{{ property_name }}</span></td>
-                            <td>{{ test_result.precond_satisfied|default(0) }}</td>
-                            <td>{{ test_result.executed_total|default(test_result.executed|default(0)) }}</td>
-                            <td>{{ test_result.pass_count|default(0) }}</td>
+                            <td>
+                                <span class="badge bg-light text-dark badge-custom">{{ property_name }}</span>
+                                {% set kind_label = test_result.kind|default('unknown') %}
+                                {% set is_invariant = kind_label == 'invariant' %}
+                                <span class="badge ms-1 {% if kind_label == 'property' %}bg-info text-dark{% elif kind_label == 'invariant' %}bg-warning text-dark{% else %}bg-secondary text-white{% endif %}">
+                                    {{ kind_label|capitalize }}
+                                </span>
+                            </td>
+                            <td>{{ '/' if is_invariant else test_result.precond_satisfied|default(0) }}</td>
+                            <td>{{ '/' if is_invariant else test_result.executed_total|default(test_result.executed|default(0)) }}</td>
+                            <td>{{ '/' if is_invariant else test_result.pass_count|default(0) }}</td>
                             <td><span class="badge bg-danger text-white">{{ test_result.fail|default(0) }}</span></td>
                             <td><span class="badge bg-warning text-dark">{{ test_result.error|default(0) }}</span></td>
-                            <td>{{ test_result.not_executed|default(0) }}</td>
+                            <td>{{ '/' if is_invariant else test_result.not_executed|default(0) }}</td>
                         </tr>
                         {% endfor %}
                     </tbody>
@@ -1704,6 +1816,19 @@
                 <small class="text-muted search-results-count" id="property-source-search-results"></small>
             </div>
 
+            <div class="mb-3">
+                <div class="btn-group" role="group" aria-label="Property source kind filter">
+                    <input type="radio" class="btn-check" name="property-source-kind-filter" id="property-source-kind-all" autocomplete="off" checked>
+                    <label class="btn btn-outline-primary" for="property-source-kind-all">All ({{ property_source_kind_summary.all|default(0) }})</label>
+
+                    <input type="radio" class="btn-check" name="property-source-kind-filter" id="property-source-kind-property" autocomplete="off">
+                    <label class="btn btn-outline-info" for="property-source-kind-property">Property ({{ property_source_kind_summary.property|default(0) }})</label>
+
+                    <input type="radio" class="btn-check" name="property-source-kind-filter" id="property-source-kind-invariant" autocomplete="off">
+                    <label class="btn btn-outline-warning" for="property-source-kind-invariant">Invariant ({{ property_source_kind_summary.invariant|default(0) }})</label>
+                </div>
+            </div>
+
             <div class="table-responsive">
                 <table class="table table-custom">
                     <thead>
@@ -1715,9 +1840,11 @@
                     </thead>
                     <tbody id="property-source-container">
                         {% for property_name, source_dirs in property_source_mapping.items() %}
+                        {% set kind_label = property_stats[property_name].kind if property_stats is defined and property_name in property_stats else 'unknown' %}
                         <tr class="property-source-row" data-page="1"
                             data-index="{{ loop.index }}"
-                            data-property-name="{{ property_name }}">
+                            data-property-name="{{ property_name }}"
+                            data-kind="{{ kind_label }}">
                             <td>{{ loop.index }}</td>
                             <td>
                                 <span class="badge bg-light text-dark badge-custom">{{ property_name }}</span>
@@ -1854,6 +1981,7 @@
 
             // Initialize property statistics searching
             initPropertySearching();
+            initPropertyKindFilter();
 
             // Initialize pagination for Property tables
             initPagination('property-stats-container', 'property-stat-row', 'stats-pagination', 'stats-page-size');
@@ -1863,6 +1991,7 @@
 
             // Initialize property source mapping searching and pagination
             initPropertySourceSearching();
+            initPropertySourceKindFilter();
             initPagination('property-source-container', 'property-source-row', 'source-pagination', 'source-page-size');
 
             // Initialize source directories expand/collapse functionality
@@ -2239,7 +2368,9 @@
                 // Get items that should be visible based on search filter
                 const filteredItems = allItems.filter(item => {
                     const searchVisible = item.getAttribute('data-search-visible');
-                    const shouldShow = searchVisible === null || searchVisible === 'true';
+                    const kindVisible = item.getAttribute('data-kind-visible');
+                    const shouldShow = (searchVisible === null || searchVisible === 'true') &&
+                        (kindVisible === null || kindVisible === 'true');
                     return shouldShow;
                 });
 
@@ -2307,8 +2438,10 @@
                     // Use same filtering logic as goToPage function
                     const filteredItems = allItems.filter(item => {
                         const searchVisible = item.getAttribute('data-search-visible');
-                        // If no search filter is applied, show all items
-                        return searchVisible === null || searchVisible === 'true';
+                        const kindVisible = item.getAttribute('data-kind-visible');
+                        // If no filters are applied, show all items
+                        return (searchVisible === null || searchVisible === 'true') &&
+                            (kindVisible === null || kindVisible === 'true');
                     });
 
                     const totalItems = filteredItems.length;
@@ -2470,6 +2603,146 @@
                 }
             }
 
+            function getCurrentPropertyKindFilter() {
+                const selected = document.querySelector('input[name="property-kind-filter"]:checked');
+                if (!selected) {
+                    return 'all';
+                }
+                if (selected.id === 'property-kind-property') {
+                    return 'property';
+                }
+                if (selected.id === 'property-kind-invariant') {
+                    return 'invariant';
+                }
+                return 'all';
+            }
+
+            function updatePropertySearchResults(visibleCount, totalCount, searchTerm) {
+                const resultsElement = document.getElementById('property-search-results');
+                if (resultsElement) {
+                    if (searchTerm === '') {
+                        resultsElement.textContent = '';
+                    } else {
+                        resultsElement.textContent = `Found ${visibleCount} of ${totalCount} properties`;
+                    }
+                }
+            }
+
+            function updatePropertyHeaderSummary(summary) {
+                const totalEl = document.getElementById('property-stats-total-properties');
+                if (totalEl) {
+                    totalEl.textContent = summary.total;
+                }
+                const precondEl = document.getElementById('property-stats-total-precond');
+                if (precondEl) {
+                    precondEl.textContent = summary.precond;
+                }
+                const executedEl = document.getElementById('property-stats-total-executed');
+                if (executedEl) {
+                    executedEl.textContent = summary.executed;
+                }
+                const passEl = document.getElementById('property-stats-total-pass');
+                if (passEl) {
+                    passEl.textContent = summary.pass;
+                }
+                const failEl = document.getElementById('property-stats-total-fail');
+                if (failEl) {
+                    failEl.textContent = summary.fail;
+                }
+                const errorEl = document.getElementById('property-stats-total-error');
+                if (errorEl) {
+                    errorEl.textContent = summary.error;
+                }
+                const skippedEl = document.getElementById('property-stats-total-skipped');
+                if (skippedEl) {
+                    skippedEl.textContent = summary.skipped;
+                }
+            }
+
+            function applyPropertyFilters() {
+                const searchInput = document.getElementById('property-stats-search');
+                const rawSearchTerm = searchInput ? searchInput.value.trim() : '';
+                const searchTerm = rawSearchTerm.toLowerCase();
+                const container = document.getElementById('property-stats-container');
+                if (!container) {
+                    return;
+                }
+
+                const items = Array.from(container.getElementsByClassName('property-stat-row'));
+                const kindFilter = getCurrentPropertyKindFilter();
+                let visibleCount = 0;
+                let totalCount = 0;
+                const summary = {
+                    total: 0,
+                    precond: 0,
+                    executed: 0,
+                    pass: 0,
+                    fail: 0,
+                    error: 0,
+                    skipped: 0,
+                };
+
+                items.forEach(function(item) {
+                    const rowKind = (item.dataset.kind || 'unknown').toLowerCase();
+                    const kindMatches = kindFilter === 'all' || rowKind === kindFilter;
+                    item.setAttribute('data-kind-visible', kindMatches ? 'true' : 'false');
+                    if (kindMatches) {
+                        totalCount += 1;
+                    }
+
+                    const propertyNameElement = item.querySelector('.badge-custom');
+                    const propertyName = propertyNameElement ? propertyNameElement.textContent.toLowerCase() : '';
+                    const searchMatches = searchTerm === '' || propertyName.includes(searchTerm);
+                    item.setAttribute('data-search-visible', searchMatches ? 'true' : 'false');
+                    if (kindMatches && searchMatches) {
+                        visibleCount += 1;
+                        summary.total += 1;
+                        summary.precond += parseInt(item.dataset.precondSatisfied || '0', 10);
+                        summary.executed += parseInt(item.dataset.executed || '0', 10);
+                        summary.pass += parseInt(item.dataset.pass || '0', 10);
+                        summary.fail += parseInt(item.dataset.fails || '0', 10);
+                        summary.error += parseInt(item.dataset.errors || '0', 10);
+                        summary.skipped += parseInt(item.dataset.notExecuted || '0', 10);
+                    }
+                });
+
+                updatePropertySearchResults(visibleCount, totalCount, rawSearchTerm);
+
+                const headerSummary = {
+                    total: summary.total,
+                    precond: summary.precond,
+                    executed: summary.executed,
+                    pass: summary.pass,
+                    fail: summary.fail,
+                    error: summary.error,
+                    skipped: summary.skipped,
+                };
+                if (kindFilter === 'invariant') {
+                    headerSummary.precond = '/';
+                    headerSummary.executed = '/';
+                    headerSummary.pass = '/';
+                    headerSummary.skipped = '/';
+                }
+                updatePropertyHeaderSummary(headerSummary);
+                initPagination('property-stats-container', 'property-stat-row', 'stats-pagination', 'stats-page-size');
+                const currentPageSize = document.getElementById('stats-page-size') ?
+                    parseInt(document.getElementById('stats-page-size').value) : 10;
+                goToPage(1, 'property-stats-container', 'property-stat-row', currentPageSize, 'stats-pagination');
+            }
+
+            function initPropertyKindFilter() {
+                const filterButtons = document.querySelectorAll('input[name="property-kind-filter"]');
+                if (!filterButtons.length) {
+                    return;
+                }
+                filterButtons.forEach(function(button) {
+                    button.addEventListener('change', function() {
+                        applyPropertyFilters();
+                    });
+                });
+                applyPropertyFilters();
+            }
+
             // Property statistics searching function
             function initPropertySearching() {
                 const searchInput = document.getElementById('property-stats-search');
@@ -2482,66 +2755,26 @@
                 searchInput.addEventListener('keydown', function(e) {
                     if (e.key === 'Enter') {
                         e.preventDefault();
-                        performPropertySearch(this);
+                        applyPropertyFilters();
                     } else if (e.key === 'Escape') {
-                        clearPropertySearch(this);
+                        searchInput.value = '';
+                        applyPropertyFilters();
                     }
                 });
 
                 // Search button functionality
                 if (searchButton) {
                     searchButton.addEventListener('click', function() {
-                        performPropertySearch(searchInput);
+                        applyPropertyFilters();
                     });
                 }
 
                 // Clear button functionality
                 if (clearButton) {
                     clearButton.addEventListener('click', function() {
-                        clearPropertySearch(searchInput);
+                        searchInput.value = '';
+                        applyPropertyFilters();
                     });
-                }
-
-                function performPropertySearch(searchInput) {
-                    const searchTerm = searchInput.value.toLowerCase().trim();
-                    const container = document.getElementById('property-stats-container');
-                    const items = Array.from(container.getElementsByClassName('property-stat-row'));
-
-                    let visibleCount = 0;
-                    let totalCount = items.length;
-
-                    // Filter items based on search term
-                    items.forEach(function(item) {
-                        const propertyNameElement = item.querySelector('.badge-custom');
-                        if (propertyNameElement) {
-                            const propertyName = propertyNameElement.textContent.toLowerCase();
-
-                            if (searchTerm === '' || propertyName.includes(searchTerm)) {
-                                item.setAttribute('data-search-visible', 'true');
-                                visibleCount++;
-                            } else {
-                                item.setAttribute('data-search-visible', 'false');
-                            }
-                        }
-                    });
-
-                    // Update search results count
-                    const resultsElement = document.getElementById('property-search-results');
-                    if (resultsElement) {
-                        if (searchTerm === '') {
-                            resultsElement.textContent = '';
-                        } else {
-                            resultsElement.textContent = `Found ${visibleCount} of ${totalCount} properties`;
-                        }
-                    }
-
-                    // Re-initialize pagination with filtered results
-                    initPagination('property-stats-container', 'property-stat-row', 'stats-pagination', 'stats-page-size');
-                }
-
-                function clearPropertySearch(searchInput) {
-                    searchInput.value = '';
-                    performPropertySearch(searchInput);
                 }
             }
 
@@ -2557,67 +2790,103 @@
                 searchInput.addEventListener('keydown', function(e) {
                     if (e.key === 'Enter') {
                         e.preventDefault();
-                        performPropertySourceSearch(this);
+                        applyPropertySourceFilters();
                     } else if (e.key === 'Escape') {
-                        clearPropertySourceSearch(this);
+                        searchInput.value = '';
+                        applyPropertySourceFilters();
                     }
                 });
 
                 // Search button functionality
                 if (searchButton) {
                     searchButton.addEventListener('click', function() {
-                        performPropertySourceSearch(searchInput);
+                        applyPropertySourceFilters();
                     });
                 }
 
                 // Clear button functionality
                 if (clearButton) {
                     clearButton.addEventListener('click', function() {
-                        clearPropertySourceSearch(searchInput);
+                        searchInput.value = '';
+                        applyPropertySourceFilters();
                     });
                 }
+            }
 
-                function performPropertySourceSearch(searchInput) {
-                    const searchTerm = searchInput.value.toLowerCase().trim();
-                    const container = document.getElementById('property-source-container');
-                    const items = Array.from(container.getElementsByClassName('property-source-row'));
+            function getCurrentPropertySourceKindFilter() {
+                const selected = document.querySelector('input[name="property-source-kind-filter"]:checked');
+                if (!selected) {
+                    return 'all';
+                }
+                if (selected.id === 'property-source-kind-property') {
+                    return 'property';
+                }
+                if (selected.id === 'property-source-kind-invariant') {
+                    return 'invariant';
+                }
+                return 'all';
+            }
 
-                    let visibleCount = 0;
-                    let totalCount = items.length;
+            function updatePropertySourceSearchResults(visibleCount, totalCount, searchTerm) {
+                const resultsElement = document.getElementById('property-source-search-results');
+                if (resultsElement) {
+                    if (searchTerm === '') {
+                        resultsElement.textContent = '';
+                    } else {
+                        resultsElement.textContent = `Found ${visibleCount} of ${totalCount} properties`;
+                    }
+                }
+            }
 
-                    // Filter items based on search term
-                    items.forEach(function(item) {
-                        const propertyNameElement = item.querySelector('.badge-custom');
-                        if (propertyNameElement) {
-                            const propertyName = propertyNameElement.textContent.toLowerCase();
+            function applyPropertySourceFilters() {
+                const searchInput = document.getElementById('property-source-search');
+                const rawSearchTerm = searchInput ? searchInput.value.trim() : '';
+                const searchTerm = rawSearchTerm.toLowerCase();
+                const container = document.getElementById('property-source-container');
+                if (!container) {
+                    return;
+                }
 
-                            if (searchTerm === '' || propertyName.includes(searchTerm)) {
-                                item.setAttribute('data-search-visible', 'true');
-                                visibleCount++;
-                            } else {
-                                item.setAttribute('data-search-visible', 'false');
-                            }
-                        }
-                    });
+                const items = Array.from(container.getElementsByClassName('property-source-row'));
+                const kindFilter = getCurrentPropertySourceKindFilter();
+                let visibleCount = 0;
+                let totalCount = 0;
 
-                    // Update search results count
-                    const resultsElement = document.getElementById('property-source-search-results');
-                    if (resultsElement) {
-                        if (searchTerm === '') {
-                            resultsElement.textContent = '';
-                        } else {
-                            resultsElement.textContent = `Found ${visibleCount} of ${totalCount} properties`;
-                        }
+                items.forEach(function(item) {
+                    const rowKind = (item.dataset.kind || 'unknown').toLowerCase();
+                    const kindMatches = kindFilter === 'all' || rowKind === kindFilter;
+                    item.setAttribute('data-kind-visible', kindMatches ? 'true' : 'false');
+                    if (kindMatches) {
+                        totalCount += 1;
                     }
 
-                    // Re-initialize pagination with filtered results
-                    initPagination('property-source-container', 'property-source-row', 'source-pagination', 'source-page-size');
-                }
+                    const propertyNameElement = item.querySelector('.badge-custom');
+                    const propertyName = propertyNameElement ? propertyNameElement.textContent.toLowerCase() : '';
+                    const searchMatches = searchTerm === '' || propertyName.includes(searchTerm);
+                    item.setAttribute('data-search-visible', searchMatches ? 'true' : 'false');
+                    if (kindMatches && searchMatches) {
+                        visibleCount += 1;
+                    }
+                });
 
-                function clearPropertySourceSearch(searchInput) {
-                    searchInput.value = '';
-                    performPropertySourceSearch(searchInput);
+                updatePropertySourceSearchResults(visibleCount, totalCount, rawSearchTerm);
+                initPagination('property-source-container', 'property-source-row', 'source-pagination', 'source-page-size');
+                const currentPageSize = document.getElementById('source-page-size') ?
+                    parseInt(document.getElementById('source-page-size').value) : 10;
+                goToPage(1, 'property-source-container', 'property-source-row', currentPageSize, 'source-pagination');
+            }
+
+            function initPropertySourceKindFilter() {
+                const filterButtons = document.querySelectorAll('input[name="property-source-kind-filter"]');
+                if (!filterButtons.length) {
+                    return;
                 }
+                filterButtons.forEach(function(button) {
+                    button.addEventListener('change', function() {
+                        applyPropertySourceFilters();
+                    });
+                });
+                applyPropertySourceFilters();
             }
 
             // Activities table searching function

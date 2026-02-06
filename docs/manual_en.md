@@ -10,7 +10,7 @@
 
 ## Kea2's scripts
 
-Kea2 uses [Unittest](https://docs.python.org/3/library/unittest.html) to manage scripts. All the Kea2's scripts can be found in unittest's rules (i.e., the test methods should start with `test_`, the test classes should extend `unittest.TestCase`).
+Kea2 uses [Unittest](https://docs.python.org/3/library/unittest.html) to manage scripts. Test classes should extend `unittest.TestCase`.
 
 Kea2 uses [Uiautomator2](https://github.com/openatx/uiautomator2) to manipulate android devices. Refer to [Uiautomator2's docs](https://github.com/openatx/uiautomator2?tab=readme-ov-file#quick-start) for more details. 
 
@@ -25,9 +25,11 @@ class MyFirstTest(unittest.TestCase):
     ...
 ```
 
+You can optionally define `setUpClass` to do one-time setup for the whole test class (e.g., prepare shared resources). It can also be used to [apply global setup for the u2 driver](https://github.com/openatx/uiautomator2?tab=readme-ov-file#global-settings). If defined, it will be called once before any test methods run.
+
 2. Write your own script by defining test methods
 
-By default, only the test method starts with `test_` will be found by unittest. You can decorate the function with `@precondition`. The decorator `@precondition` takes a function which returns boolean as an arugment. When the function returns `True`, the precondition is satisified and the script will be activated, and Kea2 will run the script based on certain probability defined by the decorator `@prob`.
+You can decorate the function with `@precondition`. The decorator `@precondition` takes a function which returns boolean as an arugment. When the function returns `True`, the precondition is satisified and the script will be activated, and Kea2 will run the script based on certain probability defined by the decorator `@prob`.
 
 Note that if a test method is not decorated with `@precondition`.
 This test method will never be activated during automated UI testing, and will be treated as a normal `unittset` test method.
@@ -99,6 +101,26 @@ def test_func1(self):
 
 The decorator `@max_tries` takes an integer as an argument. The number represents the maximum number of times function `test_func1` will be executed when the precondition is satisfied. The default value is `inf` (infinite).
 
+### `@invariant`
+
+Invariant checks define properties that should always hold. A normal property contains a precondition P, an interaction scenario I, and an assertion Q. An invariant is a special property where P is always true, I is empty, and Q is checked in every state.
+
+Kea2 checks all invariants every time the app enters a new state (i.e., after each property execution or monkey event).
+
+```python
+from kea2 import invariant
+
+@invariant
+def invariant_non_negative_word_count(self):
+    if self.d(resourceId="word_count").exists:
+        # Get the unlearned word count
+        word_count_text = self.d(resourceId="word_count").get_text()
+        word_count = int(word_count_text)
+        assert word_count >= 0, f"Word count is negative: {word_count}"
+```
+
+`@invariant` marks an invariant check. All invariants are executed after every property execution or monkey event (on each iteration). Invariants are suitable for always-true conditions, such as layout issues on a single page or state consistency derived from [Stateful testing](#stateful-testing). Keep invariants fast and side-effect free.
+
 
 ## Launch Kea2
 
@@ -128,6 +150,7 @@ You can launch Kea2 by shell commands `kea2 run`.
 | --take-screenshots | Take the UI screenshot at every Monkey event. The screenshots will be automatically pulled from the mobile device to your host machine periodically (the period is specified by `--profile-period`). |  |
 | --pre-failure-screenshots | Dump n screenshots before failure. 0 means take screenshots for every step. This option is only valid when `--take-screenshots` is set. | `0` |
 | --post-failure-screenshots | Dump n screenshots after failure. Should be smaller than `--pre-failure-screenshots`. This option is only valid when `--take-screenshots` is set. | `0` |
+| --restart-app-period | The period (in the numbers of monkey events) to restart the app under test. | `0` (never restart) |
 | --device-output-root | The root of device output dir. Kea2 will temporarily save the screenshots and result log into `"<device-output-root>/output_*********/"`. Make sure the root dir can be access. | `/sdcard` |
 | --act-whitelist-file | Activity WhiteList File. Only the activities listed in the file can be explored during testing. | |
 | --act-blacklist-file | Activity BlackList File. The activities listed in the file will be avoided during testing. | |
@@ -178,8 +201,7 @@ Here is an example (named as `mytest.py`). You can see that the options are dire
 ```python
 import unittest
 
-from kea2 import KeaTestRunner, Options
-from kea2.u2Driver import U2Driver
+from kea2 import KeaTestRunner, Options, keaTestLoader
 
 class MyTest(unittest.TestCase):
     ...
@@ -189,7 +211,6 @@ if __name__ == "__main__":
     KeaTestRunner.setOptions(
         Options(
             driverName="d",
-            Driver=U2Driver,
             packageNames=[PACKAGE_NAME],
             # serial="emulator-5554",   # specify the serial
             maxStep=100,
@@ -199,7 +220,7 @@ if __name__ == "__main__":
         )
     )
     # Declare the KeaTestRunner
-    unittest.main(testRunner=KeaTestRunner)
+    unittest.main(testRunner=KeaTestRunner, testLoader=keaTestLoader)
 ```
 
 We can directly run the script `mytest.py` to launch Kea2, e.g.,
@@ -212,7 +233,6 @@ Here's all the available options in `Options`.
 ```python
     # the driver_name in script (if self.d, then d.) 
     driverName: str = None
-    # the driver (only U2Driver available now)
     Driver: AbstractDriver = None
     # list of package names. Specify the apps under test
     packageNames: List[str] = None
@@ -241,7 +261,7 @@ Here's all the available options in `Options`.
     # Screenshots after failure (Dump n screenshots before failure. Should be smaller than pre_failure_screenshots)
     post_failure_screenshots: int = 0
     # The root of output dir on device
-    device_output_root: str = "/sdcard"
+    device_output_root: str = "/sdcard/.kea2"
     # the debug mode
     debug: bool = False
     # Activity WhiteList File
@@ -265,6 +285,7 @@ The `kea2 report` command generates an HTML test report from existing test resul
 
 | arg | meaning | required | default |
 | --- | --- | --- | --- |
+| -s, --sync | Sync data from device before generating the report | No | |
 | -p, --path | Path to the directory containing test results (res_* directory) | Yes | |
 
 **Usage Examples:**
@@ -272,6 +293,9 @@ The `kea2 report` command generates an HTML test report from existing test resul
 ```bash
 # Generate report from a test result directory
 kea2 report -p res_20240101_120000
+
+# Sync device data before generating the report
+kea2 report -s -p res_20240101_120000
 
 # Generate multiple reports
 kea2 report -p ./output/res_20240101_120000 /Users/username/kea2_tests/res_20240102_130001
@@ -395,6 +419,41 @@ When runtime error detected, Kea2 will check whether the local configuration fil
 2. delete all the configuration files under "/configs" in the project's root directory.
 3. run `kea2 init` to generate the latest configuration files.
 4. Merge your old configurations into the new configuration files according to your needs.
+
+## Stateful Testing
+
+Stateful testing is an advanced approach in property-based testing. The idea is to model the app's internal data state and share it across multiple properties to guide exploration and uncover more complex defects.
+
+Kea2 provides a shared `state` object for stateful testing. It is a singleton `dict` that stores internal data and modeled states across properties. You can update `state` in properties, then read it in later properties to control exploration.
+
+Example: in CRUD-related features, you can record the current data items and use them in later properties. A typical scenario that needs stateful testing is "searching items" (you must know which items exist before searching).
+
+```python
+from kea2 import state
+
+state["item_names"] = []  # store data items
+
+class MyStatefulTest(unittest.TestCase):
+    @precondition(...)
+    def test_add_item(self):
+        # add a data item
+        new_item_name = __get_random_item_name()
+        self.d(resourceId="add_button").click()
+        self.d(resourceId="item_name_input").set_text(new_item_name)
+        self.d(resourceId="save_button").click()
+        # update items in state
+        state["item_names"].append(new_item_name)
+
+    # search with items stored in state
+    @precondition(lambda self: len(state["item_names"]) > 0 and ...)
+    def search_item(self):
+        search_name = random.choice(state["item_names"])
+        self.d(resourceId="search_box").set_text(search_name)
+        self.d.press("enter")
+        assert self.d(text=search_name).exists
+```
+
+> If you want to learn more about stateful testing, see the [Hypothesis Stateful Testing documentation](https://hypothesis.readthedocs.io/en/latest/stateful.html)
 
 ## App's Crash Bugs
 Kea2 dumps the triggered crash bugs in the `fastbot_*.log` generated in the output directory specified by `-o`. You can search the keyword `FATAL EXCEPTION` in `fastbot_*.log` to find the concrete information of crash bugs.

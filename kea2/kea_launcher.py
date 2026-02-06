@@ -138,7 +138,7 @@ def _set_runner_parser(subparsers: "argparse._SubParsersAction[argparse.Argument
         dest="device_output_root",
         type=str,
         required=False,
-        default="/sdcard",
+        default="/sdcard/.kea2",
         help="The root of device output dir. Kea2 will temporarily save the screenshots and result log into `<device-output-root>/output_*********/`. Make sure the root dir can be access.",
     )
 
@@ -156,6 +156,15 @@ def _set_runner_parser(subparsers: "argparse._SubParsersAction[argparse.Argument
         required=False,
         type=str,
         help="Activity BlackList File. The activities listed in the file will be avoided during testing.",
+    )
+
+    parser.add_argument(
+        "--restart-app-period",
+        dest="restart_app_period",
+        type=int,
+        required=False,
+        default=0,
+        help="The period (in the numbers of monkey events) to restart the app under test. 0 means no restart.",
     )
 
     parser.add_argument(
@@ -200,6 +209,8 @@ def driver_info_logger(args):
             print("  post_failure_screenshots:", args.post_failure_screenshots, flush=True)
     if args.max_step:
         print("  max_step:", args.max_step, flush=True)
+    if args.restart_app_period > 0:
+        print("  restart_app_period:", args.restart_app_period, flush=True)
 
 
 def parse_args(argv: List):
@@ -249,12 +260,10 @@ def run(args=None):
     driver_info_logger(args)
     extra_args_info_logger(args)
 
-    from kea2 import KeaTestRunner, Options, HybridTestRunner
-    from kea2.u2Driver import U2Driver
+    from kea2 import KeaTestRunner, HybridTestRunner, Options, keaTestLoader
     options = Options(
         agent=args.agent,
         driverName=args.driver_name,
-        Driver=U2Driver,
         packageNames=args.package_names,
         serial=args.serial,
         transport_id=args.transport_id,
@@ -270,6 +279,7 @@ def run(args=None):
         device_output_root=args.device_output_root,
         act_whitelist_file=args.act_whitelist_file,
         act_blacklist_file=args.act_blacklist_file,
+        restart_app_period=args.restart_app_period,
         propertytest_args=args.propertytest_args,
         unittest_args=args.unittest_args,
         extra_args=args.extra,
@@ -284,4 +294,4 @@ def run(args=None):
         KeaTestRunner.setOptions(options)
         testRunner = KeaTestRunner
         argv = ["python3 -m unittest"] + options.propertytest_args
-    unittest.main(module=None, argv=argv, testRunner=testRunner)
+    unittest.main(module=None, argv=argv, testRunner=testRunner, testLoader=keaTestLoader)

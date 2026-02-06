@@ -3,7 +3,7 @@ import os
 from time import sleep
 from appium import webdriver
 from appium.webdriver.common.appiumby import AppiumBy
-from kea2 import Kea2Tester, Options, U2Driver
+from kea2 import Kea2Tester, Options
 from appium.options.android import UiAutomator2Options
 
 PACKAGE_NAME = "it.feio.android.omninotes.alpha"

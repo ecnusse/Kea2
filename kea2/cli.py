@@ -58,6 +58,8 @@ def cmd_report(args):
     from .report.bug_report_generator import BugReportGenerator
     report_dirs = args.path
     
+    sync_data = args.sync
+     
     for report_dir in report_dirs:
         report_dir = Path(report_dir).resolve()
 
@@ -66,7 +68,7 @@ def cmd_report(args):
             continue
         
         logger.debug(f"Generating test report from directory: {report_dir}")
-        BugReportGenerator(report_dir).generate_report()
+        BugReportGenerator(report_dir, sync_data).generate_report()
 
 
 def cmd_merge(args):
@@ -136,6 +138,12 @@ _commands = [
                 nargs="+",
                 required=True,
                 help="Root directory path of the test results to generate report from"
+            ),
+            dict(
+                name=["sync_data"],
+                args=["-s", "--sync"],
+                action="store_true",
+                help="Sync data from device before generating report"
             )
         ]
     ),

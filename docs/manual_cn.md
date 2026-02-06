@@ -9,7 +9,7 @@
 
 ## Kea2 脚本
 
-Kea2 使用 [Unittest](https://docs.python.org/3/library/unittest.html) 来管理脚本。所有 Kea2 脚本遵循 unittest 的用例发现规则（即测试方法应以 `test_` 开头，测试类应继承自 `unittest.TestCase`）。
+Kea2 使用 [Unittest](https://docs.python.org/3/library/unittest.html) 来管理脚本。测试类需继承自 `unittest.TestCase`。
 
 Kea2 使用 [Uiautomator2](https://github.com/openatx/uiautomator2) 操控 Android 设备。详情请参考 [Uiautomator2 文档](https://github.com/openatx/uiautomator2?tab=readme-ov-file#quick-start)。
 
@@ -24,9 +24,11 @@ class MyFirstTest(unittest.TestCase):
     ...
 ```
 
+你可以选择性地定义 `setUpClass`，用于在测试类级别做一次性初始化（如准备共享资源），也可以用于[对 u2 driver 进行全局设置](https://github.com/openatx/uiautomator2?tab=readme-ov-file#global-settings)。该方法是可选的，只有定义了才会在测试方法执行前调用一次。
+
 2. 通过定义测试方法编写脚本
 
-默认情况下，只有以 `test_` 开头的测试方法会被 unittest 识别。你可以用 `@precondition` 装饰函数。装饰器 `@precondition` 接收一个返回布尔值的函数作为参数。当函数返回 `True` 时，前置条件满足，脚本将被激活，接下来Kea2 会根据装饰器 `@prob` 定义的概率运行脚本。
+你可以用 `@precondition` 装饰函数。装饰器 `@precondition` 接收一个返回布尔值的函数作为参数。当函数返回 `True` 时，前置条件满足，脚本将被激活，接下来Kea2 会根据装饰器 `@prob` 定义的概率运行脚本。
 
 注意，如果测试方法未被 `@precondition` 装饰，该测试方法在自动化 UI 测试中永远不会被激活，而是被当作普通的 unittest 测试方法处理。因此，当测试方法应始终执行时，需要显式指定 `@precondition(lambda self: True)`。如果未装饰 `@prob`，默认概率为 1（即前置条件满足时始终执行）。
 
@@ -93,6 +95,28 @@ def test_func1(self):
 
 `@max_tries` 装饰器接受一个整数参数，表示当前置条件满足时函数 `test_func1` 最多执行的次数。默认值为 `inf`（无限次）。
 
+### `@invariant` (不变式检查)
+
+不变式检查用于定义在任何时候都应保持为真的性质。普通性质由 前置条件 P，交互场景(执行功能) I，和断言 Q 三部分组成，不变式为一个特殊的性质，即 P 为恒真，I 为空，任何情况下都验证 Q 的性质。
+
+Kea2 会在应用每次进入一个新状态后 (即每次执行完某个性质或发送 monkey 事件后) 检查 **所有** 不变式。
+
+以下是一个不变式检查的示例：在一个背单词应用中，未背单词的数量不可能为负数。
+
+```python
+from kea2 import invariant
+
+@invariant
+def invariant_non_negative_word_count(self):
+    if self.d(resourceId="word_count").exists:
+        # 获取未背单词数量
+        word_count_text = self.d(resourceId="word_count").get_text()
+        word_count = int(word_count_text)
+        assert word_count >= 0, f"Word count is negative: {word_count}"
+```
+
+`@invariant` 用于标记不变式检查。每次执行性质或发送 monkey 事件后，所有不变式都会被完整执行（每一轮都会执行一遍）。不变式适合用于检查始终应成立的条件，比如单一页面的布局问题，或基于 [带状态的测试 (Stateful testing)](#带状态的测试stateful-testing) 推导出的状态一致性问题。
+
 ## 启动 Kea2
 
 我们提供两种方式启动 Kea2。
@@ -121,6 +145,7 @@ def test_func1(self):
 | --take-screenshots | 在每个随机事件执行时截图，截图会被周期性地自动从设备拉取到主机（周期由 `--profile-period` 指定）。 |  |
 | --pre-failure-screenshots | 失败前截取的截图数量。0 表示每步都截图。该选项仅在 `--take-screenshots` 设置时有效。 | `0` |
 | --post-failure-screenshots | 失败后截取的截图数量。应小于等于 `--pre-failure-screenshots`。该选项仅在 `--take-screenshots` 设置时有效。 | `0` |
+| --restart-app-period | 重新启动被测应用的周期（随机事件数）。 | `0`（不重启） |
 | --device-output-root | 设备输出目录根路径，Kea2 将暂存截图和结果日志到 `"<device-output-root>/output_*********/"`。确保该目录可访问。 | `/sdcard` |
 | --act-whitelist-file | Activity 白名单文件。测试过程中仅能探索文件中列出的 Activity。 |  |
 | --act-blacklist-file | Activity 黑名单文件。测试过程中会避免探索文件中列出的 Activity。 |  |
@@ -172,8 +197,7 @@ kea2 run -s "emulator-5554" -p it.feio.android.omninotes.alpha --running-minutes
 ```python
 import unittest
 
-from kea2 import KeaTestRunner, Options
-from kea2.u2Driver import U2Driver
+from kea2 import KeaTestRunner, Options, keaTestLoader
 
 class MyTest(unittest.TestCase):
     ...
@@ -183,7 +207,6 @@ if __name__ == "__main__":
     KeaTestRunner.setOptions(
         Options(
             driverName="d",
-            Driver=U2Driver,
             packageNames=[PACKAGE_NAME],
             # serial="emulator-5554",   # 指定设备序列号
             maxStep=100,
@@ -193,7 +216,7 @@ if __name__ == "__main__":
         )
     )
     # 声明 KeaTestRunner
-    unittest.main(testRunner=KeaTestRunner)
+    unittest.main(testRunner=KeaTestRunner, testLoader=keaTestLoader)
 ```
 
 运行该脚本启动 Kea2，如：
@@ -204,50 +227,49 @@ python3 mytest.py
 以下是 `Options` 中的所有可用选项。
 
 ```python
-# 脚本中的驱动名称（如 self.d，则为 d）
-driverName: str = None
-# 驱动（当前只有 U2Driver）
-Driver: AbstractDriver = None
-# 包名列表，指定被测试的应用
-packageNames: List[str] = None
-# 目标设备序列号
-serial: str = None
-# 目标设备传输 ID
-transport_id: str = None
-# 测试 agent，默认 "u2"
-agent: "u2" | "native" = "u2"
-# 最大探索步数（功能 2~3 有效）
-maxStep: Union[str, float] = float("inf")
-# 探索时长（分钟）
-running_mins: int = 10
-# 探索时等待时间（毫秒）
-throttle: int = 200
-# 日志和结果保存目录
-output_dir: str = "output"
-# 日志文件和结果文件的时间戳标识，默认当前时间戳
-log_stamp: str = None
-# 覆盖率采样周期
-profile_period: int = 25
-# 是否每步截图
-take_screenshots: bool = False
-# 失败前截取的截图数量，0 表示每步都截图
-pre_failure_screenshots: int = 0
-# 失败后截取的截图数量，需要小于等于 pre_failure_screenshots
-post_failure_screenshots: int = 0
-# 设备上的输出目录根路径
-device_output_root: str = "/sdcard"
-# 是否启用调试模式
-debug: bool = False
-# Activity 白名单文件
-act_whitelist_file: str = None
-# Activity 黑名单文件
-act_blacklist_file: str = None
-# propertytest 子命令参数（例如 discover -s xxx -p xxx）
-propertytest_args: str = None
-# unittest 子命令参数（功能 4）
-unittest_args: List[str] = None
-# 额外参数（直接传递给 fastbot）
-extra_args: List[str] = None
+    # 脚本中的驱动名称（如 self.d，则为 d）
+    driverName: str = None
+    Driver: AbstractDriver = None
+    # 包名列表，指定被测试的应用
+    packageNames: List[str] = None
+    # 目标设备序列号
+    serial: str = None
+    # 目标设备传输 ID
+    transport_id: str = None
+    # 测试 agent，默认 "u2"
+    agent: "u2" | "native" = "u2"
+    # 最大探索步数（阶段 2~3 可用）
+    maxStep: Union[str, float] = float("inf")
+    # 探索时长（分钟）
+    running_mins: int = 10
+    # 探索时等待时间（毫秒）
+    throttle: int = 200
+    # 日志和结果保存目录
+    output_dir: str = "output"
+    # 日志文件和结果文件的时间戳标识，默认当前时间戳
+    log_stamp: str = None
+    # 覆盖率采样周期
+    profile_period: int = 25
+    # 是否每步截图
+    take_screenshots: bool = False
+    # 失败前截取的截图数量，0 表示每步都截图
+    pre_failure_screenshots: int = 0
+    # 失败后截取的截图数量，需要小于等于 pre_failure_screenshots
+    post_failure_screenshots: int = 0
+    # 设备上的输出目录根路径
+    device_output_root: str = "/sdcard/.kea2"
+    # 是否启用调试模式
+    debug: bool = False
+    # Activity 白名单文件
+    act_whitelist_file: str = None
+    # Activity 黑名单文件
+    act_blacklist_file: str = None
+    # propertytest 子命令参数（例如 discover -s xxx -p xxx）
+    propertytest_args: str = None
+    # unittest 子命令参数（功能 4）
+    unittest_args: List[str] = None
+    # 额外参数（直接传递给 fastbot）
+    extra_args: List[str] = None
 ```
 
 ## 管理 Kea2 报告
@@ -258,6 +280,7 @@ extra_args: List[str] = None
 
 | 参数 | 意义 | 是否必需 | 默认值 |
 | --- | --- | --- | --- |
+| -s, --sync | 生成报告前从设备同步数据 | 否 |  |
 | -p, --path | 测试结果目录路径（res_* 目录） | 是 |  |
 
 **使用示例：**
@@ -265,6 +288,9 @@ extra_args: List[str] = None
 ```bash
 # 从测试结果目录生成报告
 kea2 report -p res_20240101_120000
+
+# 生成报告前同步设备数据
+kea2 report -s -p res_20240101_120000
 
 # 从多个测试结果目录生成报告
 kea2 report -p ./output/res_20240101_120000 /Users/username/kea2_tests/res_20240102_130001
@@ -389,6 +415,41 @@ error | UI 测试中，测试方法因发生意外错误（如找不到某些 UI
 3. 运行 `kea2 init` 生成最新配置文件。
 4. 根据需要将旧配置合并到新配置文件中。
 
+## 带状态的测试（Stateful Testing）
+
+带状态的测试是基于性质测试中的一种进阶方法。其思想是对应用内部数据状态进行建模，并在多个性质间共享该状态以控制测试进程，以及发现更复杂的缺陷。
+
+Kea2 提供共享的 `state` 对象用于有状态测试。它是一个单例 `dict`，可以存储应用内部数据并建模状态，供多个性质复用。你可以在性质中更新 `state`，再在后续性质中读取它来控制探索进程。
+
+示例：在 增删改查 相关功能中，可以记录当前操作的数据条目，并在后续性质中使用该信息。一个典型的需要用到带状态测试的场景是：“搜索条目”，(我们必须先知道有哪些条目才能搜索它们)。
+
+```python
+from kea2 import state
+
+state["item_names"] = []  # 存储数据条目
+
+class MyStatefulTest(unittest.TestCase):
+    @precondition(...)
+    def test_add_item(self):
+        # 添加数据条目
+        new_item_name = __get_random_item_name()
+        self.d(resourceId="add_button").click()
+        self.d(resourceId="item_name_input").set_text(new_item_name)
+        self.d(resourceId="save_button").click()
+        # 更新 state 中的条目数
+        state['item_names'].append(new_item_name)
+
+    # 使用 state 中的条目进行搜索
+    @precondition(lambda self: len(state['item_names']) > 0 and ...)
+    def search_item(self):
+        search_name = random.choice(state['item_names'])
+        self.d(resourceId="search_box").set_text(search_name)
+        self.d.press("enter")
+        assert self.d(text=search_name).exists
+```
+
+> 如果想了解更多关于带状态的测试技术，请参考 [Hypothesis Stateful Testing 文档](https://hypothesis.readthedocs.io/en/latest/stateful.html)
+
 ## 应用崩溃缺陷
 
 Kea2 会将触发的崩溃缺陷转储在由 `-o` 指定输出目录中的 `fastbot_*.log` 文件内。你可以在 `fastbot_*.log` 中搜索关键词 `FATAL EXCEPTION` 来获取崩溃缺陷的具体信息。
@@ -407,7 +468,7 @@ kea2 run -s "emulator-5554" -p it.feio.android.omninotes.alpha --running-minutes
 
 ## 提升 Kea2 性能的建议
 
-目前，我们在 `@precondition` 装饰器和 `widgets.block.py` 中实现了一个算法来提升工具性能。该算法仅支持 uiautomator2 中的基础选择器（不支持父子关系）。如果你有许多带复杂前置条件的性质且发现性能问题，建议使用 xpath 来指定。
+目前，我们在 `@precondition` 装饰器和 `widgets.block.py` 中实现了一个算法来提升工具性能。该算法仅支持 uiautomator2 中的基础选择器（不支持父子关系）。如果你有许多带复杂前置条件的性质且遇到性能问题，建议在前置条件中使用 xpath。
 
 | | **推荐** | **不推荐** |
 | -- | -- | -- |
@@ -418,13 +479,13 @@ kea2 run -s "emulator-5554" -p it.feio.android.omninotes.alpha --running-minutes
 例如：
 
 ```python
-# 不推荐使用：
+# 不推荐：
 # @precondition(lambda self: 
 #      self.d(className="android.widget.ListView").child(text="Bluetooth")
 # ):
 # ...
 
-# 推荐使用：
+# 推荐：
 @precondition(lambda self: 
     self.d.xpath('//android.widget.ListView/*[@text="Bluetooth"]')
 ):

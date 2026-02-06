@@ -4,51 +4,40 @@ import types
 import traceback
 import json
 import os
+import functools
 
 from collections import deque
 from copy import deepcopy
 from pathlib import Path
-from time import perf_counter
+from time import perf_counter, sleep
 from typing import Callable, Any, Deque, Dict, List, Literal, NewType, Tuple, Union
 from contextvars import ContextVar
-from unittest import TextTestRunner, registerResult, TestSuite, TestCase, TextTestResult, defaultTestLoader, SkipTest
+from unittest import TextTestRunner, TestLoader, TestSuite, TestCase
+from unittest import registerResult, TextTestResult, SkipTest
 from unittest import main as unittest_main
-from dataclasses import dataclass, asdict
+from dataclasses import dataclass, asdict, fields, is_dataclass
 from datetime import datetime
+from fnmatch import fnmatchcase
 
 import uiautomator2 as u2
 
-from .absDriver import AbstractDriver
+
+from .typedefs import PRECONDITIONS_MARKER, PROB_MARKER, MAX_TRIES_MARKER, INTERRUPTABLE_MARKER
+from .typedefs import PropertyStore
 from .report.bug_report_generator import BugReportGenerator
 from .resultSyncer import ResultSyncer
 from .logWatcher import LogWatcher
-from .utils import TimeStamp, catchException, getProjectRoot, getLogger, loadFuncsFromFile, timer
-from .u2Driver import StaticU2UiObject, StaticXpathObject, U2Driver
+from .utils import TimeStamp, StampManager, catchException, getProjectRoot, getLogger, loadFuncsFromFile, timer, getClassName, getFullPropName
+from .u2Driver import StaticU2UiObject, StaticXpathObject, U2Driver, U2StaticDevice
 from .fastbotManager import FastbotManager
 from .adbUtils import ADBDevice
-from .mixin import BetterConsoleLogExtensionMixin
+from .state import invariant, INVARIANT_MARKER
+from .result import KeaJsonResult, KeaTextTestResult
 
-
+logger = getLogger(__name__)
 hybrid_mode = ContextVar("hybrid_mode", default=False)
 
 
-PRECONDITIONS_MARKER = "preconds"
-PROB_MARKER = "prob"
-MAX_TRIES_MARKER = "max_tries"
-INTERRUPTABLE_MARKER = "interruptable"
-
-logger = getLogger(__name__)
-
-
-# Class Typing
-PropName = NewType("PropName", str)
-PropertyStore = NewType("PropertyStore", Dict[PropName, TestCase])
-
-
-STAMP: str
-LOGFILE: str
-RESFILE: str
-PROP_EXEC_RESFILE: str
 
 
 def precondition(precond: Callable[[Any], bool]) -> Callable:
@@ -117,8 +106,6 @@ class Options:
     """
     # the driver_name in script (if self.d, then d.) 
     driverName: str = None
-    # the driver (only U2Driver available now)
-    Driver: AbstractDriver = U2Driver
     # list of package names. Specify the apps under test
     packageNames: List[str] = None
     # target device
@@ -146,7 +133,7 @@ class Options:
     # Screenshots after failure (Dump n screenshots before failure. Should be smaller than pre_failure_screenshots)
     post_failure_screenshots: int = 0
     # The root of output dir on device
-    device_output_root: str = "/sdcard"
+    device_output_root: str = "/sdcard/.kea2"
     # the debug mode
     debug: bool = False
     # Activity WhiteList File
@@ -155,6 +142,8 @@ class Options:
     act_blacklist_file: str = None
     # propertytest sub-commands args (eg. discover -s xxx -p xxx)
     propertytest_args: List[str] = None
+    # period (N steps) to restart the app under test
+    restart_app_period: int = None
     # unittest sub-commands args (Feat 4)
     unittest_args: List[str] = None
     # Extra args (directly passed to fastbot)
@@ -169,38 +158,63 @@ class Options:
         import logging
         logging.basicConfig(level=logging.DEBUG if self.debug else logging.INFO)
 
-        if self.Driver:
+        if self.agent == "u2":
             self._set_driver()
 
-        global STAMP
-        STAMP = self.log_stamp if self.log_stamp else TimeStamp().getTimeStamp()
+        self.log_stamp = self.log_stamp if self.log_stamp else TimeStamp().getTimeStamp()
+        self._sanitize_stamp(self.log_stamp)
 
-        self._sanitize_stamp()
-
-        self.output_dir = Path(self.output_dir).absolute() / f"res_{STAMP}"
-        self.set_stamp()
+        self.output_dir = Path(self.output_dir).absolute() / f"res_{self.log_stamp}"
+        StampManager().set_stamp(self.log_stamp)
+        StampManager().set_output_dir(self.output_dir)
 
         self._sanitize_args()
 
         _check_package_installation(self.packageNames)
         _save_bug_report_configs(self)
 
+        _save_options_configs(self)
+
+    def to_dict(self):
+        from copy import deepcopy
+        obj = deepcopy(self)
+        for f in fields(obj):
+            v = getattr(obj, f.name)
+            if isinstance(v, Path):
+                setattr(obj, f.name, str(v))
+        return asdict(obj)
+
+    @classmethod
+    def from_dict(cls, data: Dict[str, Any]) -> "Options":
+        data = dict(data)
+        path_fields = {
+            "output_dir",
+            "device_output_root",
+            "act_whitelist_file",
+            "act_blacklist_file",
+        }
+        obj = cls.__new__(cls)
+        for f in fields(cls):
+            if f.name in data:
+                value = data[f.name]
+                if f.name in path_fields and value is not None:
+                    value = Path(value)
+                setattr(obj, f.name, value)
+        return obj
+
     def set_stamp(self, stamp: str = None):
-        global STAMP, LOGFILE, RESFILE, PROP_EXEC_RESFILE
+        """for hybrid test run. set a new stamp for the Options instance to save logs and results.
+        """
         if stamp:
-            STAMP = stamp
+            self.log_stamp = stamp
+            StampManager().set_stamp(stamp)
 
-        LOGFILE = f"fastbot_{STAMP}.log"
-        RESFILE = f"result_{STAMP}.json"
-        PROP_EXEC_RESFILE = f"property_exec_info_{STAMP}.json"
-
-    def _sanitize_stamp(self):
-        global STAMP
+    def _sanitize_stamp(self, stamp: str):
         illegal_chars = ['/', '\\', ':', '*', '?', '"', '<', '>', '|', '\n', '\r', '\t', '\0']
         for char in illegal_chars:
-            if char in STAMP:
+            if char in stamp:
                 raise ValueError(
-                    f"char: `{char}` is illegal in --log-stamp. current stamp: {STAMP}"
+                    f"char: `{char}` is illegal in --log-stamp. current stamp: {stamp}"
                 )
 
     def _sanitize_args(self):
@@ -227,7 +241,7 @@ class Options:
             target_device["serial"] = self.serial
         if self.transport_id:
             target_device["transport_id"] = self.transport_id
-        self.Driver.setDevice(target_device)
+        U2Driver.setDevice(target_device)
         ADBDevice.setDevice(self.serial, self.transport_id)
 
     def getKeaTestOptions(self, hybrid_test_count: int) -> "Options":
@@ -268,120 +282,18 @@ def _save_bug_report_configs(options: Options):
         "pre_failure_screenshots": options.pre_failure_screenshots,
         "post_failure_screenshots": options.post_failure_screenshots,
         "device_output_root": options.device_output_root,
-        "log_stamp": options.log_stamp if options.log_stamp else STAMP,
+        "log_stamp": options.log_stamp,
         "test_time": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
     }
     with open(output_dir / "bug_report_config.json", "w", encoding="utf-8") as fp:
         json.dump(configs, fp, indent=4)
 
-
-@dataclass
-class PropStatistic:
-    precond_satisfied: int = 0
-    executed: int = 0
-    fail: int = 0
-    error: int = 0
-    
-
-PBTTestResult = NewType("PBTTestResult", Dict[PropName, PropStatistic])
-
-
-PropertyExecutionInfoStore = NewType("PropertyExecutionInfoStore", Deque["PropertyExecutionInfo"])
-@dataclass
-class PropertyExecutionInfo:
-    startStepsCount: int
-    propName: PropName
-    state: Literal["start", "pass", "fail", "error"]
-    tb: str
-
-
-def getFullPropName(testCase: TestCase):
-    return ".".join([
-        testCase.__module__,
-        testCase.__class__.__name__,
-        testCase._testMethodName
-    ])
-
-
-class JsonResult(BetterConsoleLogExtensionMixin, TextTestResult):
-    
-    res: PBTTestResult
-    lastExecutedInfo: PropertyExecutionInfo
-    executionInfoStore: PropertyExecutionInfoStore = deque()
-
-    def __init__(self, stream, descriptions, verbosity):
-        super().__init__(stream, descriptions, verbosity)
-        self.showAll = True
-
-    @classmethod
-    def setProperties(cls, allProperties: Dict):
-        cls.res = dict()
-        for testCase in allProperties.values():
-            cls.res[getFullPropName(testCase)] = PropStatistic()
-
-    def flushResult(self):
-        global RESFILE, PROP_EXEC_RESFILE
-        json_res = dict()
-        for propName, propStatitic in self.res.items():
-            json_res[propName] = asdict(propStatitic)
-        with open(RESFILE, "w", encoding="utf-8") as fp:
-            json.dump(json_res, fp, indent=4)
-
-        while self.executionInfoStore:
-            execInfo = self.executionInfoStore.popleft()
-            with open(PROP_EXEC_RESFILE, "a", encoding="utf-8") as fp:
-                fp.write(f"{json.dumps(asdict(execInfo))}\n")
-
-    def addExcuted(self, test: TestCase, stepsCount: int):
-        self.res[getFullPropName(test)].executed += 1
-
-        self.lastExecutedInfo = PropertyExecutionInfo(
-            propName=getFullPropName(test),
-            state="start",
-            tb="",
-            startStepsCount=stepsCount
-        )
-
-    def addPrecondSatisfied(self, test: TestCase):
-        self.res[getFullPropName(test)].precond_satisfied += 1
-
-    def addFailure(self, test, err):
-        super().addFailure(test, err)
-        self.res[getFullPropName(test)].fail += 1
-        self.lastExecutedInfo.state = "fail"
-        self.lastExecutedInfo.tb = self._exc_info_to_string(err, test)
-
-    def addError(self, test, err):
-        super().addError(test, err)
-        self.res[getFullPropName(test)].error += 1
-        self.lastExecutedInfo.state = "error"
-        self.lastExecutedInfo.tb = self._exc_info_to_string(err, test)
-
-    def updateExectedInfo(self):
-        if self.lastExecutedInfo.state == "start":
-            self.lastExecutedInfo.state = "pass"
-
-        self.executionInfoStore.append(self.lastExecutedInfo)
-
-    def getExcuted(self, test: TestCase):
-        return self.res[getFullPropName(test)].executed
-    
-    def printError(self, test):
-        if self.lastExecutedInfo.state in ["fail", "error"]:
-            flavour = self.lastExecutedInfo.state.upper()
-            self.stream.writeln("")
-            self.stream.writeln(self.separator1)
-            self.stream.writeln("%s: %s" % (flavour, self.getDescription(test)))
-            self.stream.writeln(self.separator2)
-            self.stream.writeln("%s" % self.lastExecutedInfo.tb)
-            self.stream.writeln(self.separator1)
-            self.stream.flush()
-
-    def logSummary(self):
-        fails = sum(_.fail for _ in self.res.values())
-        errors = sum(_.error for _ in self.res.values())
-
-        logger.info(f"[Property Exectution Summary] Errors:{errors}, Fails:{fails}")
+def _save_options_configs(self: "Options"):
+    output_dir = Path(self.output_dir)
+    output_dir.mkdir(parents=True, exist_ok=True)
+    configs = self.to_dict()
+    with open(output_dir / "options.json", "w", encoding="utf-8") as fp:
+        json.dump(configs, fp, indent=4)
 
 
 class KeaOptionSetter:
@@ -391,153 +303,246 @@ class KeaOptionSetter:
     def setOptions(cls, options: Options):
         if not isinstance(options.packageNames, list) and len(options.packageNames) > 0:
             raise ValueError("packageNames should be given in a list.")
-        if options.Driver is not None and options.agent == "native":
-            logger.warning("[Warning] Can not use any Driver when runing native mode.")
-            options.Driver = None
         cls.options = options
 
 
-class KeaTestRunner(TextTestRunner, KeaOptionSetter):
+class KeaTestSuite(TestSuite):
+    def addTest(self, test):
+        if isinstance(test, TestCase):
+            # inject the preconds, prob, max_tries, interruptable info into the test case
+            func = getattr(test, test._testMethodName)
+            for attr in {PRECONDITIONS_MARKER, INVARIANT_MARKER, PROB_MARKER, MAX_TRIES_MARKER, INTERRUPTABLE_MARKER}:
+                if hasattr(func, attr):
+                    val = getattr(func, attr)
+                    setattr(test, attr, val)
+        return super().addTest(test)
 
-    resultclass: JsonResult
+
+class KeaTestLoader(TestLoader):
+    testMethodPrefix = ""
+    suiteClass = KeaTestSuite
+
+    def loadTestsFromTestCase(self, testCaseClass):
+        # remove the setUp and tearDown functions in PBT
+        def setUp(self): ...
+        def tearDown(self): ...
+        testCaseClass.setUp = types.MethodType(setUp, testCaseClass)
+        testCaseClass.tearDown = types.MethodType(tearDown, testCaseClass)
+        return super().loadTestsFromTestCase(testCaseClass)
+
+    def getTestCaseNames(self, testCaseClass):
+        """Return a sorted sequence of method names found within testCaseClass
+        """
+        def shouldIncludeMethod(attrname: str):
+            if not attrname.startswith(self.testMethodPrefix):
+                return False
+            testFunc = getattr(testCaseClass, attrname)
+            if not callable(testFunc):
+                return False
+            # exclude the test methods that are not properties
+            if not hasattr(testFunc, PRECONDITIONS_MARKER) ^ hasattr(testFunc, INVARIANT_MARKER):
+                return False
+            fullName = f'%s.%s' % (getClassName(testCaseClass), attrname)
+            self.__log_loading_info(testFunc, fullName)
+            return self.testNamePatterns is None or \
+                any(fnmatchcase(fullName, pattern) for pattern in self.testNamePatterns)
+        testFnNames = list(filter(shouldIncludeMethod, dir(testCaseClass)))
+        if self.sortTestMethodsUsing:
+            testFnNames.sort(key=functools.cmp_to_key(self.sortTestMethodsUsing))
+        return testFnNames
+
+    def __log_loading_info(self, testFunc: Callable, fullName: str):
+        if hasattr(testFunc, PRECONDITIONS_MARKER):
+            print(f"[INFO] Load property: {fullName}", flush=True)
+        if hasattr(testFunc, INVARIANT_MARKER):
+            print(f"[INFO] Load invariant: {fullName}", flush=True)
+
+
+keaTestLoader = KeaTestLoader()
+
+
+class SetUpClassExtension:
+    # setting up setUpClass
+    _setup = set()
+
+    def setUpClass(self: "KeaTestRunner", test: TestCase):
+        testClass = test.__class__
+        if not repr(testClass) in self._setup:
+            self._setup.add(repr(testClass))
+            script_driver = U2Driver.getScriptDriver(mode="proxy")
+            setattr(testClass, self.options.driverName, script_driver)
+            try:
+                testClass.setUpClass()
+            except Exception:
+                logger.error(f"Error when executing {getClassName(testClass)}.setUpClass")
+                import traceback
+                traceback.print_exc()
+
+
+class KeaTestRunner(TextTestRunner, KeaOptionSetter, SetUpClassExtension):
+
+    resultclass: KeaJsonResult
     allProperties: PropertyStore
+    allInvariants: PropertyStore
     _block_funcs: Dict[Literal["widgets", "trees"], List[Callable]] = None
     fb = FastbotManager
 
     def _setOuputDir(self):
         output_dir = self.options.output_dir
         output_dir.mkdir(parents=True, exist_ok=True)
-        global LOGFILE, RESFILE, PROP_EXEC_RESFILE
-        LOGFILE = output_dir / Path(LOGFILE)
-        RESFILE = output_dir / Path(RESFILE)
-        PROP_EXEC_RESFILE = output_dir / Path(PROP_EXEC_RESFILE)
-        logger.info(f"Log file: {LOGFILE}")
-        logger.info(f"Result file: {RESFILE}")
-        logger.info(f"Property execution info file: {PROP_EXEC_RESFILE}")
+        stamp_manager = StampManager()
+        if not stamp_manager.stamp:
+            stamp_manager.set_stamp(self.options.log_stamp or TimeStamp().getTimeStamp())
+        stamp_manager.set_output_dir(output_dir)
+        logger.info(f"Log file: {stamp_manager.log_file}")
+        logger.info(f"Result file: {stamp_manager.result_file}")
+        logger.info(f"Property execution info file: {stamp_manager.prop_exec_file}")
 
     def run(self, test):
 
-        self.allProperties = dict()
-        self.collectAllProperties(test)
+        self.validateAndCollectProperties(test)
 
         if len(self.allProperties) == 0:
-            logger.warning("[Warning] No property has been found.")
+            logger.warning("No property has been found.")
 
         self._setOuputDir()
 
-        JsonResult.setProperties(self.allProperties)
-        self.resultclass = JsonResult
-
-        result: JsonResult = self._makeResult()
+        # Setup JsonResult
+        KeaJsonResult.setProperties(self.allProperties)
+        KeaJsonResult.setInvariants(self.allInvariants)
+        self.resultclass = KeaJsonResult
+        result: KeaJsonResult = self._makeResult()
         registerResult(result)
+
         result.failfast = self.failfast
         result.buffer = self.buffer
         result.tb_locals = self.tb_locals
 
         with warnings.catch_warnings():
-            if self.warnings:
-                # if self.warnings is set, use it to filter all the warnings
-                warnings.simplefilter(self.warnings)
-                # if the filter is 'default' or 'always', special-case the
-                # warnings from the deprecated unittest methods to show them
-                # no more than once per module, because they can be fairly
-                # noisy.  The -Wd and -Wa flags can be used to bypass this
-                # only when self.warnings is None.
-                if self.warnings in ["default", "always"]:
-                    warnings.filterwarnings(
-                        "module",
-                        category=DeprecationWarning,
-                        message=r"Please use assert\w+ instead.",
-                    )
-
-            self.fb = FastbotManager(self.options, LOGFILE)
+            stamp_manager = StampManager()
+            self.fb = FastbotManager(self.options, stamp_manager.log_file)
             self.fb.start()
 
-            log_watcher = LogWatcher(LOGFILE)
+            log_watcher = LogWatcher(stamp_manager.log_file)
             
             if self.options.agent == "u2":
                 # initialize the result.json file
                 result.flushResult()
                 # setUp for the u2 driver
                 self.scriptDriver = U2Driver.getScriptDriver(mode="proxy")
-                self.fb.check_alive()
 
-                self.fb.init(options=self.options, stamp=STAMP)
+                for test in {**self.allProperties, **self.allInvariants}.values():
+                    self.setUpClass(test)
+
+                self.fb.check_alive()
+                self.fb.init(options=self.options, stamp=stamp_manager.stamp)
 
                 resultSyncer = ResultSyncer(self.fb.device_output_dir, self.options)
                 resultSyncer.run()
                 start_time = perf_counter()
                 fb_is_running = True
                 self.stepsCount = 0
-                while self.stepsCount < self.options.maxStep:
-                    if self.shouldStop(start_time):
-                        logger.info("Exploration time up (--running-minutes).")
-                        break
-                    try:
-                        if self.fb.executed_prop:
-                            self.fb.executed_prop = False
-                            xml_raw = self.fb.dumpHierarchy()
-                        else:
-                            self.stepsCount += 1
-                            logger.info("Sending monkeyEvent {}".format(
-                                f"({self.stepsCount} / {self.options.maxStep})" if self.options.maxStep != float("inf")
-                                else f"({self.stepsCount})"
-                                )
-                            )
-                            xml_raw = self.fb.stepMonkey(self._monkeyStepInfo)
-                        propsSatisfiedPrecond = self.getValidProperties(xml_raw, result)
-                    except u2.HTTPError:
-                        logger.info("Connection refused by remote.")
-                        if self.fb.get_return_code() == 0:
-                            logger.info("Exploration times up (--running-minutes).")
-                            fb_is_running = False
+
+                # Kea2 main testing loop
+                try:
+                    while self.stepsCount < self.options.maxStep:
+                        logger.info(f"[Property based testing] [New Iteration] Elapsed: {perf_counter()-start_time:.1f}s")
+                        if self.shouldStop(start_time):
+                            logger.info("Exploration time up (--running-minutes).")
                             break
-                        raise RuntimeError("Fastbot Aborted.")
 
-                    if self.options.profile_period and self.stepsCount % self.options.profile_period == 0:
-                        resultSyncer.sync_event.set()
+                        if self.options.restart_app_period and self.stepsCount and self.stepsCount % self.options.restart_app_period == 0:
+                            self.stepsCount += 1
+                            logger.info(f"Sending monkeyEvent {self._monkey_event_count}")
+                            logger.info("Kill all test apps to restart the app under test.")
+                            for app in self.options.packageNames:
+                                logger.info(f"Stopping app: {app}")
+                                self.scriptDriver.app_stop(app)
+                            sleep(3)
+                            self.fb.sendInfo("kill_apps")
+                            continue
 
-                    # Go to the next round if no precond satisfied
-                    if len(propsSatisfiedPrecond) == 0:
-                        continue
+                        try:
+                            # determine whether to stepMonkey (normal step) or dumpHierarchy (after executing a property)
+                            # stepMonkey will change the ui state and return the new ui hierarchy
+                            # dumpHierarchy will just return the current ui hierarchy
+                            # this is to avoid losing the ui state after executing a property
+                            xml_raw: str = ""
+                            if self.fb.executed_prop:
+                                self.fb.executed_prop = False
+                                xml_raw = self.fb.dumpHierarchy()
+                            else:
+                                self.stepsCount += 1
+                                logger.info(f"Sending monkeyEvent {self._monkey_event_count}")
+                                xml_raw = self.fb.stepMonkey(self._monkeyStepInfo)
+                        # If the connection is refused, fastbot might have stpped running
+                        except u2.HTTPError:
+                            logger.info("Connection refused by remote.")
+                            # If fastbot has exited normally, end the testing process
+                            if self.fb.get_return_code() == 0:
+                                logger.info("Exploration times up (--running-minutes).")
+                                fb_is_running = False
+                                break
+                            else:
+                                import traceback
+                                traceback.print_exc()
+                                raise RuntimeError("Fastbot Aborted.")
 
-                    # get the random probability p
-                    p = random.random()
-                    propsNameFilteredByP = []
-                    # filter the properties according to the given p
-                    for propName, test in propsSatisfiedPrecond.items():
-                        result.addPrecondSatisfied(test)
-                        if getattr(test, PROB_MARKER, 1) >= p:
-                            propsNameFilteredByP.append(propName)
+                        if not xml_raw:
+                            logger.warning("Empty ui hierarchy returned. Skip this step.")
+                            continue
 
-                    if len(propsNameFilteredByP) == 0:
-                        print("Not executed any property due to probability.", flush=True)
-                        continue
+                        result.setCurrentStepsCount(self.stepsCount)
 
-                    execPropName = random.choice(propsNameFilteredByP)
-                    test = propsSatisfiedPrecond[execPropName]
-                    # Dependency Injection. driver when doing scripts
-                    self.scriptDriver = U2Driver.getScriptDriver(mode="proxy")
+                        # check all invariants
+                        staticCheckerDriver = U2Driver.getStaticChecker(hierarchy=xml_raw)
+                        if self.allInvariants:
+                            print(f"[INFO] Checking {len(self.allInvariants)} invariants...", flush=True)
+                        for _, test in self.allInvariants.items():
+                            setattr(test, self.options.driverName, staticCheckerDriver)
+                            try:
+                                test(result)
+                            finally:
+                                result.printError(test)
+                                result.updateExecutionInfo(test)
+                                if result.lastInvariantInfo.state in {"fail", "error"}:
+                                    fb.logScript(result.lastInvariantInfo)
 
-                    setattr(test, self.options.driverName, self.scriptDriver)
+                        # Trigger the result syncer to get the coverage result periodically (Set by profile_period)
+                        if self.options.profile_period and self.stepsCount % self.options.profile_period == 0:
+                            resultSyncer.sync_event.set()
 
-                    result.addExcuted(test, self.stepsCount)
-                    self.fb.logScript(result.lastExecutedInfo)
-                    try:
-                        test(result)
-                    finally:
-                        result.printError(test)
+                        # get the checkable properties
+                        checkableProperties = self.getCheckableProperties(xml_raw, result, staticCheckerDriver)
 
-                    result.updateExectedInfo()
-                    self.fb.logScript(result.lastExecutedInfo)
-                    self.fb.executed_prop = True
+                        if not checkableProperties:
+                            continue
+
+                        self.scriptDriver = U2Driver.getScriptDriver(mode="proxy")
+
+                        # randomly select a property to execute
+                        propertyName = random.choice(checkableProperties)
+                        test = self.allProperties[propertyName]
+                        result.addExcutedProperty(test, self.stepsCount)
+                        self.fb.logScript(result.lastPropertyInfo)
+                        # Dependency Injection. driver when doing scripts
+                        setattr(test, self.options.driverName, self.scriptDriver)
+                        try:
+                            test(result)
+                        finally:
+                            result.printError(test)
+                        result.updateExecutionInfo(test)
+                        self.fb.logScript(result.lastPropertyInfo)
+                        self.fb.executed_prop = True
+                        result.flushResult()
+                except KeyboardInterrupt:
+                    logger.info("KeyboardInterrupt received. Stopping the testing process.")
+                finally:
+                    if fb_is_running:
+                        self.fb.stopMonkey()
                     result.flushResult()
+                    resultSyncer.close()
 
-                if fb_is_running:
-                    self.fb.stopMonkey()
-                result.flushResult()
-                resultSyncer.close()
-                
             self.fb.join()
             print(f"Finish sending monkey events.", flush=True)
             log_watcher.close()
@@ -561,6 +566,10 @@ class KeaTestRunner(TextTestRunner, KeaOptionSetter):
         r["steps_count"] = self.stepsCount
         return r
 
+    @property
+    def _monkey_event_count(self):
+        return f"({self.stepsCount} / {self.options.maxStep})" if self.options.maxStep != float("inf") else f"({self.stepsCount})"
+
     def _get_block_widgets(self):
         block_dict = self._getBlockedWidgets()
         block_widgets: List[str] = block_dict['widgets']
@@ -572,21 +581,17 @@ class KeaTestRunner(TextTestRunner, KeaOptionSetter):
             "block_trees": block_trees
         }
 
-    def getValidProperties(self, xml_raw: str, result: JsonResult) -> PropertyStore:
-
-        staticCheckerDriver = U2Driver.getStaticChecker(hierarchy=xml_raw)
-
-        validProps: PropertyStore = dict()
+    def getCheckableProperties(self, xml_raw: str, result: KeaJsonResult, staticCheckerDriver: U2StaticDevice) -> List:
+        # Get the precondition satisfied properties
+        precondSatisfiedProperties = list()
         for propName, test in self.allProperties.items():
             valid = True
-            prop = getattr(test, propName)
-            p = getattr(prop, PROB_MARKER, 1)
-            setattr(test, PROB_MARKER, p)
+            property = getattr(test, test._testMethodName)
             # check if all preconds passed
-            for precond in prop.preconds:
+            for precond in property.preconds:
                 # Dependency injection. Static driver checker for precond
                 setattr(test, self.options.driverName, staticCheckerDriver)
-                # excecute the precond
+                # excecute the precondition
                 try:
                     if not precond(test):
                         valid = False
@@ -595,7 +600,7 @@ class KeaTestRunner(TextTestRunner, KeaOptionSetter):
                     valid = False
                     break
                 except Exception as e:
-                    logger.error(f"Error when checking precond: {getFullPropName(test)}")
+                    logger.error(f"Error when checking precond: {propName}")
                     traceback.print_exc()
                     valid = False
                     break
@@ -605,35 +610,43 @@ class KeaTestRunner(TextTestRunner, KeaOptionSetter):
                 # if not hasattr(test, '_has_been_satisfied'):
                 #     self.fb.sendFirstTimeSatisfiedSignal()
                 #     test._has_been_satisfied = True
+                result.addPropertyPrecondSatisfied(test)
+                precondSatisfiedProperties.append(propName)
 
-                if result.getExcuted(test) >= getattr(prop, MAX_TRIES_MARKER, float("inf")):
-                    print(f"{getFullPropName(test)} has reached its max_tries. Skip.", flush=True)
-                    continue
-                validProps[propName] = test
+        # get the checkable properties
+        checkableProperties = []
+        u = random.random()    # sample the execution probability threshold u ~ U(0, 1)
+        for propName in precondSatisfiedProperties:
+            test = self.allProperties[propName]
+            p = getattr(test, PROB_MARKER, 1)
+            max_tries = getattr(test, MAX_TRIES_MARKER, float("inf"))
+            # filter the properties according to the given u
+            if p < u:
+                print(f"{propName} will not execute due to probability (@prob). Skip.", flush=True)
+                continue
+            # filter the property reached max_tries
+            if result.getExcutedProperty(test) >= max_tries:
+                print(f"{propName} has reached its max_tries {max_tries} (@max_tries). Skip.", flush=True)
+                continue
+            checkableProperties.append(propName)
 
-        staticCheckerDriver.clear_cache()
+        # log the checkable properties information
+        if len(checkableProperties) > 0:
+            print(f"[INFO] {len(checkableProperties)} Checkable properties:", flush=True)
+            print("\n".join([f'                - {_}' for _ in checkableProperties]), flush=True)
+        else:
+            print(f"[INFO] {len(checkableProperties)} Checkable property.", flush=True)
 
-        print(f"{len(validProps)} precond satisfied.", flush=True)
-        if len(validProps) > 0:
-            print("[INFO] Valid properties:",flush=True)
-            print("\n".join([f'                - {getFullPropName(p)}' for p in validProps.values()]), flush=True)
-        return validProps
+        return checkableProperties
 
-    def collectAllProperties(self, test: TestSuite):
-        """collect all the properties to prepare for PBT
+    def validateAndCollectProperties(self, test: TestSuite):
+        """ validate and collect all the properties to prepare for PBT
+        :Why validate here?:
+            Because some properties may not be importable due to ImportError (e.g., missing dependencies
+            or syntax errors). We need to validate them before PBT to avoid runtime errors.
         """
-
-        def remove_setUp(testCase: TestCase):
-            """remove the setup function in PBT
-            """
-            def setUp(self): ...
-            testCase.setUp = types.MethodType(setUp, testCase)
-
-        def remove_tearDown(testCase: TestCase):
-            """remove the tearDown function in PBT
-            """
-            def tearDown(self): ...
-            testCase.tearDown = types.MethodType(tearDown, testCase)
+        self.allProperties = dict()
+        self.allInvariants = dict()
 
         def iter_tests(suite):
             for test in suite:
@@ -641,7 +654,6 @@ class KeaTestRunner(TextTestRunner, KeaOptionSetter):
                     yield from iter_tests(test)
                 else:
                     yield test
-
         # Traverse the TestCase to get all properties
         _result = TextTestResult(self.stream, self.descriptions, self.verbosity)
         for t in iter_tests(test):
@@ -649,16 +661,10 @@ class KeaTestRunner(TextTestRunner, KeaOptionSetter):
             if type(t).__name__ == "_FailedTest":
                 t(_result)
                 continue
-            testMethodName = t._testMethodName
-            # get the test method name and check if it's a property
-            testMethod = getattr(t, testMethodName)
-            if hasattr(testMethod, PRECONDITIONS_MARKER):
-                # remove the hook func in its TestCase
-                remove_setUp(t)
-                remove_tearDown(t)
-                # save it into allProperties for PBT
-                self.allProperties[testMethodName] = t
-                print(f"[INFO] Load property: {getFullPropName(t)}", flush=True)
+            if hasattr(t, PRECONDITIONS_MARKER):
+                self.allProperties[getFullPropName(t)] = t
+            if hasattr(t, INVARIANT_MARKER):
+                self.allInvariants[getFullPropName(t)] = t
         # Print errors caused by ImportError
         _result.printErrors()
 
@@ -714,7 +720,6 @@ class KeaTestRunner(TextTestRunner, KeaOptionSetter):
 
         return self._block_funcs
 
-
     def _getBlockedWidgets(self):
         """
            Executes all blocking functions to get lists of widgets and trees to be blocked during testing.
@@ -726,7 +731,7 @@ class KeaTestRunner(TextTestRunner, KeaOptionSetter):
            """
         def _get_xpath_widgets(func):
             blocked_set = set()
-            script_driver = self.options.Driver.getScriptDriver()
+            script_driver = U2Driver.getScriptDriver()
             preconds = getattr(func, PRECONDITIONS_MARKER, [])
 
             def preconds_pass(preconds):
@@ -783,9 +788,8 @@ class KeaTestRunner(TextTestRunner, KeaOptionSetter):
     def tearDown(self):
         """tearDown method. Cleanup the env.
         """
-        if self.options.Driver:
-            self.options.Driver.tearDown()
-
+        U2Driver.tearDown()
+    
     def __del__(self):
         """tearDown method. Cleanup the env.
         """
@@ -794,37 +798,6 @@ class KeaTestRunner(TextTestRunner, KeaOptionSetter):
         except Exception:
             # Ignore exceptions in __del__ to avoid "Exception ignored" warnings
             pass
-
-
-class KeaTextTestResult(BetterConsoleLogExtensionMixin, TextTestResult):
-
-    @property
-    def wasFail(self):
-        return self._wasFail
-
-    def addError(self, test, err):
-        self._wasFail = True
-        return super().addError(test, err)
-
-    def addFailure(self, test, err):
-        self._wasFail = True
-        return super().addFailure(test, err)
-
-    def addSuccess(self, test):
-        self._wasFail = False
-        return super().addSuccess(test)
-
-    def addSkip(self, test, reason):
-        self._wasFail = False
-        return super().addSkip(test, reason)
-
-    def addExpectedFailure(self, test, err):
-        self._wasFail = False
-        return super().addExpectedFailure(test, err)
-
-    def addUnexpectedSuccess(self, test):
-        self._wasFail = False
-        return super().addUnexpectedSuccess(test)
 
 
 class HybridTestRunner(TextTestRunner, KeaOptionSetter):
@@ -890,8 +863,7 @@ class HybridTestRunner(TextTestRunner, KeaOptionSetter):
 
                         argv = ["python3 -m unittest"] + hybrid_test_options.propertytest_args
                         KeaTestRunner.setOptions(hybrid_test_options)
-                        unittest_main(module=None, argv=argv, testRunner=KeaTestRunner, exit=False)
-
+                        unittest_main(module=None, argv=argv, testRunner=KeaTestRunner, testLoader=keaTestLoader, exit=False)
                 finally:
                     test._common_tearDown()
                     result.printErrors()
@@ -968,8 +940,8 @@ class HybridTestRunner(TextTestRunner, KeaOptionSetter):
         """tearDown method. Cleanup the env.
         """
         try:
-            if hasattr(self, 'options') and self.options and self.options.Driver:
-                self.options.Driver.tearDown()
+            if hasattr(self, 'options') and self.options:
+                U2Driver.tearDown()
         except Exception:
             # Ignore exceptions in __del__ to avoid "Exception ignored" warnings
             pass

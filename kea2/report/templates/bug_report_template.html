@@ -140,6 +140,107 @@
             box-shadow: 0 3px 10px rgba(0, 0, 0, 0.1);
             margin-bottom: 8px;
         }
+
+        .screenshot-placeholder {
+            width: 300px;
+            height: 400px;
+            border-radius: 8px;
+            background: linear-gradient(180deg, rgba(52, 152, 219, 0.08), rgba(255, 255, 255, 0.98));
+            border: 1px solid rgba(52, 152, 219, 0.18);
+            box-shadow: 0 8px 24px rgba(44, 62, 80, 0.08);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 8px;
+            color: #6c757d;
+        }
+
+        .screenshot-placeholder::before {
+            content: "";
+            position: absolute;
+            inset: 10px;
+            border-radius: 10px;
+            border: 1px dashed rgba(52, 152, 219, 0.25);
+            pointer-events: none;
+        }
+
+        .screenshot-item .screenshot-placeholder {
+            position: relative;
+            overflow: hidden;
+        }
+
+        .screenshot-placeholder::after {
+            content: "";
+            position: absolute;
+            inset: 0;
+            background:
+                radial-gradient(circle at 20% 25%, rgba(46, 204, 113, 0.18), transparent 42%),
+                radial-gradient(circle at 80% 70%, rgba(52, 152, 219, 0.16), transparent 48%);
+            pointer-events: none;
+            opacity: 0.9;
+        }
+
+        .screenshot-placeholder .placeholder-content {
+            position: relative;
+            z-index: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 12px;
+            text-align: center;
+        }
+
+        .screenshot-placeholder .placeholder-icon {
+            width: 92px;
+            height: 92px;
+            border-radius: 999px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 16px 32px rgba(52, 152, 219, 0.22);
+            border: 1px solid rgba(52, 152, 219, 0.22);
+            background: radial-gradient(circle at 30% 30%, rgba(255, 255, 255, 0.9), rgba(52, 152, 219, 0.10));
+        }
+
+        .screenshot-placeholder .placeholder-icon i {
+            font-size: 40px;
+            color: var(--primary-color);
+        }
+
+        .screenshot-placeholder .placeholder-icon.info i {
+            color: #6c757d;
+        }
+
+        .screenshot-placeholder .placeholder-icon.reboot {
+            background: conic-gradient(from 210deg, rgba(46, 204, 113, 0.22), rgba(52, 152, 219, 0.22), rgba(46, 204, 113, 0.22));
+        }
+
+        .screenshot-placeholder .placeholder-text {
+            font-size: 13px;
+            font-weight: 600;
+            letter-spacing: 0.2px;
+            color: rgba(44, 62, 80, 0.78);
+            padding: 6px 10px;
+            border-radius: 999px;
+            background: rgba(255, 255, 255, 0.72);
+            border: 1px solid rgba(52, 152, 219, 0.14);
+            box-shadow: 0 6px 18px rgba(44, 62, 80, 0.06);
+        }
+
+        .screenshot-item:hover .screenshot-placeholder {
+            border-color: rgba(52, 152, 219, 0.28);
+            box-shadow: 0 12px 30px rgba(44, 62, 80, 0.10);
+        }
+
+        .screenshot-item:hover .placeholder-icon.reboot i {
+            animation: reboot-spin 1.4s ease-in-out infinite;
+        }
+
+        @keyframes reboot-spin {
+            0% { transform: rotate(0deg); }
+            60% { transform: rotate(220deg); }
+            100% { transform: rotate(360deg); }
+        }
         
         .screenshot-caption {
             font-size: 13px;
@@ -153,11 +254,13 @@
             line-height: 1.5;
             white-space: normal;
             word-wrap: break-word;
+            overflow-wrap: anywhere;
             min-height: 50px;
             display: flex;
             flex-direction: column;
             justify-content: center;
             align-items: center;
+            max-width: 100%;
         }
         
         .screenshot-caption .step-number {
@@ -166,6 +269,9 @@
             color: var(--primary-color);
             font-size: 12px;
             margin-bottom: 4px;
+            max-width: 100%;
+            word-break: break-word;
+            overflow-wrap: anywhere;
         }
         
         .screenshot-caption .step-action {
@@ -174,6 +280,9 @@
             color: #666;
             font-weight: 400;
             line-height: 1.3;
+            max-width: 100%;
+            word-break: break-word;
+            overflow-wrap: anywhere;
         }
         
         .table-custom {
@@ -185,11 +294,11 @@
         }
 
         .crash-analysis-panel {
-            background-color: #ffffff;
-            border-radius: 14px;
-            padding: 1.75rem;
-            box-shadow: 0 6px 15px rgba(44, 62, 80, 0.08);
-            border: 1px solid rgba(0, 0, 0, 0.05);
+            background-color: transparent;
+            border-radius: 0;
+            padding: 0;
+            box-shadow: none;
+            border: none;
         }
 
         .crash-analysis-panel .btn-group .btn {
@@ -357,10 +466,8 @@
         }
 
         .table-property-stats td:nth-child(8) {
-            display: flex;
-            justify-content: flex-start;
-            align-items: center;
-            gap: 0.75rem;
+            display: table-cell;
+            vertical-align: middle;
         }
         
         .table-custom tbody tr:nth-of-type(odd) {
@@ -388,8 +495,20 @@
 
         .summary-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+            grid-template-columns: repeat(4, minmax(0, 1fr));
             gap: 24px;
+        }
+
+        @media (max-width: 1200px) {
+            .summary-grid {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+            }
+        }
+
+        @media (max-width: 768px) {
+            .summary-grid {
+                grid-template-columns: 1fr;
+            }
         }
 
         .summary-item {
@@ -523,6 +642,10 @@
             background-color: white;
             border-radius: 0 0 8px 8px;
             box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        }
+
+        .pagination-container.pagination-violations {
+            padding: 10px 16px;
         }
         
         .activity-item {
@@ -1288,6 +1411,11 @@
                             <span class="stat-label">Property Violations</span>
                         </div>
                         <div class="summary-item">
+                            <i class="bi bi-shield-exclamation text-warning"></i>
+                            <span class="stat-value value-warning">{{ invariant_violations_count }}</span>
+                            <span class="stat-label">Invariant Violations</span>
+                        </div>
+                        <div class="summary-item">
                             <i class="bi bi-clock-history text-primary"></i>
                             <span class="stat-value value-highlight">{{ total_testing_time }}</span>
                             <span class="stat-label">Total Testing Time</span>
@@ -1435,20 +1563,58 @@
 
         <!-- Screenshots Section -->
         {% if take_screenshots %}
-        {% if screenshots %}
+        {% if screenshots or kill_apps_events %}
         <div class="section-block">
             <h2 class="section-title">Test Screenshots</h2>
             <div class="card">
                 <div class="card-body">
                     <div class="screenshots-container" id="screenshots">
-                        {% for screenshot in screenshots %}
-                        <div class="screenshot-item">
-                            <a href="{{ screenshot.path }}" target="_blank">
-                                <img src="{{ screenshot.path }}" class="screenshot-img" id="{{ screenshot.id }}">
-                            </a>
-                            <div class="screenshot-caption">{{ screenshot.caption }}</div>
-                        </div>
-                        {% endfor %}
+                        {% if screenshots %}
+                            {% for screenshot in screenshots %}
+                            <div class="screenshot-item">
+                                {% if screenshot.path %}
+                                    <a href="{{ screenshot.path }}" target="_blank">
+                                        <img src="{{ screenshot.path }}" class="screenshot-img" id="{{ screenshot.id }}">
+                                    </a>
+                                {% else %}
+                                    <div class="screenshot-placeholder" id="{{ screenshot.id }}">
+                                        {% if screenshot.info == "kill_apps" %}
+                                            <div class="placeholder-content">
+                                                <span class="placeholder-icon reboot">
+                                                    <i class="bi bi-bootstrap-reboot"></i>
+                                                </span>
+                                                <div class="placeholder-text">Restart app</div>
+                                            </div>
+                                        {% else %}
+                                            <div class="placeholder-content">
+                                                <span class="placeholder-icon info">
+                                                    <i class="bi bi-info-circle"></i>
+                                                </span>
+                                                <div class="placeholder-text">Info event</div>
+                                            </div>
+                                        {% endif %}
+                                    </div>
+                                {% endif %}
+                                <div class="screenshot-caption">{{ screenshot.caption }}</div>
+                            </div>
+                            {% endfor %}
+                        {% else %}
+                            {% for ev in kill_apps_events %}
+                            <div class="screenshot-item">
+                                <div class="screenshot-placeholder" id="{{ ev.step_index }}">
+                                    <div class="placeholder-content">
+                                        <span class="placeholder-icon reboot">
+                                            <i class="bi bi-bootstrap-reboot"></i>
+                                        </span>
+                                        <div class="placeholder-text">Restart app</div>
+                                    </div>
+                                </div>
+                                <div class="screenshot-caption">
+                                    {{ ev.step_index }}. Monkey Step: restart app
+                                </div>
+                            </div>
+                            {% endfor %}
+                        {% endif %}
                     </div>
                 </div>
             </div>
@@ -1584,8 +1750,8 @@
                 </div>
 
                 <!-- Pagination for Crash Events -->
-                <div class="pagination-container d-flex justify-content-between align-items-center mt-3">
-                    <div class="d-flex align-items-center">
+                <div class="d-flex justify-content-between align-items-center mt-3 pagination-container pagination-violations">
+                    <div class="d-flex align-items-center gap-3">
                         <label for="events-page-size" class="form-label me-2 mb-0">Show:</label>
                         <select class="form-select form-select-sm" id="events-page-size" style="width: auto;">
                             <option value="5">5</option>
@@ -1619,6 +1785,28 @@
         {% if property_violations %}
         <div class="section-block">
             <h2 class="section-title">Property Violations</h2>
+            <!-- Search Controls for Property Violations -->
+            <div class="mb-4">
+                <div class="d-flex align-items-center">
+                    <div style="width: 33%;">
+                        <div class="property-search-container">
+                            <input type="text" class="form-control property-search-input property-stats-search-simple"
+                                   id="violations-search"
+                                   placeholder="Search violations by property name..."
+                                   data-target="property-violations-container"
+                                   data-item-class="property-violation-row"
+                                   data-pagination="violations-pagination"
+                                   data-page-size="violations-page-size">
+                            <button class="property-search-icon-btn" type="button" id="violations-search-btn">
+                                <i class="bi bi-search"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="ms-3">
+                        <small class="text-muted search-results-count" id="violations-search-results"></small>
+                    </div>
+                </div>
+            </div>
             <div class="table-responsive">
                 <table class="table table-custom table-violations">
                     <thead>
@@ -1630,7 +1818,7 @@
                     </thead>
                     <tbody id="property-violations-container">
                         {% for violation in property_violations %}
-                        <tr class="property-violation-row" data-page="1">
+                        <tr class="property-violation-row" data-page="1" data-status="{{ violation.state|default('fail') }}" data-kind="{{ violation.kind|default('unknown') }}">
                             <td>{{ violation.index }}</td>
                             <td><span class="badge bg-light text-dark badge-custom">{{ violation.property_name }}</span></td>
                             <td>
@@ -1645,8 +1833,8 @@
                 </table>
 
                 <!-- Pagination for Property Violations -->
-                <div class="d-flex justify-content-between align-items-center mt-3">
-                    <div class="d-flex align-items-center">
+                <div class="d-flex justify-content-between align-items-center mt-3 pagination-container pagination-violations">
+                    <div class="d-flex align-items-center gap-3">
                         <label for="violations-page-size" class="form-label me-2 mb-0">Show:</label>
                         <select class="form-select form-select-sm" id="violations-page-size" style="width: auto;">
                             <option value="5">5</option>
@@ -1654,6 +1842,17 @@
                             <option value="20">20</option>
                             <option value="50">50</option>
                             <option value="100">100</option>
+                        </select>
+                        <label for="violations-status-filter" class="form-label mb-0">Status:</label>
+                        <select class="form-select form-select-sm" id="violations-status-filter" style="width: auto;">
+                            <option value="all" selected>All</option>
+                            <option value="fail">Fail only</option>
+                        </select>
+                        <label for="violations-kind-filter" class="form-label mb-0">Kind:</label>
+                        <select class="form-select form-select-sm" id="violations-kind-filter" style="width: auto;">
+                            <option value="all" selected>All</option>
+                            <option value="property">Property</option>
+                            <option value="invariant">Invariant</option>
                         </select>
                     </div>
                     <nav aria-label="Property Violations Pagination">
@@ -1700,18 +1899,31 @@
                     </div>
                 </div>
             </div>
+
+            <div class="mb-3">
+                <div class="btn-group" role="group" aria-label="Property kind filter">
+                    <input type="radio" class="btn-check" name="property-kind-filter" id="property-kind-all" autocomplete="off" checked>
+                    <label class="btn btn-outline-primary" for="property-kind-all">All ({{ property_kind_summary.all|default(0) }})</label>
+
+                    <input type="radio" class="btn-check" name="property-kind-filter" id="property-kind-property" autocomplete="off">
+                    <label class="btn btn-outline-info" for="property-kind-property">Property ({{ property_kind_summary.property|default(0) }})</label>
+
+                    <input type="radio" class="btn-check" name="property-kind-filter" id="property-kind-invariant" autocomplete="off">
+                    <label class="btn btn-outline-warning" for="property-kind-invariant">Invariant ({{ property_kind_summary.invariant|default(0) }})</label>
+                </div>
+            </div>
             
             <div class="table-responsive">
                 <table class="table table-custom table-property-stats">
                     <thead>
                         <tr>
                             <th>Index</th>
-                            <th>Property Name <span class="badge bg-primary ms-2" style="font-size: 0.9rem; font-weight: 600;">{{ property_stats_summary.total_properties }}</span></th>
-                            <th>Precondition Satisfied <span class="badge bg-success ms-2" style="font-size: 0.9rem; font-weight: 600;">{{ property_stats_summary.total_precond_satisfied }}</span></th>
-                            <th>Executed <span class="badge bg-info ms-2" style="font-size: 0.9rem; font-weight: 600;">{{ property_stats_summary.total_executed }}</span></th>
-                            <th>Passes <span class="badge bg-secondary ms-2" style="font-size: 0.9rem; font-weight: 600;">{{ property_stats_summary.total_passes }}</span></th>
-                            <th>Fails <span class="badge bg-danger ms-2" style="font-size: 0.9rem; font-weight: 600;">{{ property_stats_summary.total_fails }}</span> <i class="bi bi-arrow-down-up text-muted sort-icon" id="fails-sort" data-column="fails" data-order="none" style="cursor: pointer;"></i></th>
-                            <th>Errors <span class="badge bg-warning ms-2" style="font-size: 0.9rem; font-weight: 600;">{{ property_stats_summary.total_errors }}</span> <i class="bi bi-arrow-down-up text-muted sort-icon" id="errors-sort" data-column="errors" data-order="none" style="cursor: pointer;"></i></th>
+                            <th>Property Name <span class="badge bg-primary ms-2" id="property-stats-total-properties" style="font-size: 0.9rem; font-weight: 600;">{{ property_stats_summary.total_properties }}</span></th>
+                            <th>Precondition Satisfied <span class="badge bg-success ms-2" id="property-stats-total-precond" style="font-size: 0.9rem; font-weight: 600;">{{ property_stats_summary.total_precond_satisfied }}</span></th>
+                            <th>Executed <span class="badge bg-info ms-2" id="property-stats-total-executed" style="font-size: 0.9rem; font-weight: 600;">{{ property_stats_summary.total_executed }}</span></th>
+                            <th>Passes <span class="badge bg-secondary ms-2" id="property-stats-total-pass" style="font-size: 0.9rem; font-weight: 600;">{{ property_stats_summary.total_passes }}</span></th>
+                            <th>Fails <span class="badge bg-danger ms-2" id="property-stats-total-fail" style="font-size: 0.9rem; font-weight: 600;">{{ property_stats_summary.total_fails }}</span> <i class="bi bi-arrow-down-up text-muted sort-icon" id="fails-sort" data-column="fails" data-order="none" style="cursor: pointer;"></i></th>
+                            <th>Errors <span class="badge bg-warning ms-2" id="property-stats-total-error" style="font-size: 0.9rem; font-weight: 600;">{{ property_stats_summary.total_errors }}</span> <i class="bi bi-arrow-down-up text-muted sort-icon" id="errors-sort" data-column="errors" data-order="none" style="cursor: pointer;"></i></th>
                             <th>Error Details</th>
                         </tr>
                     </thead>
@@ -1720,16 +1932,24 @@
                         <tr class="property-stat-row" data-page="1" 
                             data-index="{{ loop.index }}"
                             data-property-name="{{ property_name }}"
+                            data-kind="{{ test_result.kind|default('unknown') }}"
                             data-precond-satisfied="{{ test_result.precond_satisfied|default(0) }}"
                             data-executed="{{ test_result.executed|default(0) }}"
                             data-pass="{{ test_result.pass_count|default(0) }}"
                             data-fails="{{ test_result.fail|default(0) }}"
                             data-errors="{{ test_result.error|default(0) }}">
                             <td>{{ loop.index }}</td>
-                            <td><span class="badge bg-light text-dark badge-custom">{{ property_name }}</span></td>
-                            <td>{{ test_result.precond_satisfied|default(0) }}</td>
-                            <td>{{ test_result.executed|default(0) }}</td>
-                            <td>{{ test_result.pass_count|default(0) }}</td>
+                            <td>
+                                <span class="badge bg-light text-dark badge-custom">{{ property_name }}</span>
+                                {% set kind_label = test_result.kind|default('unknown') %}
+                                {% set is_invariant = kind_label == 'invariant' %}
+                                <span class="badge ms-1 {% if kind_label == 'property' %}bg-info text-dark{% elif kind_label == 'invariant' %}bg-warning text-dark{% else %}bg-secondary text-white{% endif %}">
+                                    {{ kind_label|capitalize }}
+                                </span>
+                            </td>
+                            <td>{{ '/' if is_invariant else test_result.precond_satisfied|default(0) }}</td>
+                            <td>{{ '/' if is_invariant else test_result.executed|default(0) }}</td>
+                            <td>{{ '/' if is_invariant else test_result.pass_count|default(0) }}</td>
                             <td><span class="badge bg-danger text-white">{{ test_result.fail|default(0) }}</span></td>
                             <td><span class="badge bg-warning text-dark">{{ test_result.error|default(0) }}</span></td>
                             <td>
@@ -2229,9 +2449,12 @@
 
             // Initialize property statistics searching
             initPropertySearching();
+            initPropertyKindFilter();
             
             // Initialize pagination for Property tables
             initPagination('property-violations-container', 'property-violation-row', 'violations-pagination', 'violations-page-size');
+            initViolationSearching();
+            initViolationFilter();
             initPagination('property-stats-container', 'property-stat-row', 'stats-pagination', 'stats-page-size');
             
             // Initialize sorting for Property Checking Statistics
@@ -2412,7 +2635,9 @@
                 // Get items that should be visible based on search filter
                 const filteredItems = allItems.filter(item => {
                     const searchVisible = item.getAttribute('data-search-visible');
-                    const shouldShow = searchVisible === null || searchVisible === 'true';
+                    const kindVisible = item.getAttribute('data-kind-visible');
+                    const shouldShow = (searchVisible === null || searchVisible === 'true') &&
+                        (kindVisible === null || kindVisible === 'true');
                     return shouldShow;
                 });
                 
@@ -2482,8 +2707,10 @@
                     // Use same filtering logic as goToPage function
                     const filteredItems = allItems.filter(item => {
                         const searchVisible = item.getAttribute('data-search-visible');
-                        // If no search filter is applied, show all items
-                        return searchVisible === null || searchVisible === 'true';
+                        const kindVisible = item.getAttribute('data-kind-visible');
+                        // If no filters are applied, show all items
+                        return (searchVisible === null || searchVisible === 'true') &&
+                            (kindVisible === null || kindVisible === 'true');
                     });
                     
                     const totalItems = filteredItems.length;
@@ -2596,7 +2823,7 @@
                         const action = monkeyStepMatch[3];
                         
                         caption.innerHTML = `
-                            <div class="step-number">${stepIndex}. Monkey Step ${monkeyStep}</div>
+                            <div class="step-number">${stepIndex}. Monkey Step</div>
                             <div class="step-action">${action}</div>
                         `;
                         return;
@@ -3075,6 +3302,145 @@
             }
         }
         
+        function getCurrentPropertyKindFilter() {
+            const selected = document.querySelector('input[name="property-kind-filter"]:checked');
+            if (!selected) {
+                return 'all';
+            }
+            if (selected.id === 'property-kind-property') {
+                return 'property';
+            }
+            if (selected.id === 'property-kind-invariant') {
+                return 'invariant';
+            }
+            return 'all';
+        }
+
+        function updatePropertySearchResults(visibleCount, totalCount, searchTerm) {
+            const resultsElement = document.getElementById('property-search-results');
+
+            if (resultsElement) {
+                if (searchTerm === '') {
+                    resultsElement.innerHTML = `<span class="text-muted">Showing all ${totalCount} properties - Type and click <i class="bi bi-search"></i> or press Enter to search</span>`;
+                } else if (visibleCount === 0) {
+                    resultsElement.innerHTML = `<span class="text-danger">No properties found for "${searchTerm}"</span>`;
+                } else if (visibleCount === totalCount) {
+                    resultsElement.innerHTML = `<span class="text-success">All ${totalCount} properties match "${searchTerm}"</span>`;
+                } else {
+                    resultsElement.innerHTML = `<span class="text-info">Found ${visibleCount} of ${totalCount} properties for "${searchTerm}"</span>`;
+                }
+            }
+        }
+
+        function updatePropertyHeaderSummary(summary) {
+            const totalEl = document.getElementById('property-stats-total-properties');
+            if (totalEl) {
+                totalEl.textContent = summary.total;
+            }
+            const precondEl = document.getElementById('property-stats-total-precond');
+            if (precondEl) {
+                precondEl.textContent = summary.precond;
+            }
+            const executedEl = document.getElementById('property-stats-total-executed');
+            if (executedEl) {
+                executedEl.textContent = summary.executed;
+            }
+            const passEl = document.getElementById('property-stats-total-pass');
+            if (passEl) {
+                passEl.textContent = summary.pass;
+            }
+            const failEl = document.getElementById('property-stats-total-fail');
+            if (failEl) {
+                failEl.textContent = summary.fail;
+            }
+            const errorEl = document.getElementById('property-stats-total-error');
+            if (errorEl) {
+                errorEl.textContent = summary.error;
+            }
+        }
+
+        function applyPropertyFilters() {
+            const searchInput = document.getElementById('property-stats-search');
+            const rawSearchTerm = searchInput ? searchInput.value.trim() : '';
+            const searchTerm = rawSearchTerm.toLowerCase();
+            const container = document.getElementById('property-stats-container');
+
+            if (!container) {
+                return;
+            }
+
+            const items = Array.from(container.getElementsByClassName('property-stat-row'));
+            const kindFilter = getCurrentPropertyKindFilter();
+            let visibleCount = 0;
+            let totalCount = 0;
+            const summary = {
+                total: 0,
+                precond: 0,
+                executed: 0,
+                pass: 0,
+                fail: 0,
+                error: 0,
+            };
+
+            items.forEach(function(item) {
+                const rowKind = (item.dataset.kind || 'unknown').toLowerCase();
+                const kindMatches = kindFilter === 'all' || rowKind === kindFilter;
+                item.setAttribute('data-kind-visible', kindMatches ? 'true' : 'false');
+                if (kindMatches) {
+                    totalCount += 1;
+                }
+
+                const propertyNameElement = item.querySelector('.badge-custom');
+                const propertyName = propertyNameElement ? propertyNameElement.textContent.toLowerCase() : '';
+                const searchMatches = searchTerm === '' || propertyName.includes(searchTerm);
+                item.setAttribute('data-search-visible', searchMatches ? 'true' : 'false');
+                if (kindMatches && searchMatches) {
+                    visibleCount += 1;
+                    summary.total += 1;
+                    summary.precond += parseInt(item.dataset.precondSatisfied || '0', 10);
+                    summary.executed += parseInt(item.dataset.executed || '0', 10);
+                    summary.pass += parseInt(item.dataset.pass || '0', 10);
+                    summary.fail += parseInt(item.dataset.fails || '0', 10);
+                    summary.error += parseInt(item.dataset.errors || '0', 10);
+                }
+            });
+
+            updatePropertySearchResults(visibleCount, totalCount, rawSearchTerm);
+
+            const headerSummary = {
+                total: summary.total,
+                precond: summary.precond,
+                executed: summary.executed,
+                pass: summary.pass,
+                fail: summary.fail,
+                error: summary.error,
+            };
+            if (kindFilter === 'invariant') {
+                headerSummary.precond = '/';
+                headerSummary.executed = '/';
+                headerSummary.pass = '/';
+            }
+            updatePropertyHeaderSummary(headerSummary);
+
+            initPagination('property-stats-container', 'property-stat-row', 'stats-pagination', 'stats-page-size');
+            const currentPageSize = document.getElementById('stats-page-size') ?
+                parseInt(document.getElementById('stats-page-size').value) : 10;
+            goToPage(1, 'property-stats-container', 'property-stat-row', currentPageSize, 'stats-pagination');
+        }
+
+        function initPropertyKindFilter() {
+            const filterButtons = document.querySelectorAll('input[name="property-kind-filter"]');
+            if (!filterButtons.length) {
+                return;
+            }
+            filterButtons.forEach(function(button) {
+                button.addEventListener('change', function() {
+                    applyPropertyFilters();
+                });
+            });
+            applyPropertyFilters();
+        }
+
         // Property statistics searching function
         function initPropertySearching() {
             const searchInput = document.getElementById('property-stats-search');
@@ -3086,75 +3452,121 @@
             searchInput.addEventListener('keydown', function(e) {
                 if (e.key === 'Enter') {
                     e.preventDefault();
-                    performPropertySearch(this);
+                    applyPropertyFilters();
                 } else if (e.key === 'Escape') {
-                    clearPropertySearch(this);
+                    searchInput.value = '';
+                    applyPropertyFilters();
+                    searchInput.focus();
                 }
             });
 
             // Search button functionality
             if (searchButton) {
                 searchButton.addEventListener('click', function() {
-                    performPropertySearch(searchInput);
+                    applyPropertyFilters();
                 });
             }
-            
-            function performPropertySearch(searchInput) {
-                const searchTerm = searchInput.value.toLowerCase().trim();
-                const container = document.getElementById('property-stats-container');
-                const items = Array.from(container.getElementsByClassName('property-stat-row'));
-                
-                let visibleCount = 0;
-                let totalCount = items.length;
-                
-                // Filter items based on search term
-                items.forEach(function(item) {
-                    const propertyNameElement = item.querySelector('.badge-custom');
-                    if (propertyNameElement) {
-                        const propertyName = propertyNameElement.textContent.toLowerCase();
-                        
-                        if (searchTerm === '' || propertyName.includes(searchTerm)) {
-                            item.setAttribute('data-search-visible', 'true');
-                            visibleCount++;
-                        } else {
-                            item.setAttribute('data-search-visible', 'false');
-                        }
-                    }
-                });
-                
-                // Update search results count
-                updatePropertySearchResults(visibleCount, totalCount, searchTerm);
-                
-                // Re-initialize pagination and go to first page
-                initPagination('property-stats-container', 'property-stat-row', 'stats-pagination', 'stats-page-size');
-                
-                // Always go to page 1 after search
-                const currentPageSize = document.getElementById('stats-page-size') ? 
-                    parseInt(document.getElementById('stats-page-size').value) : 10;
-                goToPage(1, 'property-stats-container', 'property-stat-row', currentPageSize, 'stats-pagination');
-            }
-            
-            function clearPropertySearch(searchInput) {
-                searchInput.value = '';
-                performPropertySearch(searchInput);
-                searchInput.focus();
-            }
-            
-            function updatePropertySearchResults(visibleCount, totalCount, searchTerm) {
-                const resultsElement = document.getElementById('property-search-results');
-                
-                if (resultsElement) {
-                    if (searchTerm === '') {
-                        resultsElement.innerHTML = `<span class="text-muted">Showing all ${totalCount} properties - Type and click <i class="bi bi-search"></i> or press Enter to search</span>`;
-                    } else if (visibleCount === 0) {
-                        resultsElement.innerHTML = `<span class="text-danger">No properties found for "${searchTerm}"</span>`;
-                    } else if (visibleCount === totalCount) {
-                        resultsElement.innerHTML = `<span class="text-success">All ${totalCount} properties match "${searchTerm}"</span>`;
-                    } else {
-                        resultsElement.innerHTML = `<span class="text-info">Found ${visibleCount} of ${totalCount} properties for "${searchTerm}"</span>`;
-                    }
+        }
+
+        function updateViolationSearchResults(visibleCount, totalCount, searchTerm) {
+            const resultsElement = document.getElementById('violations-search-results');
+
+            if (resultsElement) {
+                if (searchTerm === '') {
+                    resultsElement.innerHTML = `<span class="text-muted">Showing all ${totalCount} violations - Type and click <i class="bi bi-search"></i> or press Enter to search</span>`;
+                } else if (visibleCount === 0) {
+                    resultsElement.innerHTML = `<span class="text-danger">No violations found for "${searchTerm}"</span>`;
+                } else if (visibleCount === totalCount) {
+                    resultsElement.innerHTML = `<span class="text-success">All ${totalCount} violations match "${searchTerm}"</span>`;
+                } else {
+                    resultsElement.innerHTML = `<span class="text-info">Found ${visibleCount} of ${totalCount} violations for "${searchTerm}"</span>`;
                 }
             }
+        }
+
+        function applyViolationFilters() {
+            const statusSelect = document.getElementById('violations-status-filter');
+            const kindSelect = document.getElementById('violations-kind-filter');
+            const searchInput = document.getElementById('violations-search');
+            const container = document.getElementById('property-violations-container');
+
+            if (!container) return;
+
+            const statusValue = statusSelect ? statusSelect.value : 'all';
+            const kindValue = kindSelect ? kindSelect.value : 'all';
+            const rawSearchTerm = searchInput ? searchInput.value.trim() : '';
+            const searchTerm = rawSearchTerm.toLowerCase();
+            const rows = Array.from(container.getElementsByClassName('property-violation-row'));
+            let visibleCount = 0;
+            let totalCount = 0;
+
+            rows.forEach(function(row) {
+                const status = row.getAttribute('data-status') || 'fail';
+                const kind = (row.getAttribute('data-kind') || 'unknown').toLowerCase();
+                const statusMatch = statusValue === 'all' || status === statusValue;
+                const kindMatch = kindValue === 'all' || kind === kindValue;
+                const filterMatch = statusMatch && kindMatch;
+                row.setAttribute('data-kind-visible', filterMatch ? 'true' : 'false');
+                if (filterMatch) {
+                    totalCount += 1;
+                }
+
+                const propertyNameElement = row.querySelector('.badge-custom');
+                const propertyName = propertyNameElement ? propertyNameElement.textContent.toLowerCase() : '';
+                const searchMatches = searchTerm === '' || propertyName.includes(searchTerm);
+                row.setAttribute('data-search-visible', searchMatches ? 'true' : 'false');
+                if (filterMatch && searchMatches) {
+                    visibleCount += 1;
+                }
+            });
+
+            updateViolationSearchResults(visibleCount, totalCount, rawSearchTerm);
+
+            initPagination('property-violations-container', 'property-violation-row', 'violations-pagination', 'violations-page-size');
+
+            const currentPageSize = document.getElementById('violations-page-size') ?
+                parseInt(document.getElementById('violations-page-size').value) : 10;
+            goToPage(1, 'property-violations-container', 'property-violation-row', currentPageSize, 'violations-pagination');
+        }
+
+        function initViolationSearching() {
+            const searchInput = document.getElementById('violations-search');
+            const searchButton = document.getElementById('violations-search-btn');
+
+            if (!searchInput) return;
+
+            searchInput.addEventListener('keydown', function(e) {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    applyViolationFilters();
+                } else if (e.key === 'Escape') {
+                    searchInput.value = '';
+                    applyViolationFilters();
+                    searchInput.focus();
+                }
+            });
+
+            if (searchButton) {
+                searchButton.addEventListener('click', function() {
+                    applyViolationFilters();
+                });
+            }
+        }
+
+        function initViolationFilter() {
+            const statusSelect = document.getElementById('violations-status-filter');
+            const kindSelect = document.getElementById('violations-kind-filter');
+            const container = document.getElementById('property-violations-container');
+
+            if (!container) return;
+
+            if (statusSelect) {
+                statusSelect.addEventListener('change', applyViolationFilters);
+            }
+            if (kindSelect) {
+                kindSelect.addEventListener('change', applyViolationFilters);
+            }
+            applyViolationFilters();
         }
         
         // Global pagination and navigation functions
@@ -3170,7 +3582,9 @@
             // Get items that should be visible based on search filter
             const filteredItems = allItems.filter(item => {
                 const searchVisible = item.getAttribute('data-search-visible');
-                const shouldShow = searchVisible === null || searchVisible === 'true';
+                const kindVisible = item.getAttribute('data-kind-visible');
+                const shouldShow = (searchVisible === null || searchVisible === 'true') &&
+                    (kindVisible === null || kindVisible === 'true');
                 return shouldShow;
             });
             
@@ -3228,8 +3642,10 @@
                 // Use same filtering logic as goToPage function
                 const filteredItems = allItems.filter(item => {
                     const searchVisible = item.getAttribute('data-search-visible');
-                    // If no search filter is applied, show all items
-                    return searchVisible === null || searchVisible === 'true';
+                    const kindVisible = item.getAttribute('data-kind-visible');
+                    // If no filters are applied, show all items
+                    return (searchVisible === null || searchVisible === 'true') &&
+                        (kindVisible === null || kindVisible === 'true');
                 });
                 
                 const totalItems = filteredItems.length;

@@ -1,7 +1,7 @@
 import pytest
 import uiautomator2 as u2
 from time import sleep
-from kea2 import Kea2Tester, Options, U2Driver
+from kea2 import Kea2Tester, Options
 import os
 
 

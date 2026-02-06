@@ -63,7 +63,7 @@ Kea2 currently targets [Android](https://en.wikipedia.org/wiki/Android_(operatin
 
 Kea2 (and its idea) has been used/integrated by
 
-- [OPay Business](https://play.google.com/store/apps/details?id=team.opay.pay.merchant.service) --- a financial & payment app. OPay uses Kea2 for regression testing on POS machines and mobile devices.
+- [OPay Business](https://play.google.com/store/apps/details?id=team.opay.pay.merchant.service) --- a financial & payment app (2 millions of active users daily). OPay uses Kea2 for regression testing on POS machines and mobile devices.
 
 - [WeChat's iExplorer]() --- WeChat's in-house testing platform (coming with an interactive UI-based tool to ease writing scripts)
 
@@ -275,7 +275,7 @@ Some notes:
 3. You need to insert the following code template into your existing test cases: Here, you can add your own hook logic in the commented sections, including starting or stopping the appium session, cleaning up instances, etc. This depends on how you want to design the setup and teardown. Apart from that, you only need to configure the `option` parameter and `configs_path` parameter(where your directory `configs` located, btw, `configs`'s location dependon where you executed `kea2 init`), then pass it to the `run_kea2_testing` function.
 
 ```python
-from kea2 import Kea2Tester, Options, U2Driver
+from kea2 import Kea2Tester, Options
 
 if os.environ.get('KEA2_HYBRID_MODE', '').lower() == 'true': 
     '''
@@ -311,12 +311,28 @@ if os.environ.get('KEA2_HYBRID_MODE', '').lower() == 'true':
 
 Kea2 automatically generates a HTML test report after each testing session. You can find the report in `output/` under your working directory.
 
-You can also manually generate the test report by `kea2 report` (see `kea2 report -h` for details).
+You can also manually generate the test report by 
+```bash
+kea2 report -p [RES_DIR]
+``` 
 
-You can also merge the test report from multiple testing sessions by `kea2 merge` (see `kea2 merge -h` for details).
+Use `-s/--sync` to sync data from device before generating the report, and `-p/--path` to point to one or more result directories.
+For example:
+
+```bash
+`kea2 report -p output/res_YYYYMMDDHH_xxxxxx`
+`kea2 report -s -p output/res_YYYYMMDDHH_xxxxxx`
+``` 
+
+You can also merge the test report from multiple testing sessions by 
+
+```bash
+kea2 merge -p [RES_DIR1] [RES_DIR2] ... -o [OUTPUT_DIR]
+```
+
 The merged test report is quite useful if you would test your apps for multiple sessions.
 
-You can find a sample [test report](https://ecnusse.github.io/Kea2_sample_report/) from Opay (Thank you!). You can find more details on the test report in [this documentation](docs/test_report_introduction.md).
+> You can find a sample [test report](https://ecnusse.github.io/Kea2_sample_report/) from Opay (Thank you!). You can find more details on the test report in [this documentation](docs/test_report_introduction.md).
 
 ## Documentations（更多文档）
 

@@ -138,13 +138,13 @@ def invariant_non_negative_word_count(self):
 | --running-minutes | 运行 Kea2 的时间（分钟） | `10` |
 | --max-step | 发送的最大随机事件数 | `inf`（无限） |
 | --throttle | 两次随机事件之间的延迟时间（毫秒） | `200` |
-| --driver-name | Kea2 脚本中使用的驱动名称。如果指定 `--driver-name d`，则应使用 `d` 与设备交互，例如 `self.d(..).click()`。 | `d` |
+| --driver-name | Kea2 脚本中使用的驱动名称。如果指定 `--driver-name d`，则需用 `d` 操作设备，例如 `self.d(..).click()`。 | `d` |
 | --log-stamp | 日志文件和结果文件的标识（例如指定 `--log-stamp 123`，日志文件命名为 `fastbot_123.log`，结果文件命名为 `result_123.json`） | 当前时间戳 |
 | --profile-period | 覆盖率分析和截图采集周期（单位为随机事件数）。截图保存在设备 SD 卡，根据设备存储调整此值。 | `25` |
 | --take-screenshots | 在每个随机事件执行时截图，截图会被周期性地自动从设备拉取到主机（周期由 `--profile-period` 指定）。 |  |
 | --pre-failure-screenshots | 失败前截取的截图数量。0 表示每步都截图。该选项仅在 `--take-screenshots` 设置时有效。 | `0` |
 | --post-failure-screenshots | 失败后截取的截图数量。应小于等于 `--pre-failure-screenshots`。该选项仅在 `--take-screenshots` 设置时有效。 | `0` |
-| --restart-app-period | 重新启动被测应用的周期（随机事件数）。 | `0`（不重启） |
+| --restart-app-period | 运行过程中重启被测应用的周期（随机事件数）。 | `0`（不重启） |
 | --device-output-root | 设备输出目录根路径，Kea2 将暂存截图和结果日志到 `"<device-output-root>/output_*********/"`。确保该目录可访问。 | `/sdcard` |
 | --act-whitelist-file | Activity 白名单文件。测试过程中仅能探索文件中列出的 Activity。 |  |
 | --act-blacklist-file | Activity 黑名单文件。测试过程中会避免探索文件中列出的 Activity。 |  |
@@ -167,10 +167,10 @@ kea2 run <Kea2 cmds> propertytest <unittest discovery cmds>
 
 ```bash
 # 启动 Kea2 并加载单个脚本 quicktest.py
-kea2 run -p it.feio.android.omninotes.alpha --running-minutes 10 propertytest discover -p quicktest.py
+kea2 run -s "emulator-5554" -p it.feio.android.omninotes.alpha --running-minutes 10 propertytest discover -p quicktest.py
 
 # 启动 Kea2 并从目录 mytests/omni_notes 加载多个脚本
-kea2 run -p it.feio.android.omninotes.alpha --running-minutes 10 propertytest discover -s mytests/omni_notes -p test*.py
+kea2 run -s "emulator-5554" -p it.feio.android.omninotes.alpha --running-minutes 10 propertytest discover -s mytests/omni_notes -p test*.py
 ```
 
 #### **1.2.2（实验性功能）`unittest` 子命令（混合测试）**
@@ -184,7 +184,7 @@ kea2 run -p it.feio.android.omninotes.alpha --running-minutes 10 propertytest di
 如果需要向底层 Fastbot 传递额外参数，请在常规参数后添加 `--`，然后列出额外参数。例如，设置触摸事件比例为 30%：
 
 ```bash
-kea2 run -s "emulator-5554" -p it.feio.android.omninotes.alpha --running-minutes 10  -- --pct-touch 30 unittest discover -p quicktest.py
+kea2 run -s "emulator-5554" -p it.feio.android.omninotes.alpha --running-minutes 10 -- --pct-touch 30 unittest discover -p quicktest.py
 ```
 
 ### 返回码
@@ -333,7 +333,7 @@ kea2 -d merge -p res_20240101_120000 res_20240102_130000
 
 > ```bash
 > # 加上 -d 启用调试模式
-> kea2 -d run -s "emulator-5554" -p it.feio.android.omninotes.alpha --running-minutes 10  unittest discover -p quicktest.py
+> kea2 -d run -s "emulator-5554" -p it.feio.android.omninotes.alpha --running-minutes 10 unittest discover -p quicktest.py
 > ```
 
 ## 查看脚本运行统计
@@ -427,12 +427,12 @@ Kea2 默认会阻止探索过程中与第三方包（如广告包）的交互。
 例如：
 
 ```bash
-kea2 run -s "emulator-5554" -p it.feio.android.omninotes.alpha --running-minutes 10  --driver -- --allow-any-starts propertytest discover -p quicktest.py
+kea2 run -s "emulator-5554" -p it.feio.android.omninotes.alpha --running-minutes 10 -- --allow-any-starts propertytest discover -p quicktest.py
 ```
 
 ## 提升 Kea2 性能的建议
 
-目前，我们在 `@precondition` 装饰器和 `widgets.block.py` 中实现了一个算法来提升工具性能。该算法仅支持 uiautomator2 中的基础选择器（不支持父子关系）。如果你有许多带复杂前置条件的性质且遇到性能问题，建议在前置条件中使用 xpath。
+目前，我们在 `@precondition` 装饰器和 `widgets.block.py` 中实现了一个算法来提升工具性能。该算法仅支持 uiautomator2 中的基础选择器（不支持父子关系）。如果你有许多带复杂前置条件的性质且观察到性能问题，建议在 xpath 中指定选择器。
 
 | | **推荐** | **不推荐** |
 | -- | -- | -- |
@@ -443,13 +443,13 @@ kea2 run -s "emulator-5554" -p it.feio.android.omninotes.alpha --running-minutes
 例如：
 
 ```python
-# 不推荐：
+# 不推荐使用：
 # @precondition(lambda self: 
 #      self.d(className="android.widget.ListView").child(text="Bluetooth")
 # ):
 # ...
 
-# 推荐：
+# 推荐使用：
 @precondition(lambda self: 
     self.d.xpath('//android.widget.ListView/*[@text="Bluetooth"]')
 ):

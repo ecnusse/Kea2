@@ -1,33 +1,33 @@
 # 文档
 
-[English](/docs/manual_en.md) | 简体中文
+English | [简体中文](/docs/manual_cn.md)
 
 ## 目录
 
 ### 1. Kea2 的工具理念
-- [Kea2 的工具理念](#kea2-的工具理念)
+- [Kea2 的工具理念](#kea2s-high-level-idea)
 ### 2. 如何编写 Kea2 脚本
-- [Kea2 脚本教程](#kea2-脚本教程)
-- [Kea2 脚本 API（测试类结构与装饰器）](#kea2-脚本-api)
+- [Kea2 脚本教程](#kea2s-script-tutorials)
+- [Kea2 脚本 API（测试类结构与装饰器）](#kea2s-scripts-apis-测试类结构装饰器)
 ### 3. 如何启动 Kea2
-- [命令行启动](#1-通过-shell-命令启动) (`kea2 run` 参数、子命令与返回码）
+- [命令行启动](#1-通过-shell-命令启动) (`kea2 run` 参数、子命令与返回码)
 - [在 Python 代码中启动（`unittest.main`）](#2-通过-unittestmain-启动-kea2)
 ### 4. 如何阅读和管理 Kea2 测试报告
-- [阅读 Kea2 测试报告（属性检查结果字段）](#阅读-kea2-报告)
-- [生成 Kea2 测试报告](#管理-kea2-报告)
-- [合并多个测试报告](#合并多个测试报告kea2-merge)
+- [阅读 Kea2 测试报告（属性检查结果字段）](#meaning-of-property-violations)
+- [生成 Kea2 测试报告](#manually-generate-kea2-report)
+- [合并多个测试报告](#merge-multiple-test-reports-for-multiple-test-sessions)
 ### 5. 配置文件
-- [Fastbot 配置文件](#fastbot-配置文件)
-- [黑白名单](#黑白名单黑白名单控件界面特定区域)
-- [更新用户配置文件](#用户配置文件更新)
+- [Fastbot 配置文件](#fastbot-configuration-files)
+- [黑白名单（控件/界面特定区域）](#blacklisting-specific-ui-widgetsregions-黑白名单控件界面特定区域)
+- [更新用户配置文件](#update-of-user-configuration-files)
 ### 6. 高级功能
-- [高级功能 1：带状态测试](#高级功能-1带状态测试stateful-testing)
-- [高级功能 2：不变式检查](#高级功能-2不变式检查invariant-checks)
-- [高级功能 3：复用回归脚本](#高级功能-3复用回归脚本)
+- [高级功能 1：带状态测试](#advanced-feature-1-stateful-testing-带状态的测试)
+- [高级功能 2：不变式检查](#advanced-feature-2-ivariant-checks-不变式检查)
+- [高级功能 3：复用回归脚本](#advanced-feature-3-reusing-regression-tests-兼容已有脚本通过前置脚本步骤到达特定层次)
 ### 7. 常见问题与技巧
-- [FAQ](#faq)
-- [与第三方包交互](#与第三方包交互)
-- [提升 Kea2 性能的建议](#提升-kea2-性能的建议)
+- [FAQ](#faqs)
+- [与第三方包交互](#interacting-with-third-party-packages)
+- [提升 Kea2 性能的建议](#tricks-to-enhance-kea2-performance)
 
 # Kea2 的工具理念
 
@@ -38,35 +38,35 @@
 
 # Kea2 脚本教程
 
-1. [使用 Kea2 的功能 2 和 功能 3 进行测试 (以微信为例)](Scenario_Examples_zh.md)
+我们提供两个教程，展示如何编写 Kea2 脚本，并演示 Kea2 脚本的示例用法。
+
+1. [使用 Kea2 的功能 2 和 功能 3 进行测试（以微信为例）](Scenario_Examples_zh.md)
 2. [编写 Kea2 脚本对应用特定功能进行压力测试（以飞书为例）](https://sy8pzmhmun.feishu.cn/wiki/Clqbwxx7ciul5DkEyq8c6edxnTc)
 
 # Kea2 脚本 API
 
-Kea2 使用 [Unittest](https://docs.python.org/3/library/unittest.html) 来管理脚本。测试类需继承自 `unittest.TestCase`。
-
-Kea2 使用 [Uiautomator2](https://github.com/openatx/uiautomator2) 操控 Android 设备。详情请参考 [Uiautomator2 文档](https://github.com/openatx/uiautomator2?tab=readme-ov-file#quick-start)。
-
-一般地，你可以通过以下两步编写 Kea2 脚本：
+基本上，你可以通过以下两步编写 Kea2 脚本：
 
 ### 1. 创建继承 `unittest.TestCase` 的测试类
 
 ```python
-import unittest
+import unittest 
 
 class MyFirstTest(unittest.TestCase):
     ...
 ```
 
+> Kea2 使用 [unittest](https://docs.python.org/3/library/unittest.html) 来管理脚本。测试类需继承自 `unittest.TestCase`。
+
 你可以选择性地定义 `setUpClass`，用于在测试类级别做一次性初始化（如准备共享资源），也可以用于[对 u2 driver 进行全局设置](https://github.com/openatx/uiautomator2?tab=readme-ov-file#global-settings)。该方法是可选的，只有定义了才会在测试方法执行前调用一次。
 
 ### 2. 通过定义测试方法编写脚本
 
-你可以用 `@precondition` 装饰函数。装饰器 `@precondition` 接收一个返回布尔值的函数作为参数。当函数返回 `True` 时，前置条件满足，脚本将被激活，接下来Kea2 会根据装饰器 `@prob` 定义的概率运行脚本。
+你可以用 `@precondition` 装饰函数。装饰器 `@precondition` 接收一个返回布尔值的函数作为参数。当函数返回 `True` 时，前置条件满足，脚本将被激活，接下来 Kea2 会根据装饰器 `@prob` 定义的概率运行脚本。
 
-注意，如果测试方法未被 `@precondition` 装饰，该测试方法在自动化 UI 测试中永远不会被激活，而是被当作普通的 unittest 测试方法处理。因此，当测试方法应始终执行时，需要显式指定 `@precondition(lambda self: True)`。如果未装饰 `@prob`，默认概率为 1（即前置条件满足时始终执行）。
+注意，如果测试方法未被 `@precondition` 装饰，该测试方法在自动化 UI 测试中永远不会被激活，而是被当作普通的 unittest 测试方法处理。因此，当测试方法应始终执行时，需要显式指定 `@precondition(lambda self: True)`。（如果想在每一步都检查某些性质，可以使用[不变式检查](#advanced-feature-2-ivariant-checks-不变式检查)）。如果未装饰 `@prob`，默认概率为 1（即前置条件满足时始终执行）。
 
-以下是一个推荐的 Kea2 脚本示例。你可以将其作为一个模版。
+以下是一个推荐的 Kea2 脚本模版：
 
 ```python
 import unittest
@@ -83,6 +83,8 @@ class MyFirstTest(unittest.TestCase):
         ...
 ```
 
+> Kea2 使用 [uiautomator2](https://github.com/openatx/uiautomator2) 操控 Android 设备。详情请参考 [uiautomator2 文档](https://github.com/openatx/uiautomator2?tab=readme-ov-file#quick-start)。
+
 更多细节请阅读 [Kea - Write your first property](https://kea-docs.readthedocs.io/en/latest/part-keaUserManuel/first_property.html)。
 
 ## 装饰器
@@ -95,7 +97,7 @@ def test_func1(self):
     ...
 ```
 
-`@precondition` 是一个装饰器，接受一个返回布尔值的函数作为参数。当该函数返回 `True` 时，前置条件满足，函数 `test_func1` 会被激活，并且 Kea2 会基于 `@prob` 装饰器定义的概率值执行 `test_func1`。
+`@precondition` 是一个装饰器，接受一个返回布尔值的函数作为参数。当该函数返回 `True` 时，前置条件满足，函数 `test_func1` 会被激活，并且 Kea2 会基于 `@prob` 装饰器定义的概率值执行 `test_func1`。  
 如果未指定 `@prob`，默认概率值为 1，此时当前置条件满足时，`test_func1` 会始终执行。
 
 ### `@prob`
@@ -107,15 +109,15 @@ def test_func1(self):
     ...
 ```
 
-`@prob` 装饰器接受一个浮点数参数，该数字表示当前置条件满足时执行函数 `test_func1` 的概率。概率值应介于 0 到 1 之间。
+`@prob` 装饰器接受一个浮点数参数，该数字表示当前置条件满足时执行函数 `test_func1` 的概率。概率值应介于 0 到 1 之间。  
 如果未指定 `@prob`，默认概率值为 1，即当前置条件满足时函数总是执行。
 
-当多个函数的前置条件都满足时，Kea2 会根据它们的概率值随机选择其中一个函数执行。
+当多个函数的前置条件都满足时，Kea2 会根据它们的概率值随机选择其中一个函数执行。  
 具体地，Kea2 会生成一个 0 到 1 之间的随机值 `p`，并用 `p` 和这些函数的概率值共同决定哪个函数被选中。
 
-例如，若三个函数 `test_func1`、`test_func2` 和 `test_func3` 的前置条件满足，它们的概率值分别为 `0.2`、`0.4` 和 `0.6`：
-- 情况 1：若 `p` 随机取为 `0.3`，由于 `test_func1` 的概率值 `0.2` 小于 `p`，它失去被选中的机会，Kea2 会从 `test_func2` 和 `test_func3` 中随机选一个执行。
-- 情况 2：若 `p` 随机取为 `0.1`，Kea2 会从 `test_func1`、`test_func2` 和 `test_func3` 中随机选一个执行。
+例如，若三个函数 `test_func1`、`test_func2` 和 `test_func3` 的前置条件满足，它们的概率值分别为 `0.2`、`0.4` 和 `0.6`：  
+- 情况 1：若 `p` 随机取为 `0.3`，由于 `test_func1` 的概率值 `0.2` 小于 `p`，它失去被选中的机会，Kea2 会从 `test_func2` 和 `test_func3` 中随机选一个执行。  
+- 情况 2：若 `p` 随机取为 `0.1`，Kea2 会从 `test_func1`、`test_func2` 和 `test_func3` 中随机选一个执行。  
 - 情况 3：若 `p` 随机取为 `0.7`，Kea2 将忽略全部三个函数，不执行它们。
 
 ### `@max_tries`
@@ -128,28 +130,6 @@ def test_func1(self):
 ```
 
 `@max_tries` 装饰器接受一个整数参数，表示当前置条件满足时函数 `test_func1` 最多执行的次数。默认值为 `inf`（无限次）。
-
-**`@invariant`（不变式检查）**
-
-不变式检查用于定义在任何时候都应保持为真的性质。普通性质由 前置条件 P，交互场景(执行功能) I，和断言 Q 三部分组成，不变式为一个特殊的性质，即 P 为恒真，I 为空，任何情况下都验证 Q 的性质。
-
-Kea2 会在应用每次进入一个新状态后 (即每次执行完某个性质或发送 monkey 事件后) 检查 **所有** 不变式。
-
-以下是一个不变式检查的示例：在一个背单词应用中，未背单词的数量不可能为负数。
-
-```python
-from kea2 import invariant
-
-@invariant
-def invariant_non_negative_word_count(self):
-    if self.d(resourceId="word_count").exists:
-        # 获取未背单词数量
-        word_count_text = self.d(resourceId="word_count").get_text()
-        word_count = int(word_count_text)
-        assert word_count >= 0, f"Word count is negative: {word_count}"
-```
-
-`@invariant` 用于标记不变式检查。每次执行性质或发送 monkey 事件后，所有不变式都会被完整执行（每一轮都会执行一遍）。不变式适合用于检查始终应成立的条件，比如单一页面的布局问题，或基于带状态测试推导出的状态一致性问题。
 
 # 启动 Kea2
 
@@ -222,6 +202,7 @@ kea2 run -s "emulator-5554" -p it.feio.android.omninotes.alpha --running-minutes
 ```
 
 ### 返回码
+
 `kea2 run`（以及 `python -m kea2.cli run`）的退出码如下：
 
 | code | 含义 |
@@ -292,7 +273,7 @@ error | 脚本异常中断次数（如目标控件找不到） | 脚本本身可
 
 ### 基于报告优化测试
 
-1. 先设置合理测试时长。覆盖率通常会在一段时间后趋于饱和，时长更长不一定收益更高。可以根据覆盖率趋势图找到饱和点，再设定预算。
+1. 先设置合理测试时长。覆盖率通常会在一段时间后趋于饱和，时长更长不一定收益更高。可以根据覆盖率趋势图找到饱和点，再设定预算。多次短跑往往比一次长跑更有效。
 2. 设计脚本突破卡点。建议先用 `--take-screenshots` 观察卡住位置（例如登录页）；再补充对应脚本引导穿越该状态。脚本稳定后，可使用 `--pre-failure-screenshots` 与 `--post-failure-screenshots` 控制截图量，减少性能开销。
 
 ## 管理 Kea2 报告
@@ -300,10 +281,10 @@ error | 脚本异常中断次数（如目标控件找不到） | 脚本本身可
 
 `kea2 report` 命令根据已有的测试结果生成 HTML 测试报告。该命令分析测试数据，创建一个全面的可视化报告，展示测试执行统计、覆盖率信息、性质违反和崩溃详情。
 
-| 参数 | 意义 | 是否必需 | 默认值 |
-| --- | --- | --- | --- |
-| -s, --sync | 生成报告前从设备同步数据 | 否 |  |
-| -p, --path | 测试结果目录路径（res_* 目录） | 是 |  |
+| 参数 | 意义 | 是否必需 |
+| --- | --- | --- |
+| -s, --sync | 生成报告前从设备同步数据 | 否 |
+| -p, --path | 测试结果目录路径（res_* 目录） | 是 |
 
 **使用示例：**
 
@@ -322,10 +303,10 @@ kea2 report -p ./output/res_20240101_120000 /Users/username/kea2_tests/res_20240
 
 `kea2 merge` 命令允许合并多个测试报告目录，生成合并后的报告。当你运行了多次测试并希望将结果合并成一个综合报告时非常有用。
 
-| 参数 | 意义 | 是否必需 | 默认值 |
-| --- | --- | --- | --- |
-| -p, --paths | 需要合并的测试报告目录路径（res_* 目录），至少需要两个路径 | 是 |  |
-| -o, --output | 合并报告的输出目录 | 否 | `merged_report_<timestamp>` |
+| 参数 | 意义 | 是否必需 |
+| --- | --- | --- |
+| -p, --paths | 需要合并的测试报告目录路径（res_* 目录），至少需要两个路径 | 是 |
+| -o, --output | 合并报告的输出目录 | 否 |
 
 **使用示例：**
 
@@ -336,7 +317,6 @@ kea2 merge -p res_20240101_120000 res_20240102_130000
 # 合并多个测试报告目录并指定输出目录
 kea2 merge -p res_20240101_120000 res_20240102_130000 res_20240103_140000 -o my_merged_report
 ```
-
 
 # 配置文件（Fastbot、黑白名单）
 
@@ -528,6 +508,7 @@ kea2 run -p it.feio.android.omninotes.alpha --act-blacklist-file /sdcard/custom_
 - Fastbot 会监控 Activity 启动。当黑名单 Activity 即将启动时会被拦截，因此该阶段 UI 可能看起来“无响应”。
 
 ## 用户配置文件更新
+
 升级 Kea2 时，用户本地配置有时需要更新（新版 kea2 可能与旧配置不兼容）。
 
 当检测到运行时错误时，Kea2 会检查本地配置文件与当前版本是否兼容。若不兼容，会在控制台打印警告。请按下列步骤更新本地配置：
@@ -538,6 +519,7 @@ kea2 run -p it.feio.android.omninotes.alpha --act-blacklist-file /sdcard/custom_
 4. 按需将旧配置合并到新配置文件中。
 
 # 高级功能
+
 ## 高级功能 1：带状态测试（Stateful Testing）
 
 带状态测试是基于性质测试中的进阶方法。核心思想是建模应用内部数据状态，并在多个性质之间共享状态，以引导探索并发现更复杂缺陷。
@@ -577,7 +559,7 @@ class MyStatefulTest(unittest.TestCase):
 
 不变式检查（`@invariant`）用于定义“始终应成立”的性质。普通性质包含前置条件 P、交互场景 I、断言 Q；而不变式可视为 P 恒真、I 为空，并在每个状态检查 Q。
 
-Kea2 会在应用进入每个新状态时检查所有不变式（即每次执行性质或发送 monkey 事件后）。
+Kea2 会在应用进入每个新状态时检查所有不变式（即每次执行性质或发送随机事件后）。
 
 普通性质与不变式的差异可以概括为：
 
@@ -595,15 +577,15 @@ from kea2 import invariant
 @invariant
 def invariant_non_negative_word_count(self):
     if self.d(resourceId="word_count").exists:
-        # 获取未学习单词数量
+        # 获取未背单词数量
         word_count_text = self.d(resourceId="word_count").get_text()
         word_count = int(word_count_text)
         assert word_count >= 0, f"Word count is negative: {word_count}"
 ```
 
-`@invariant` 用于标记不变式检查。所有不变式会在每次性质执行或 monkey 事件后运行一遍（每轮都检查）。不变式适合检查“始终为真”的条件，如单页布局一致性、或由带状态测试推导出的状态一致性。建议保证不变式执行快速且无副作用。
+`@invariant` 用于标记不变式检查。所有不变式会在每次性质执行或随机事件后运行一遍（每轮都检查）。不变式适合检查“始终为真”的条件，如单页布局一致性、或由带状态测试推导出的状态一致性。建议保证不变式执行快速且无副作用。
 
-## 高级功能 3：复用回归脚本
+## 高级功能 3：复用回归脚本（兼容已有脚本：通过前置脚本步骤到达特定层次）
 
 Kea2 支持复用已有 UI 测试脚本。核心思路是：*已有 UI 脚本通常覆盖关键功能并能到达深层状态，因此可作为“引导脚本”驱动 Fastbot 探索关键且更深层的状态。*
 

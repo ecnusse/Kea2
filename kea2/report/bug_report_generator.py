@@ -50,7 +50,7 @@ class ReportData(TypedDict):
     bugs_found: int
     invariant_violations_count: int
     executed_events: int
-    total_testing_time: float
+    total_testing_time: str
     coverage: float
     widget_coverage_count: int
     total_activities_count: int
@@ -279,7 +279,7 @@ class BugReportGenerator(CrashAnrMixin, PathParserMixin, ScreenshotsMixin):
             "bugs_found": 0,
             "invariant_violations_count": 0,
             "executed_events": 0,
-            "total_testing_time": 0,
+            "total_testing_time": "00:00:00",
             "coverage": 0,
             "widget_coverage_count": 0,
             "total_activities": [],
@@ -318,7 +318,8 @@ class BugReportGenerator(CrashAnrMixin, PathParserMixin, ScreenshotsMixin):
 
         current_property = None
         current_test = {}
-        first_step_time = last_step_time = ""
+        first_step_time: Optional[str] = None
+        last_step_time: Optional[str] = None
         step_index = 0
         monkey_events_count = 0  # Track monkey events separately
         last_monkey_step_count = 0
@@ -411,20 +412,23 @@ class BugReportGenerator(CrashAnrMixin, PathParserMixin, ScreenshotsMixin):
                         current_property, current_test, property_violations
                     )
 
-                # Store first and last step for time calculation
-                if int(monkey_steps_count) == 1 and not first_step_time:
-                    first_step_time = step_data["Time"]
-                last_step_time = step_data["Time"]
+                # Store first and last valid timestamps for testing duration calculation.
+                step_time = step_data.get("Time")
+                if step_time:
+                    if first_step_time is None:
+                        first_step_time = step_time
+                    last_step_time = step_time
 
 
             # Calculate test time
             if first_step_time and last_step_time:
-                def _get_datetime(raw_datetime) -> datetime:
-                    return datetime.strptime(raw_datetime, r"%Y-%m-%d %H:%M:%S.%f")
+                def _get_datetime(raw_datetime: str) -> datetime:
+                    # Use fromisoformat for compatibility with/without microseconds.
+                    return datetime.fromisoformat(raw_datetime)
 
                 test_time = _get_datetime(last_step_time) - _get_datetime(first_step_time)
-                
-                total_seconds = int(test_time.total_seconds())
+
+                total_seconds = max(0, int(test_time.total_seconds()))
                 hours, remainder = divmod(total_seconds, 3600)
                 minutes, seconds = divmod(remainder, 60)
                 data["total_testing_time"] = f"{hours:02d}:{minutes:02d}:{seconds:02d}"

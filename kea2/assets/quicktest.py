@@ -1,8 +1,7 @@
 import unittest
 import uiautomator2 as u2
 
-from time import sleep
-from kea2 import precondition, prob, KeaTestRunner, Options, keaTestLoader, invariant
+from kea2 import precondition, prob, invariant
 
 
 import unittest

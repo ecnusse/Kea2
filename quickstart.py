@@ -132,6 +132,7 @@ def check_installation(serial=None):
 
 if __name__ == "__main__":
     check_installation(serial=None)
+    # Launch the test with unittest.main
     KeaTestRunner.setOptions(
         Options(
             driverName="d",

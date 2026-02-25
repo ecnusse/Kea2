@@ -131,7 +131,9 @@ def check_installation(serial=None):
 
 if __name__ == "__main__":
     check_installation(serial=None)
-    import subprocess, sys
+    import signal
+    import subprocess
+    import sys
     from pathlib import Path
     start_dir = str(Path(__file__).parent)
     file_name = str(Path(__file__).name)
@@ -143,6 +145,10 @@ if __name__ == "__main__":
         "--take-screenshots",
         "propertytest", "discover", "-s", start_dir, "-p", file_name
     ]
-    p = subprocess.Popen(CMD, stdout=sys.stdout, stderr=sys.stderr)
-    p.wait()
-    sys.exit(p.returncode)
+    try:
+        p = subprocess.Popen(CMD, stdout=sys.stdout, stderr=sys.stderr)
+        p.wait()
+    except KeyboardInterrupt:
+        p.wait()
+    finally:
+        sys.exit(p.returncode)

@@ -36,6 +36,7 @@ class TestOmniNotes(unittest.TestCase):
         self.d(description="drawer open").click()
         state["notes"].append(title)
     
+    @max_tries(1)
     @precondition(lambda self: self.d(resourceId="it.feio.android.omninotes.alpha:id/next").exists)
     def skip_welcome_tour(self):
         """Guided exploration: skip welcome tour if it is shown.

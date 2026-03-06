@@ -3,7 +3,7 @@ from typing import Any, Dict, Optional
 
 from kea2.keaUtils import Options
 from .errors import EngineIntegrationError
-from .runtime import EngineRuntime
+from .executor import PropertyEngine
 
 
 class Kea2PropertyEngine:
@@ -18,10 +18,10 @@ class Kea2PropertyEngine:
     """
 
     def __init__(self):
-        self._runtime: Optional[EngineRuntime] = None
+        self._runtime: Optional[PropertyEngine] = None
 
     def init_kea2(self, config: Options) -> None:
-        self._runtime = EngineRuntime(config)
+        self._runtime = PropertyEngine(config)
         self._runtime.initialize()
 
     def execute_property(self, ui_xml: Optional[str] = None) -> Dict[str, Any]:
@@ -36,7 +36,7 @@ class Kea2PropertyEngine:
         runtime = self._require_runtime()
         return asdict(runtime.get_result())
 
-    def _require_runtime(self) -> EngineRuntime:
+    def _require_runtime(self) -> PropertyEngine:
         if self._runtime is None:
             raise EngineIntegrationError("NOT_INITIALIZED", "Please call init_kea2(config) first")
         return self._runtime

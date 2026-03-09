@@ -141,6 +141,8 @@ class Options:
     act_whitelist_file: str = None
     # Activity BlackList File
     act_blacklist_file: str = None
+    # Fastbot Agent
+    fastbot_agent: Literal["double-sarsa", "sarsa"] = "double-sarsa"
     # propertytest sub-commands args (eg. discover -s xxx -p xxx)
     propertytest_args: List[str] = None
     # period (N steps) to restart the app under test

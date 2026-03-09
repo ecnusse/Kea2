@@ -162,6 +162,16 @@ def _set_runner_parser(subparsers: "argparse._SubParsersAction[argparse.Argument
         help="(Experimental) FBM merge at startup. When enabled, pull FBM(s) from the device at startup, merge them with local PC FBM data.",
     )
 
+    parser.add_argument(
+        "--fastbot-agent",
+        dest="fastbot_agent",
+        type=str,
+        choices=["double-sarsa", "sarsa"],
+        required=False,
+        default="double-sarsa",
+        help="Fastbot agent strategy.",
+    )
+
 
     parser.add_argument(
         "--act-whitelist-file",
@@ -301,6 +311,7 @@ def run(args=None) -> ReturnCode:
         unittest_args=args.unittest_args,
         extra_args=args.extra,
         merge_fbm=args.merge_fbm,
+        fastbot_agent=args.fastbot_agent,
     )
 
 

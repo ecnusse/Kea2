@@ -189,7 +189,7 @@ class FastbotManager:
             "exec", "app_process",
             "/system/bin", "com.android.commands.monkey.Monkey",
             "--agent-u2",
-            "reuseq",
+            self.options.fastbot_agent,
             "--running-minutes", f"{self.options.running_mins}",
             "--throttle", f"{self.options.throttle}",
             "--output-directory", f"{self.options.device_output_root}/output_{self.options.log_stamp}",

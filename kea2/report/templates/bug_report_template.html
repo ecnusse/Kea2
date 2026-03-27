@@ -737,10 +737,50 @@
             background-color: white;
             border-radius: 0 0 8px 8px;
             box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            flex-wrap: wrap;
+            gap: 12px 16px;
         }
 
         .pagination-container.pagination-violations {
             padding: 10px 16px;
+        }
+
+        .pagination-container > .d-flex {
+            flex: 0 1 auto;
+            flex-wrap: wrap;
+            row-gap: 8px;
+            min-width: 0;
+        }
+
+        .pagination-container > nav {
+            flex: 1 1 320px;
+            min-width: 0;
+            max-width: 100%;
+            display: flex;
+            justify-content: flex-end;
+            overflow-x: auto;
+            overflow-y: hidden;
+            -webkit-overflow-scrolling: touch;
+            scrollbar-width: thin;
+        }
+
+        .pagination-container > nav::-webkit-scrollbar {
+            height: 6px;
+        }
+
+        .pagination-container > nav::-webkit-scrollbar-thumb {
+            background-color: rgba(52, 152, 219, 0.45);
+            border-radius: 999px;
+        }
+
+        .pagination-container > nav .pagination {
+            flex-wrap: nowrap;
+            width: max-content;
+            white-space: nowrap;
+        }
+
+        .pagination-container > nav .page-link {
+            white-space: nowrap;
         }
         
         .activity-item {
@@ -1674,7 +1714,7 @@
                 </table>
 
                 <!-- Pagination for Activities -->
-                <div class="d-flex justify-content-between align-items-center mt-3">
+                <div class="d-flex justify-content-between align-items-center mt-3 pagination-container">
                     <div class="d-flex align-items-center">
                         <label for="activities-page-size" class="form-label me-2 mb-0">Show:</label>
                         <select class="form-select form-select-sm" id="activities-page-size" style="width: auto;">
@@ -2232,7 +2272,7 @@
                 </table>
                 
                 <!-- Pagination for Property Checking Statistics -->
-                <div class="d-flex justify-content-between align-items-center mt-3">
+                <div class="d-flex justify-content-between align-items-center mt-3 pagination-container">
                     <div class="d-flex align-items-center">
                         <label for="stats-page-size" class="form-label me-2 mb-0">Show:</label>
                         <select class="form-select form-select-sm" id="stats-page-size" style="width: auto;">

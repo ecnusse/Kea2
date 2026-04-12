@@ -1,8 +1,7 @@
 import unittest
 import uiautomator2 as u2
 
-from time import sleep
-from kea2 import precondition, prob, KeaTestRunner, Options, keaTestLoader, invariant
+from kea2 import precondition, prob, invariant
 
 
 import unittest
@@ -132,17 +131,24 @@ def check_installation(serial=None):
 
 if __name__ == "__main__":
     check_installation(serial=None)
-    KeaTestRunner.setOptions(
-        Options(
-            driverName="d",
-            packageNames=[PACKAGE_NAME],
-            # serial="emulator-5554",   # specify the serial
-            maxStep=50,
-            profile_period=10,
-            take_screenshots=True,  # whether to take screenshots, default is False
-            # running_mins=10,  # specify the maximal running time in minutes, default value is 10m
-            # throttle=200,   # specify the throttle in milliseconds, default value is 200ms
-            agent="u2"  # 'native' for running the vanilla Fastbot, 'u2' for running Kea2
-        )
-    )
-    unittest.main(testRunner=KeaTestRunner, testLoader=keaTestLoader)
+    import signal
+    import subprocess
+    import sys
+    from pathlib import Path
+    start_dir = str(Path(__file__).parent)
+    file_name = str(Path(__file__).name)
+    CMD = [
+        "kea2", "run",
+        "-p", PACKAGE_NAME,
+        "--max-step", "50",
+        "--profile-period", "10",
+        "--take-screenshots",
+        "propertytest", "discover", "-s", start_dir, "-p", file_name
+    ]
+    try:
+        p = subprocess.Popen(CMD, stdout=sys.stdout, stderr=sys.stderr)
+        p.wait()
+    except KeyboardInterrupt:
+        p.wait()
+    finally:
+        sys.exit(p.returncode)

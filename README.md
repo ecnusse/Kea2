@@ -1,39 +1,38 @@
-
+<div align="center">
 
 [![PyPI](https://img.shields.io/pypi/v/kea2-python.svg)](https://pypi.python.org/pypi/kea2-python)
 [![PyPI Downloads](https://static.pepy.tech/badge/kea2-python)](https://pepy.tech/projects/kea2-python)
 ![Python](https://img.shields.io/badge/python-3.8%2B-blue)
 [![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/ecnusse/Kea2)
 
-<div>
-    <img src="https://github.com/user-attachments/assets/8d9f8750-1e10-411b-a49f-7d8367bbe9fe" style="border-radius: 14px; width: 20%; height: 20%;"/> 
-</div>
+[<img src="https://img.shields.io/badge/GitHub-181717?style=for-the-badge&logo=github&logoColor=white" />](https://github.com/ecnusse/Kea2)
+[<img src="https://img.shields.io/badge/Gitee-333333?style=for-the-badge&logo=gitee&logoColor=white" />](https://gitee.com/XixianLiang/Kea2) 
 
+**English | [简体中文](/README_cn.md)**
 
-Please contact Xixian Liang at [xixian@stu.ecnu.edu.cn](xixian@stu.ecnu.edu.cn) with your Wechat ID / QR code to be invited to the WeChat discussion group. Of course, we are also ready on GitHub to answer your questions/feedback.
+</br>
 
-####  Github repo [https://github.com/ecnusse/Kea2](https://github.com/ecnusse/Kea2)
-####  Gitee mirror [https://gitee.com/XixianLiang/Kea2](https://gitee.com/XixianLiang/Kea2)
+<img src="docs/images/kea2_logo.png" alt="kea_logo" style="border-radius: 14px; width: 20%; height: 20%;"/>
 
+<a href="https://en.wikipedia.org/wiki/Kea">Kea2's logo: A large parrot skilled in finding "bugs"</a>
 
-
-
-### [点击此处：查看中文文档](README_cn.md) 
-
-## About 
-
-<div align="center">
-    <img src="docs/images/kea2_logo.png" alt="kea_logo" style="border-radius: 14px; width: 20%; height: 20%;"/>
-</div>
-<div align="center">
-    <a href="https://en.wikipedia.org/wiki/Kea">Kea2's logo: A large parrot skilled in finding "bugs"</a>
 </div>
 </br>
 
+### [:blue_book: User Manual](/docs/manual_en.md) | [:blue_book: 用户手册](/docs/manual_cn.md)
+
+## About 
+
 Kea2 is an easy-to-use tool for fuzzing mobile apps. Its key *novelty* is able to fuse automated UI testing with scripts (usually written by human), thus empowering automated UI testing with human intelligence for effectively finding *crashing bugs* as well as *non-crashing functional (logic) bugs*. 
 
-Kea2 is currently built on top of [Fastbot](https://github.com/ecnusse/Fastbot_Android) 3.0 (a modified/enhanced version of the original [FastBot](https://github.com/bytedance/Fastbot_Android) 2.0), *an industrial-strength automated UI testing tool from ByteDance*, and [uiautomator2](https://github.com/openatx/uiautomator2), *an easy-to-use and stable Android automation library*. 
+Kea2 is currently built on top of [Fastbot 3.0](https://github.com/ecnusse/Fastbot_Android) (a modified/enhanced version of the original [FastBot 2.0](https://github.com/bytedance/Fastbot_Android)), *an industrial-strength automated UI testing tool from ByteDance*, and [uiautomator2](https://github.com/openatx/uiautomator2), *an easy-to-use and stable Android automation library*. 
 Kea2 currently targets [Android](https://en.wikipedia.org/wiki/Android_(operating_system)) apps. 
+
+
+https://github.com/user-attachments/assets/6120d8f5-5a9d-4ead-b27e-840c8757e28e
+
+
+
 
 ## Novelty & Important features
 
@@ -59,11 +58,15 @@ Kea2 currently targets [Android](https://en.wikipedia.org/wiki/Android_(operatin
 | **Finding crashes in deep states**               |               | :+1:          | :+1:          |
 | **Finding non-crashing functional (logic) bugs** |               |               | :+1:          |
 
+
 ## Kea2's Users
 
 Kea2 (and its idea) has been used/integrated by
 
-- [OPay Business](https://play.google.com/store/apps/details?id=team.opay.pay.merchant.service) --- a financial & payment app (2 millions of active users daily). OPay uses Kea2 for regression testing on POS machines and mobile devices.
+<img src="https://github.com/user-attachments/assets/8334d717-c9d2-4fda-ad9b-611fa37935b4" alt="OPay" height="70" style="border-radius: 14px;"/> <img src="https://github.com/user-attachments/assets/f4eefbe3-1a4c-4a6e-acca-b97d35e34487" alt="Huawei" height="70" style="border-radius: 14px;"/> <img src="https://github.com/user-attachments/assets/c8da7eb1-c7bd-4fc8-ac7c-ee241168566c" alt="WeChat Pay" height="70" style="border-radius: 14px;"/> <img src="https://github.com/user-attachments/assets/cef587b2-0142-40ed-91f0-baf087d0a03a" alt="WeChat" height="70" style="border-radius: 14px;"/> 
+
+
+- [OPay Business](https://play.google.com/store/apps/details?id=team.opay.pay.merchant.service) --- a financial & payment app (20 millions of active users daily). OPay uses Kea2 for regression testing on POS machines and mobile devices.
 
 - [WeChat's iExplorer]() --- WeChat's in-house testing platform (coming with an interactive UI-based tool to ease writing scripts)
 
@@ -76,12 +79,15 @@ Kea2 (and its idea) has been used/integrated by
 Please let us know and willing to hear your feedback/questions if you are also using Kea2.
 
 ## Design & Roadmap
-Kea2 currently works with:
+
+**Kea2 currently works with 3 open-sourced projects:**
 - [unittest](https://docs.python.org/3/library/unittest.html) as the testing framework to manage the scripts;
 - [uiautomator2](https://github.com/openatx/uiautomator2) as the UI test driver; 
-- [Fastbot](https://github.com/bytedance/Fastbot_Android) as the backend automated UI testing tool. 
+- [Fastbot](https://github.com/bytedance/Fastbot_Android) as the backend automated UI testing tool.
 
-In the future, Kea2 will be extended to support
+Several key features of Kea2 are inspired by **[Hypothesis](https://github.com/HypothesisWorks/hypothesis)**, the property-based testing framework for Python.
+
+**In the future, Kea2 will be extended to support:**
 - [pytest](https://docs.pytest.org/en/stable/), another popular python testing framework;
 - [Appium](https://github.com/appium/appium), [Hypium](https://developer.huawei.com/consumer/cn/doc/harmonyos-guides/hypium-python-guidelines) (for HarmonyOS/Open Harmony);
 - any other automated UI testing tools (not limited to Fastbot)
@@ -92,7 +98,7 @@ In the future, Kea2 will be extended to support
 Running environment:
 - support Windows, MacOS and Linux
 - python 3.8+, Android 5.0~16.0 (Android SDK installed)
-- **VPN closed** (Features 2 and 3 required)
+- **Disable localhost proxy** (some VPNs affect u2). Set it to bypass `localhost` or turn off the VPN if needed. (Required for Features 2 and 3.)
 
 Install Kea2 by `pip`:
 ```bash
@@ -143,24 +149,25 @@ Otherwise, please help [file a bug report](https://github.com/ecnusse/Kea2/issue
 
 
 
-## Feature 1(运行基础版Fastbot：查找稳定性错误)
+## Feature 1 (Find crashes with the full capability of Fastbot and get kea2 test reports)
 
 Test your app with the full capability of Fastbot for stress testing and finding *stability problems* (i.e., *crashing bugs*); 
+Meanwhile, you can get test reports generated by Kea2 to understand app behaviors and discovered bugs during testing.
 
 ```bash
-kea2 run -p it.feio.android.omninotes.alpha --running-minutes 10 --throttle 200
+kea2 run -p it.feio.android.omninotes.alpha --running-minutes 10
 ```
 
-To understand the meanings of the options, you can see our [user manual](docs/manual_en.md#launching-kea2).
+To understand the meanings of the options, you can see our [user manual](/docs/manual_en.md#launch-kea2).
 
-> The usage is similar to the the original Fastbot's [shell commands](https://github.com/bytedance/Fastbot_Android?tab=readme-ov-file#run-fastbot-with-shell-command). 
+> The usage is similar to the the original Fastbot's [shell commands](https://github.com/bytedance/Fastbot_Android?tab=readme-ov-file#run-fastbot-with-shell-command).
 
 See more options by 
 ```bash
 kea2 run -h
 ```
 
-## Feature 2(运行增强版Fastbot：自定义测试场景\事件序列\黑白控件)
+## Feature 2 (Run Enhanced Fastbot: Custom Testing Scenarios/Event Sequences/Widget Whitelists and Blacklists)
 
 When running any automated UI testing tools like Fastbot to test your apps, you may find that some specifc UI pages or functionalities are difficult to reach or cover. The reason is that Fastbot lacks knowledge of your apps. Fortunately, this is the strength of script testing. In Feature 2, Kea2 can support writing small scripts to guide Fastbot to explore wherever we want. You can also use such small scripts to block specific widgets during UI testing.
 
@@ -197,10 +204,10 @@ You can find the full example in script `quicktest.py`, and run this script with
 
 ```bash
 # Launch Kea2 and load one single script quicktest.py.
-kea2 run -p it.feio.android.omninotes.alpha --running-minutes 10 --throttle 200 --driver-name d propertytest discover -p quicktest.py
+kea2 run -p it.feio.android.omninotes.alpha --running-minutes 10 propertytest discover -p quicktest.py
 ```
 
-## Feature 3(运行增强版Fastbot：加入自动断言)
+## Feature 3 (Run Enhanced Fastbot: Add Assertions)
 
 Kea2 supports auto-assertions when running Fastbot for finding *logic bugs* (i.e., *non-crashing bugs*). To achieve this, you can add assertions in the scripts. When an assertion fails during automated UI testing, we find a likely functional bug. 
 
@@ -251,159 +258,75 @@ For the preceding always-holding property, we can write the following script to 
 
 You can run this example by using the similar command line in Feature 2.
 
-## Feature 4(兼容已有脚本：通过前置脚本步骤到达特定层次)
-
-Kea2 supports reusing existing Ui test Scripts. We are inspired by the idea that: *The existing Ui test scripts usually cover important app functionalities and can reach deep app states. Thus, they can be used as good "guiding scripts" to drive Fastbot to explore important and deep app states.*
-
-For example, you may already have some existing Ui test scripts "login and add a friend", This feature allows you to use the existing script, set some breakpoints (i.e., interruptable points) in the script, and launch Fastbot to explore the app after every breakpoint. By using this feature, you can do the login first and then launch Fastbot to explore the app after login. Which helps Fastbot to explore deep app states. (fastbot can't do login by itself easily).
-
-### Example
-
-Here are four example scripts in hybridetest_examples, each corresponding to different forms of user scripts, showing you how to launch kea2 in the existing code.
-
-Specifically:  
-
-* [u2_unittest_example.py](hybridtest_examples\u2_unittest_example.py) is a u2 script organized with unittest.
-* [u2_pytest_example.py](hybridtest_examples\u2_pytest_example.py) is a u2 script organized with pytest.
-* [appium_unittest_example.py](hybridtest_examples\appium_unittest_example.py) is an appium script organized with unittest.
-* [appium_pytest_example.py](hybridtest_examples\appium_pytest_example.py) is an appium script organized with pytest.
-
-Some notes:
-
-1. You can control whether to execute the kea2-related code you have written by modifying the condition of 'if'. This allows you to easily enable or disable kea2 operations in the same script. Here we use environment variable as an example.
-2. Since kea2 is driven by u2, if an appium-written script wants to launch kea2, it is necessary to first close the appium session. Remember to configure the parameter `"noReset": True` in `desired_caps` to avoid resetting the application when closing the session.
-3. You need to insert the following code template into your existing test cases: Here, you can add your own hook logic in the commented sections, including starting or stopping the appium session, cleaning up instances, etc. This depends on how you want to design the setup and teardown. Apart from that, you only need to configure the `option` parameter and `configs_path` parameter(where your directory `configs` located, btw, `configs`'s location dependon where you executed `kea2 init`), then pass it to the `run_kea2_testing` function.
-
-```python
-from kea2 import Kea2Tester, Options
-
-if os.environ.get('KEA2_HYBRID_MODE', '').lower() == 'true': 
-    '''
-    Note: The if condition here can be modified as needed according to the actual 
-    situation of the project, the form of environment variables is just an example.    
-    '''
-
-    # close your driver session etc. here
-    # ...
-    
-    tester = Kea2Tester()
-    result = self.tester.run_kea2_testing(
-        Options(
-            driverName="d",
-            packageNames=[PACKAGE_NAME],
-            propertytest_args=["discover", "-p", "Omninotes_Sample.py"],
-            serial=DEVICE_SERIAL,
-            running_mins=2,
-            maxStep=20
-        ),
-        configs_path = None  # Default, if your configs folder is located in the root directory, miss this.           
-    )
-    
-    # restart your driver session or clean instance here
-    # ...
-    
-    return  # this make your following steps of this testcase not work
-```
 
 
 
-## Test Reports（测试报告）
+
+## Test Reports
 
 Kea2 automatically generates a HTML test report after each testing session. You can find the report in `output/` under your working directory.
+<div align="center">
+    <img style="border-radius: 14px; width: 70%; height: 70%;" src="https://github.com/user-attachments/assets/83a30d44-1884-4098-8062-9bab62bfdb19" />
+</div>
 
-You can also manually generate the test report by 
-```bash
-kea2 report -p [RES_DIR]
-``` 
+#### Sample test reports
+- [Single test report](https://ecnusse.github.io/Kea2_sample_report/) - Courtesy of Opay.
+- [Merged test report (multiple runs)](https://ecnusse.github.io/kea2_sample_test_report/) - Summary for multiple runs.
 
-Use `-s/--sync` to sync data from device before generating the report, and `-p/--path` to point to one or more result directories.
-For example:
-
-```bash
-`kea2 report -p output/res_YYYYMMDDHH_xxxxxx`
-`kea2 report -s -p output/res_YYYYMMDDHH_xxxxxx`
-``` 
-
-You can also merge the test report from multiple testing sessions by 
-
-```bash
-kea2 merge -p [RES_DIR1] [RES_DIR2] ... -o [OUTPUT_DIR]
-```
-
-The merged test report is quite useful if you would test your apps for multiple sessions.
-
-> You can find a sample [test report](https://ecnusse.github.io/Kea2_sample_report/) from Opay (Thank you!). You can find more details on the test report in [this documentation](docs/test_report_introduction.md).
-
-## Documentations（更多文档）
+> You can find more details on the test report in [this documentation](docs/test_report_introduction.md).
 
 
-### :blue_book: [User Manual](docs/manual_en.md) (Important!)
-You can find the [user manual](docs/manual_en.md), which includes:
-- Examples of using Kea2 on WeChat (in Chinese);
-- How to define Kea2's scripts and use the decorators (e.g., `@precondition`、`@prob`、`@max_tries`);
-- How to run Kea2 and Kea2's command line options
-- How to find and understand Kea2's testing results
-- How to [whitelist or blacklist](docs/blacklisting.md) specific activities, UI widgets and UI regions during fuzzing
+## :blue_book: User Manual (用户手册)
 
-### Other resources about Kea2 (in Chinese)
-- [Q&A for Kea2 and PBT (对Kea2和PBT技术的常见问题和回答)](https://sy8pzmhmun.feishu.cn/wiki/SLGwwqgzIiEuC3kwmV8cSZY0nTg?from=from_copylink) 
-- [Kea2 101 (Kea2 从0到1 的入门教程与最佳实践，建议新手阅读)](https://sy8pzmhmun.feishu.cn/wiki/EwaWwPCitiUJoBkIgALcHtglnDK?from=from_copylink)
-- [Kea2 分享交流会 (2025.09, bilibili 录播)](https://www.bilibili.com/video/BV1CZYNz9Ei5/)
-- [Kea2 工具快速介绍 (2025.11, bilibili 录播)](https://www.bilibili.com/video/BV1WAyUBDEMw/)
+Please see the [user manual](/docs/manual_en.md) for more details on how to use Kea2.
 
-Some blogs on Kea/Kea2 (in Chinese):
-- [别再苦哈哈写测试脚本了，生成它们吧！(一)](https://mp.weixin.qq.com/s/R2kLCkXpDjpa8wCX4Eidtg)
-- [别再苦哈哈写测试脚本了，生成它们吧！(二)](https://mp.weixin.qq.com/s/s4WkdstNcKupu9OP8jeOXw)
-- [别再苦哈哈写测试脚本了，生成它们吧！(三)](https://mp.weixin.qq.com/s/BjXyo-xJRmPB_sCc4pmh8g)
-- [2025 Let’s GoSSIP 软件安全暑期学校预告第一弹——Kea2](https://mp.weixin.qq.com/s/8_0_GNNin8E5BqTbJU33wg)
-- [功能性质驱动的测试技术：下一代GUI自动化测试技术](https://appw8oh6ysg4044.xet.citv.cn/p/course/video/v_6882fa14e4b0694ca0ec0a1b) --- 视频回放&PPT@MTSC 2025
+请查看[用户手册](/docs/manual_cn.md)以获取更多Kea2的详细文档。
 
-工业界对Kea2的理解和评价（点击箭头查看详情）：
+
+## :mega: News & Media
+-  [Property-driven Testing Technology: Next-generation GUI Automated Testing](https://appw8oh6ysg4044.xet.citv.cn/p/course/video/v_6882fa14e4b0694ca0ec0a1b) - Video replay and slides @ MTSC 2025
+- [Let's GoSSIP 2025 Software Security Summer School: Kea2 (Preview #1)](https://mp.weixin.qq.com/s/8_0_GNNin8E5BqTbJU33wg)
+
+Industry perspectives on Kea2 (click to expand, courtesy of Opay):
 
 <details>
-  <summary>Kea2的性质是什么含义？Kea2意义和价值是什么？</summary>
+  <summary>What does a “property” mean in Kea2? What is Kea2's value?</summary>
 
-    kea2 其实是一个工具，它是python+u2+fastbot的集合体。 它本身更像是一台装好了发动机和轮子的汽车底盘。
+    Kea2 is essentially a toolkit that combines Python, uiautomator2, and Fastbot. It is like a vehicle chassis with an engine and wheels already assembled.
     
-    性质是苏老师他们团队提出的一个概念， 转换到测试领域的实际工作中，性质对应的是最小单位的功能（原子级功能），性质的依赖条件很少或没有，它可以自身运行。一个典型的性质就是登录，它仅仅具有输入用户名，输入密码，提交。再举个例子，给视频点个赞，也就是简单的两三步。就是一个性质。
+    The concept of “property” was introduced by Prof. Su's team. In practical testing work, a property corresponds to a minimal, atomic app function with little or no dependency on other flows, so it can run independently. Typical examples include login (enter username, enter password, submit) or liking a video with just a few steps.
     
-    性质与kea2结合的意义是在于解决过去使用appium过重的问题。用appium去测试一个性质通常要写很多行的代码，引导界面到达性质的位置。但使用kea2，就只需要编写性质，如何到其所在的位置是交给fastbot和它的学习算法来搞定的。 
+    The value of combining properties with Kea2 is that it addresses the “heavy scripting” issue in Appium-style tests. With Appium, testing one property often requires many lines of navigation code. With Kea2, you mainly define the property itself, and Fastbot plus its learning strategy handles how to reach the target state.
     
-    kea2另个重大的价值是，它解决了上述思想所需要的技术支撑，比appium更轻量的UI编写方式，fastbot编写性质的能力不足，以及无法编写逻辑和断言。整体上是保留了fastbot以往的优秀品质，完善了其不足和短板。
+    Another major value is technical enablement: Kea2 provides lighter UI scripting than Appium, while compensating for Fastbot's original limitations in property logic and assertions. It preserves Fastbot's strengths and fills key capability gaps.
     
-    简而言之，需要做传统的编排型的功能测试，仍然使用appium，使用kea2也行，但你感觉不到它的价值。本身有需要做混沌测试，模糊测试，兼容性测试。那么强烈，强烈推荐kea2。kea2更偏探索性测试而非编排型。
+    In short, for strictly orchestrated functional test cases, Appium is still a fine choice. But if your goal is exploratory testing, fuzz/stress testing, or compatibility testing, Kea2 is strongly recommended.
 </details>
 
 <details>
-  <summary>kea2组成是什么？kea2的核心作用？kea2做了什么？</summary>
+  <summary>What is Kea2 made of? What is its core role? What has it changed?</summary>
 
-kea2 组成：
+Kea2 is composed of:
 
-    fastbot  --  fuzz测试引擎，负责跑路。
-    u2 -- 负责进行业务空间的操作。与使用selenium，appium，没什么区别。
-    python --  u2的操作，逻辑的编写，定制化的实现。
+    Fastbot -- the fuzzing engine that drives large-scale exploration.
+    u2 -- executes business-level UI actions, similar in spirit to Selenium/Appium interactions.
+    Python -- used to write UI actions, logic, and custom behaviors.
 
-kea2的核心作用：
+Kea2's core role:
 
-    提供了条件触发器。 在FB跑路的时候，会不停遍历条件触发器，一旦触发，挂起FB，开始执行触发器指定的 ui test 及 assert。执行完毕，继续切回FB跑路。
+    It provides condition triggers. While Fastbot is exploring, Kea2 continuously evaluates trigger conditions. When a condition is met, Fastbot is paused, the specified UI test/assertions are executed, and then control returns to Fastbot.
 
-kea2做了什么：
+What Kea2 has changed:
 
-    替换了FB的条件触发功能。
-    替换了FB的黑名单，黑控件功能。
-    替换了FB剪枝功能。
-    增加了多元化的元素空间操作能力。
-    增加了fuzz测试中的 逻辑设定。
-    增加了断言能力。
-    增加了元素操作能力。
+    Replaced Fastbot's original condition-trigger mechanism.
+    Replaced Fastbot's activity/widget blacklist mechanism.
+    Replaced Fastbot's pruning mechanism.
+    Added richer element-space operation capabilities.
+    Added logic modeling in fuzz testing workflows.
+    Added assertion support.
+    Expanded UI element interaction capabilities.
 </details>
 
-
-## Open-source projects used by Kea2
-
-- [Fastbot](https://github.com/bytedance/Fastbot_Android)
-- [uiautomator2](https://github.com/openatx/uiautomator2)
-- [hypothesis](https://github.com/HypothesisWorks/hypothesis)
 
 ## Relevant papers of Kea2
 
@@ -415,7 +338,18 @@ kea2做了什么：
 
 > Guided, Stochastic Model-Based GUI Testing of Android Apps. ESEC/FSE 2017.  [pdf](https://dl.acm.org/doi/10.1145/3106237.3106298)
 
-## Maintainers/Contributors
+
+## Contact us
+
+Please contact Xixian Liang at [xixian@stu.ecnu.edu.cn](xixian@stu.ecnu.edu.cn) with your Wechat ID / QR code to be invited to the WeChat discussion group. 
+
+Of course, we are also ready on GitHub to answer your questions/feedback.
+
+<div align="center">
+    <img src="https://github.com/user-attachments/assets/8d9f8750-1e10-411b-a49f-7d8367bbe9fe" style="border-radius: 14px; width: 20%; height: 20%;"/> 
+</div>
+
+### Maintainers/Contributors
 
 Kea2 has been actively developed and maintained by the people in [ecnusse](https://github.com/ecnusse):
 
@@ -443,6 +377,6 @@ See [Developer guide](DEVELOP.md) for more details.
 
 [![Star History Chart](https://api.star-history.com/svg?repos=ecnusse/Kea2&type=Date)](https://www.star-history.com/#ecnusse/Kea2&Date)
 
-[^1]: 不少UI自动化测试工具提供了“自定义事件序列”能力（如[Fastbot](https://github.com/bytedance/Fastbot_Android/blob/main/handbook-cn.md#%E8%87%AA%E5%AE%9A%E4%B9%89%E4%BA%8B%E4%BB%B6%E5%BA%8F%E5%88%97) 和[AppCrawler](https://github.com/seveniruby/AppCrawler)），但在实际使用中存在不少问题，如自定义能力有限、使用不灵活等。此前不少Fastbot用户抱怨过其“自定义事件序列”在使用中的问题，如[#209](https://github.com/bytedance/Fastbot_Android/issues/209), [#225](https://github.com/bytedance/Fastbot_Android/issues/225), [#286](https://github.com/bytedance/Fastbot_Android/issues/286)等。
+[^1]: Many UI automated testing tools provide “custom event sequence” features (such as [Fastbot](https://github.com/bytedance/Fastbot_Android/blob/main/handbook-cn.md#%E8%87%AA%E5%AE%9A%E4%B9%89%E4%BA%8B%E4%BB%B6%E5%BA%8F%E5%88%97) and [AppCrawler](https://github.com/seveniruby/AppCrawler)), but these features often have practical limitations, such as restricted flexibility and difficult maintenance. Many Fastbot users have reported issues with its custom event sequence capability, e.g., [#209](https://github.com/bytedance/Fastbot_Android/issues/209), [#225](https://github.com/bytedance/Fastbot_Android/issues/225), and [#286](https://github.com/bytedance/Fastbot_Android/issues/286).
 
-[^2]: 在UI自动化测试过程中支持自动断言是一个很重要的能力，但几乎没有测试工具提供这样的能力。我们注意到[AppCrawler](https://ceshiren.com/t/topic/15801/5)的开发者曾经希望提供一种断言机制，得到了用户的热切响应，不少用户从21年就开始催更，但始终未能实现。 
+[^2]: Supporting automatic assertions during UI automated testing is an important capability, but very few tools provide it. We noticed that the developers of [AppCrawler](https://ceshiren.com/t/topic/15801/5) once planned to introduce an assertion mechanism; the idea received strong user interest, and users kept asking for updates since 2021, but it has not been delivered.

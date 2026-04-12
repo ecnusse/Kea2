@@ -1,6 +1,6 @@
 [project]
 name = "Kea2-python"
-version = "1.1.2b3"
+version = "1.2.3"
 description = "A python library for supporting and customizing automated UI testing for mobile apps"
 readme = "README.md"
 requires-python = ">=3.8"
@@ -9,6 +9,7 @@ dependencies = [
     "jinja2>=3.0.0",
     "uiautomator2>=3.3.3",
     "adbutils>=2.9.3",
+    "flatbuffers>=25.9.23",
     "packaging>=25.0",
 ]
 authors = [
@@ -26,4 +27,3 @@ kea2 = [
     "assets/**/*", 
     "report/templates/**/*"
 ]
-

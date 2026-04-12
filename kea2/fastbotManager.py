@@ -2,7 +2,6 @@ import itertools
 import requests
 
 from time import sleep
-from dataclasses import asdict
 from pathlib import Path
 
 from retry import retry
@@ -189,22 +188,6 @@ class FastbotManager:
             "/data/local/tmp/x86_64/libfastbot_native.so",
         )
 
-        cwd = getProjectRoot()
-        whitelist = self.options.act_whitelist_file
-        blacklist = self.options.act_blacklist_file
-        if bool(whitelist) ^ bool(blacklist):
-            if whitelist:
-                file_to_push = cwd / 'configs' / 'awl.strings'
-                remote_path = whitelist
-            else:
-                file_to_push = cwd / 'configs' / 'abl.strings'
-                remote_path = blacklist
-
-            self.dev.sync.push(
-                file_to_push,
-                remote_path
-            )
-
     def _startFastbotService(self) -> ADBStreamShell_V2:
         shell_command = [
             "CLASSPATH="
@@ -214,11 +197,10 @@ class FastbotManager:
             "/sdcard/kea2-thirdpart.jar",
             "exec", "app_process",
             "/system/bin", "com.android.commands.monkey.Monkey",
-            "--agent-u2" if self.options.agent == "u2" else "--agent",
-            "reuseq",
+            "--agent-u2",
+            self.options.fastbot_agent,
             "--running-minutes", f"{self.options.running_mins}",
             "--throttle", f"{self.options.throttle}",
-            "--bugreport",
             "--output-directory", f"{self.options.device_output_root}/output_{self.options.log_stamp}",
         ]
 
@@ -228,13 +210,16 @@ class FastbotManager:
         if self.options.profile_period:
             shell_command += ["--profile-period", f"{self.options.profile_period}"]
 
-        whitelist = self.options.act_whitelist_file
-        blacklist = self.options.act_blacklist_file
-        if bool(whitelist) ^ bool(blacklist):
-            if whitelist:
-                shell_command += ["--act-whitelist-file", f"{whitelist}"]
+        if bool(self.options.act_whitelist_file) ^ bool(self.options.act_blacklist_file):
+            config_path = getProjectRoot() / "configs"
+            if self.options.act_whitelist_file:
+                whitelist_path = config_path / "awl.strings"
+                self.dev.sync.push(whitelist_path, self.options.act_whitelist_file)
+                shell_command += ["--act-whitelist-file", self.options.act_whitelist_file]
             else:
-                shell_command += ["--act-blacklist-file", f"{blacklist}"]
+                blacklist_path = config_path / "abl.strings"
+                self.dev.sync.push(blacklist_path, self.options.act_blacklist_file)
+                shell_command += ["--act-blacklist-file", self.options.act_blacklist_file]
 
         shell_command += ["-v", "-v", "-v"]
 
@@ -272,5 +257,4 @@ class FastbotManager:
 
     def join(self):
         self.thread.join()
-
 

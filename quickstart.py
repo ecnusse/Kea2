@@ -132,6 +132,7 @@ def check_installation(serial=None):
 
 if __name__ == "__main__":
     check_installation(serial=None)
+    # Launch the test with unittest.main
     KeaTestRunner.setOptions(
         Options(
             driverName="d",
@@ -142,7 +143,6 @@ if __name__ == "__main__":
             take_screenshots=True,  # whether to take screenshots, default is False
             # running_mins=10,  # specify the maximal running time in minutes, default value is 10m
             # throttle=200,   # specify the throttle in milliseconds, default value is 200ms
-            agent="u2"  # 'native' for running the vanilla Fastbot, 'u2' for running Kea2
         )
     )
     unittest.main(testRunner=KeaTestRunner, testLoader=keaTestLoader)

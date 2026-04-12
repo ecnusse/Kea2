@@ -11,7 +11,6 @@ import re
 from typing import List, Literal, Union, Optional
 from lxml import etree
 from packaging.version import Version
-from .adbUtils import list_forwards, remove_forward
 from .utils import getLogger
 
 
@@ -57,15 +56,6 @@ class U2ScriptDriver:
             sleep(5)
         self.d._device_server_port = 8090
         return self.d
-
-    def _remove_remote_port(self, port:int):
-        """remove the forward port
-        """
-        forwardLists = list_forwards(device=self.deviceSerial)
-        for forward in forwardLists:
-            if forward["remote"] == f"tcp:{port}":
-                forward_local = forward["local"]
-                remove_forward(local_spec=forward_local, device=self.deviceSerial)
 
     def tearDown(self):
         logger.debug("U2Driver tearDown: stop_uiautomator")

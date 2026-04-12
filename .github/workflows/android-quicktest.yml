@@ -1,0 +1,56 @@
+name: Android Quicktest
+
+on:
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  android-quicktest:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: "3.11"
+
+    - name: Enable KVM
+      run: |
+        echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+        sudo udevadm control --reload-rules
+        sudo udevadm trigger --name-match=kvm
+
+    - name: Install kea2
+      run: |
+        python -m pip install .
+
+    - name: run kea2 tests on emulator
+      id: quicktest
+      uses: reactivecircus/android-emulator-runner@v2
+      with:
+        api-level: 36
+        target: google_apis
+        arch: x86_64
+        script: |
+          echo "Waiting for emulator to boot..."
+          adb wait-for-device
+          timeout 60 sh -c 'until [ "$(adb shell getprop sys.boot_completed 2>/dev/null | tr -d "\r")" = "1" ]; do sleep 2; done'
+          echo "Emulator boot completed."
+          adb devices
+
+          echo "Emulator is ready. Running kea2 quicktest..."
+          kea2 init
+          python3 quicktest.py; rc=$?; echo "rc=$rc" >> "$GITHUB_OUTPUT"; echo "quicktest return code: ${rc}"
+          
+    - name: Check quicktest return code
+      run: |
+        rc="${{ steps.quicktest.outputs.rc }}"
+        if [[ "${rc}" =~ ^[0-3]$ ]]; then
+          echo "Return code is valid (0,1,2,3)."
+          exit 0
+        fi
+        echo "Invalid return code: ${rc}. Expected one of 0,1,2,3."
+        exit 1

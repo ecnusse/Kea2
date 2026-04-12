@@ -105,7 +105,7 @@ def cmd_merge(args):
             print(f"📈 Merged {merge_summary.get('merged_directories', 0)} directories", flush=True)
 
     except Exception as e:
-        logger.error(f"Error during merge operation: {e}")      
+        logger.error(f"Error during merge operation: {e}")
 
 
 def cmd_run(args):
@@ -116,7 +116,7 @@ def cmd_run(args):
 
     check_config_compatibility()
 
-    run(args)
+    return run(args)
 
 
 _commands = [
@@ -168,7 +168,7 @@ _commands = [
                 help="Output directory for merged report (optional)"
             )
         ]
-    )
+     )
 ]
 
 
@@ -214,8 +214,8 @@ def main():
         logger.debug("args: %s", args)
 
     if args.subparser:
-        actions[args.subparser](args)
-        return
+        ret = actions[args.subparser](args)
+        sys.exit(0 if ret is None else int(ret))
 
     parser.print_help()
 

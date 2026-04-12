@@ -1,22 +1,35 @@
 [![PyPI](https://img.shields.io/pypi/v/kea2-python.svg)](https://pypi.python.org/pypi/kea2-python)
 [![PyPI Downloads](https://static.pepy.tech/badge/kea2-python)](https://pepy.tech/projects/kea2-python)
 ![Python](https://img.shields.io/badge/python-3.8%2B-blue)
+[![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/ecnusse/Kea2)
+
+[<img src="https://img.shields.io/badge/GitHub-181717?style=for-the-badge&logo=github&logoColor=white" />](https://github.com/ecnusse/Kea2)
+[<img src="https://img.shields.io/badge/Gitee-333333?style=for-the-badge&logo=gitee&logoColor=white" />](https://gitee.com/XixianLiang/Kea2)
+
+### [English](/README.md) | 简体中文
 
 
-<div>
-    <img src="https://github.com/user-attachments/assets/aa5839fc-4542-46f6-918b-c9f891356c84" style="border-radius: 14px; width: 20%; height: 20%;"/> 
+<div align="center">
+    <img src="docs/images/kea2_logo.png" alt="kea_logo" style="border-radius: 14px; width: 20%; height: 20%;"/>
 </div>
+<div align="center">
+    <a href="https://en.wikipedia.org/wiki/Kea">Kea2的Logo：一只擅长发现“bugs”的大型鹦鹉</a>
+</div>
+</br>
 
-### Github仓库链接
-[https://github.com/ecnusse/Kea2](https://github.com/ecnusse/Kea2)
-
-### [点击此处：查看中文文档](README_cn.md)
+### [:blue_book: User Manual](/docs/manual_en.md) | [:blue_book: 用户手册](/docs/manual_cn.md)
 
 ## 简介
 
-Kea2是一个易用的移动应用模糊测试工具。其核心*创新点*是：将自动化UI测试与脚本（通常由人工编写）进行融合，使自动化UI探索更加智能，从而有效发现*崩溃错误*及*非崩溃功能（逻辑）错误*。
+Kea2是一个易用的移动应用模糊测试工具。其核心*创新点*是能够融合自动化UI测试与脚本（通常由人工编写），从而赋能自动化UI测试以人类智能，有效发现*崩溃错误*及*非崩溃功能（逻辑）错误*。
 
-Kea2目前基于[Fastbot](https://github.com/bytedance/Fastbot_Android)（*一款工业级自动化UI测试工具*）及[uiautomator2](https://github.com/openatx/uiautomator2)（*一款易用且稳定的Android自动化库*）进行构建。  Kea2目前支持[Android](https://en.wikipedia.org/wiki/Android_(operating_system))应用。
+Kea2目前基于[Fastbot 3.0](https://github.com/ecnusse/Fastbot_Android)（原始[FastBot 2.0](https://github.com/bytedance/Fastbot_Android)的修改和增强版本，*字节跳动工业级自动化UI测试工具*）及[uiautomator2](https://github.com/openatx/uiautomator2)（*一款易用且稳定的Android自动化库*）构建。  
+Kea2目前支持[Android](https://en.wikipedia.org/wiki/Android_(operating_system))应用。
+
+https://github.com/user-attachments/assets/6120d8f5-5a9d-4ead-b27e-840c8757e28e
+
+
+
 
 ## 创新点及重要特性
 
@@ -36,22 +49,43 @@ Kea2目前基于[Fastbot](https://github.com/bytedance/Fastbot_Android)（*一�
 
 **Kea2三大特性的能力对比**
 
-|  | **特性 1** | **特性 2** | **特性 3** |
-| --- | --- | --- | ---- |
-| **发现崩溃错误** | :+1: | :+1: | :+1: |
-| **发现深层状态中的崩溃错误** |  | :+1: | :+1: |
-| **发现非崩溃功能（逻辑）错误** |  |  | :+1: |
+|                                                  | **特性 1** | **特性 2** | **特性 3** |
+| ------------------------------------------------ | ---------- | ---------- | ---------- |
+| **发现崩溃错误**                                  | :+1:       | :+1:       | :+1:       |
+| **发现深层状态中的崩溃错误**                      |            | :+1:       | :+1:       |
+| **发现非崩溃功能（逻辑）错误**                    |            |            | :+1:       |
 
 
+## Kea2的用户
+
+Kea2（及其理念）已被以下用户/项目使用或集成：
+
+<img src="https://github.com/user-attachments/assets/8334d717-c9d2-4fda-ad9b-611fa37935b4" alt="OPay" height="70" style="border-radius: 14px;"/> <img src="https://github.com/user-attachments/assets/f4eefbe3-1a4c-4a6e-acca-b97d35e34487" alt="Huawei" height="70" style="border-radius: 14px;"/> <img src="https://github.com/user-attachments/assets/c8da7eb1-c7bd-4fc8-ac7c-ee241168566c" alt="WeChat Pay" height="70" style="border-radius: 14px;"/> <img src="https://github.com/user-attachments/assets/cef587b2-0142-40ed-91f0-baf087d0a03a" alt="WeChat" height="70" style="border-radius: 14px;"/> 
+
+
+- [OPay Business](https://play.google.com/store/apps/details?id=team.opay.pay.merchant.service) --- 一款金融支付App（每日活跃用户2000万）。OPay使用Kea2对POS机和移动设备进行回归测试。
+
+- [WeChat's iExplorer]() --- 微信内部测试平台（带有交互式UI工具以简化脚本编写）
+
+- [WeChat Payment's UAT]() --- 微信支付内部测试平台（通过从系统规格综合性质实现全自动基于性质的测试）
+
+- [DevEco Testing](https://developer.huawei.com/consumer/cn/deveco-testing/) --- 华为HarmonyOS官方测试平台（Kea2基于Hypium构建）
+
+- [ByteDance's Fastbot](https://github.com/bytedance/Fastbot_Android)
+
+如果你也在使用Kea2，欢迎联系我们并反馈你的意见和问题。
 
 ## 设计与展望
-Kea2当前工作流程：
-- 使用[unittest](https://docs.python.org/3/library/unittest.html)作为测试框架，用于管理脚本；
-- 使用[uiautomator2](https://github.com/openatx/uiautomator2)作为UI测试驱动；
-- 使用[Fastbot](https://github.com/bytedance/Fastbot_Android)作为后端自动化UI测试工具。
 
-未来，Kea2计划支持：
-- [pytest](https://docs.pytest.org/en/stable/)，另一款流行的python测试框架；
+**Kea2当前工作流程基于3个开源项目：**
+- [unittest](https://docs.python.org/3/library/unittest.html) 作为测试框架管理脚本；
+- [uiautomator2](https://github.com/openatx/uiautomator2) 作为UI测试驱动；
+- [Fastbot](https://github.com/bytedance/Fastbot_Android) 作为后端自动化UI测试工具。
+
+Kea2的若干关键特性受到**[Hypothesis](https://github.com/HypothesisWorks/hypothesis)**（Python基于性质的测试框架）的启发。
+
+**未来，Kea2计划支持：**
+- [pytest](https://docs.pytest.org/en/stable/)，另一款流行的Python测试框架；
 - [Appium](https://github.com/appium/appium)、[Hypium](https://developer.huawei.com/consumer/cn/doc/harmonyos-guides/hypium-python-guidelines)（针对HarmonyOS/Open Harmony）；
 - 其他任何自动化UI测试工具（不限于Fastbot）
 
@@ -60,8 +94,8 @@ Kea2当前工作流程：
 
 运行环境：
 - 支持Windows、MacOS和Linux
-- python 3.8+，Android 5.0+（已安装Android SDK）
-- **关闭VPN**（特性 2 与 3 需要）
+- python 3.8+，Android 5.0~16.0（已安装Android SDK）
+- **关闭本机代理对 `localhost` 的影响**（部分 VPN/代理会影响 u2）。可将 `localhost` 加入直连白名单，或临时关闭 VPN。（特性 2 与 3 必需）
 
 通过 `pip` 安装Kea2：
 ```bash
@@ -73,39 +107,54 @@ python3 -m pip install kea2-python
 kea2 -h
 ```
 
-## 快速测试
+如果之前已安装Kea2，升级到最新版本：
+```bash
+python3 -m pip install -U kea2-python
+```
+> 如果你使用清华、USTC等镜像站点，可能会升级失败，因为这些站点可能尚未同步最新版本。此时，你可以尝试手动指定最新版本安装，或直接使用官方PyPI源：`pip install kea2-python -i https://pypi.org/simple`。
 
-Kea2连接并运行于Android设备。建议先做快速测试以确保Kea2与你的设备兼容。
-
-1. 连接一台真实Android设备或Android模拟器（只需一台），并运行 `adb devices` 确保设备已被识别。
-
-2. 运行 `quicktest.py` ，测试示例应用 `omninotes`（在Kea2仓库中以 `omninotes.apk` 发布）。`quicktest.py`脚本会自动安装并短时间测试此示例应用。
+升级到指定版本（例如1.0.0）：
+```bash
+python3 -m pip install -U kea2-python==1.0.0
+```
 
 在你偏好的工作目录初始化Kea2：
 ```python
 kea2 init
 ```
 
-> 如是首次运行Kea2，此步骤是必需的。
+> 如果是首次运行Kea2，此步骤必需。升级后也建议重新执行此步骤，以确保新配置生效。
+
+
+## 快速测试
+
+Kea2连接并运行于Android设备。建议先做快速测试以确保Kea2与你的设备兼容。
+
+1. 连接一台真实Android设备或Android模拟器，并运行 `adb devices` 确认设备已被识别。
+
+2. 运行 `quicktest.py` 测试示例应用 `omninotes`（在Kea2仓库中以 `omninotes.apk` 发布）。`quicktest.py`脚本会自动安装并短时间测试此示例应用。
 
 运行快速测试：
-```python
+```bash
 python3 quicktest.py
 ```
+
+> 快速测试会自动下载 `omninotes.apk`。如果下载失败，请从Kea2仓库根目录复制 `omninotes.apk` 到当前工作目录，再次执行快速测试命令。
 
 若能看到应用 `omninotes` 成功运行并被测试，说明Kea2正常工作！  
 否则请协助[提交错误报告](https://github.com/ecnusse/Kea2/issues)，并附上错误信息。谢谢！
 
 
-## 特性 1（运行基础版Fastbot：查找稳定性错误）
+## 特性 1（运行基础版Fastbot：查找稳定性错误并获得 kea2 测试报告）
 
 利用Fastbot的全部能力对你的App进行压力测试，查找*稳定性错误*（即*崩溃错误*）；
+同时，你可以获得由Kea2提供的测试报告，了解测试过程中的App行为和发现的错误。
 
 ```bash
-kea2 run -s "emulator-5554" -p it.feio.android.omninotes.alpha --agent native --running-minutes 10 --throttle 200
+kea2 run -p it.feio.android.omninotes.alpha --running-minutes 10
 ```
 
-如需了解各选项含义，请参见我们的[手册](docs/manual_en.md#launching-kea2)。
+如需了解各选项含义，请参见我们的[用户手册](/docs/manual_cn.md#启动-kea2)。
 
 > 使用方式与原始Fastbot的[shell命令](https://github.com/bytedance/Fastbot_Android?tab=readme-ov-file#run-fastbot-with-shell-command)相似。
 
@@ -150,7 +199,7 @@ kea2 run -h
 
 ```bash
 # 启动Kea2并加载单个脚本 quicktest.py。
-kea2 run -s "emulator-5554" -p it.feio.android.omninotes.alpha --running-minutes 10 --throttle 200 --driver-name d unittest discover -p quicktest.py
+kea2 run -p it.feio.android.omninotes.alpha --running-minutes 10 propertytest discover -p quicktest.py
 ```
 
 ## 特性 3（运行增强版Fastbot：加入自动断言）
@@ -178,39 +227,93 @@ Kea2支持在运行Fastbot时自动断言，用以发现*逻辑错误*（即*非
 
 针对上述一直应保持的性质，可编写以下脚本验证功能正确性：当消息发送页有`input_box`控件时，输入任意非空字符串后，断言`send_button`控件应始终存在。
 
-
 ```python
     @precondition(
         lambda self: self.d(description="input_box").exists
     )
     def test_input_box(self):
+
+        # 生成一个随机非空字符串（这也是基于性质的测试，通过输入随机文本！）
         from hypothesis.strategies import text, ascii_letters
         random_str = text(alphabet=ascii_letters).example()
+
+        # 将该非空字符串输入到输入框
         self.d(description="input_box").set_text(random_str)
+
+        # 检查发送按钮是否存在
         assert self.d(description="send_button").exists
 
         # 我们甚至可以做更多断言，例如，
-        #       输入字符串应出现在消息发送页面上
+        #       输入字符串应成功显示在消息发送页面上
         assert self.d(text=random_str).exists
 ```
 > 这里使用了[hypothesis](https://github.com/HypothesisWorks/hypothesis)生成随机文本。
 
 你可以用类似特性 2 的命令行运行此示例。
 
-## 文档（更多文档）
+## 测试报告
 
-你可以查阅[用户手册](docs/manual_en.md)，包含：
-- Kea2在微信上的使用示例（中文）；
-- 如何定义Kea2脚本和使用装饰器（如`@precondition`、`@prob`、`@max_tries`）；
-- 如何运行Kea2及命令行选项；
-- 如何发现并理解Kea2的测试结果；
-- 如何在模糊测试过程中将特定Activity、UI控件和UI区域加入[白名单或黑名单](docs/blacklisting.md)
+Kea2会在每次测试结束后自动生成HTML格式的测试报告。你可以在当前工作目录下的`output/`目录中找到报告。
+<div align="center">
+    <img style="border-radius: 14px; width: 70%; height: 70%;" src="https://github.com/user-attachments/assets/83a30d44-1884-4098-8062-9bab62bfdb19" />
+</div>
 
-## Kea2使用的开源项目
+#### 测试报告示例
+- [单次测试报告](https://ecnusse.github.io/Kea2_sample_report/) - 由Opay提供。
+- [合并测试报告（多次运行）](https://ecnusse.github.io/kea2_sample_test_report/) - 多次运行的汇总。
 
-- [Fastbot](https://github.com/bytedance/Fastbot_Android)
-- [uiautomator2](https://github.com/openatx/uiautomator2)
-- [hypothesis](https://github.com/HypothesisWorks/hypothesis)
+> 更多测试报告详情请参见[文档](docs/test_report_introduction.md)。
+
+## :blue_book: User Manual (用户手册)
+
+Please see the [user manual](/docs/manual_en.md) for more details on how to use Kea2.
+
+请查看[用户手册](/docs/manual_cn.md)以获取更多Kea2的详细文档。
+
+## :mega: News & Media
+- [功能性质驱动的测试技术：下一代GUI自动化测试技术](https://appw8oh6ysg4044.xet.citv.cn/p/course/video/v_6882fa14e4b0694ca0ec0a1b) - 视频回放与 PPT @ MTSC 2025
+- [2025 Let’s GoSSIP 软件安全暑期学校：Kea2（预告 #1）](https://mp.weixin.qq.com/s/8_0_GNNin8E5BqTbJU33wg)
+
+工业界对Kea2的理解和评价（点击箭头查看详情）：
+
+<details>
+  <summary>Kea2的性质是什么含义？Kea2意义和价值是什么？</summary>
+
+    kea2 其实是一个工具，它是python+u2+fastbot的集合体。 它本身更像是一台装好了发动机和轮子的汽车底盘。
+    
+    性质是苏老师他们团队提出的一个概念， 转换到测试领域的实际工作中，性质对应的是最小单位的功能（原子级功能），性质的依赖条件很少或没有，它可以自身运行。一个典型的性质就是登录，它仅仅具有输入用户名，输入密码，提交。再举个例子，给视频点个赞，也就是简单的两三步。就是一个性质。
+    
+    性质与kea2结合的意义是在于解决过去使用appium过重的问题。用appium去测试一个性质通常要写很多行的代码，引导界面到达性质的位置。但使用kea2，就只需要编写性质，如何到其所在的位置是交给fastbot和它的学习算法来搞定的。 
+    
+    kea2另个重大的价值是，它解决了上述思想所需要的技术支撑，比appium更轻量的UI编写方式，fastbot编写性质的能力不足，以及无法编写逻辑和断言。整体上是保留了fastbot以往的优秀品质，完善了其不足和短板。
+    
+    简而言之，需要做传统的编排型的功能测试，仍然使用appium，使用kea2也行，但你感觉不到它的价值。本身有需要做混沌测试，模糊测试，兼容性测试。那么强烈，强烈推荐kea2。kea2更偏探索性测试而非编排型。
+</details>
+
+<details>
+  <summary>kea2组成是什么？kea2的核心作用？kea2做了什么？</summary>
+
+kea2 组成：
+
+    fastbot  --  fuzz测试引擎，负责跑路。
+    u2 -- 负责进行业务空间的操作。与使用selenium，appium，没什么区别。
+    python --  u2的操作，逻辑的编写，定制化的实现。
+
+kea2的核心作用：
+
+    提供了条件触发器。 在FB跑路的时候，会不停遍历条件触发器，一旦触发，挂起FB，开始执行触发器指定的 ui test 及 assert。执行完毕，继续切回FB跑路。
+
+kea2做了什么：
+
+    替换了FB的条件触发功能。
+    替换了FB的黑名单，黑控件功能。
+    替换了FB剪枝功能。
+    增加了多元化的元素空间操作能力。
+    增加了fuzz测试中的 逻辑设定。
+    增加了断言能力。
+    增加了元素操作能力。
+</details>
+
 
 ## Kea2相关论文
 
@@ -222,13 +325,24 @@ Kea2支持在运行Fastbot时自动断言，用以发现*逻辑错误*（即*非
 
 > Guided, Stochastic Model-Based GUI Testing of Android Apps. ESEC/FSE 2017.  [pdf](https://dl.acm.org/doi/10.1145/3106237.3106298)
 
+
+## 联系我们
+
+请联系梁希贤，邮箱 [xixian@stu.ecnu.edu.cn](xixian@stu.ecnu.edu.cn)，并附上你的微信号或二维码，以便邀请加入微信群。
+
+当然，我们也在GitHub上随时欢迎你的问题和反馈。
+
+<div align="center">
+    <img src="https://github.com/user-attachments/assets/8d9f8750-1e10-411b-a49f-7d8367bbe9fe" style="border-radius: 14px; width: 20%; height: 20%;"/> 
+</div>
+
 ### 维护者/贡献者
 
 Kea2由[ecnusse](https://github.com/ecnusse)团队积极开发与维护：
 
 - [Xixian Liang](https://xixianliang.github.io/resume/) ([@XixianLiang][])
-- Bo Ma ([@majuzi123][])
-- Chen Peng ([@Drifterpc][])
+- [Bo Ma](https://github.com/majuzi123) ([@majuzi123][])
+- [Cheng Peng](https://github.com/Drifterpc) ([@Drifterpc][])
 - [Ting Su](https://tingsu.github.io/) ([@tingsu][])
 
 [@XixianLiang]: https://github.com/XixianLiang
@@ -236,10 +350,20 @@ Kea2由[ecnusse](https://github.com/ecnusse)团队积极开发与维护：
 [@Drifterpc]: https://github.com/Drifterpc
 [@tingsu]: https://github.com/tingsu
 
-[Zhendong Su](https://people.inf.ethz.ch/suz/), [Yiheng Xiong](https://xyiheng.github.io/), [Xiangchen Shen](https://xiangchenshen.github.io/), [Mengqian Xu](https://mengqianx.github.io/), [Haiying Sun](https://faculty.ecnu.edu.cn/_s43/shy/main.psp), [Jingling Sun](https://jinglingsun.github.io/), [Jue Wang](https://cv.juewang.info/)也积极参与并对项目贡献良多！
+[Zhendong Su](https://people.inf.ethz.ch/suz/), [Yiheng Xiong](https://xyiheng.github.io/), [Xiangchen Shen](https://xiangchenshen.github.io/), [Mengqian Xu](https://mengqianx.github.io/), [Haiying Sun](https://faculty.ecnu.edu.cn/_s43/shy/main.psp), [Jingling Sun](https://jinglingsun.github.io/), [Jue Wang](https://cv.juewang.info/), [Geguang Pu]()也积极参与并对项目贡献良多！
 
-Kea2还获得京东等多位工业界专家的宝贵建议和经验分享，感谢字节跳动（[Zhao Zhang](https://github.com/zhangzhao4444)、Fastbot团队的Yuhui Su）、OPay（Tiesong Liu）、微信（Haochuan Lu，Yuetang Deng）、华为、小米等多方支持，致敬！
+Kea2还获得多位工业界专家的宝贵建议和经验分享，感谢字节跳动（[Zhao Zhang](https://github.com/zhangzhao4444)、Fastbot团队的Yuhui Su）、OPay（Tiesong Liu）、微信（Haochuan Lu，Yuetang Deng）、华为、小米等多方支持，致敬！
+
+### 成为贡献者！
+
+Kea2是一个开源项目，欢迎更多贡献者加入！
+
+详情请参见[开发者指南](DEVELOP.md)。
+
+## Star历史
+
+[![Star History Chart](https://api.star-history.com/svg?repos=ecnusse/Kea2&type=Date)](https://www.star-history.com/#ecnusse/Kea2&Date)
 
 [^1]: 不少UI自动化测试工具提供了“自定义事件序列”能力（如[Fastbot](https://github.com/bytedance/Fastbot_Android/blob/main/handbook-cn.md#%E8%87%AA%E5%AE%9A%E4%B9%89%E4%BA%8B%E4%BB%B6%E5%BA%8F%E5%88%97) 和[AppCrawler](https://github.com/seveniruby/AppCrawler)），但在实际使用中存在不少问题，如自定义能力有限、使用不灵活等。此前不少Fastbot用户抱怨过其“自定义事件序列”在使用中的问题，如[#209](https://github.com/bytedance/Fastbot_Android/issues/209), [#225](https://github.com/bytedance/Fastbot_Android/issues/225), [#286](https://github.com/bytedance/Fastbot_Android/issues/286)等。
 
-[^2]: 在UI自动化测试过程中支持自动断言是一个很重要的能力，但几乎没有测试工具提供这样的能力。我们注意到[AppCrawler](https://ceshiren.com/t/topic/15801/5)的开发者曾经希望提供一种断言机制，得到了用户的热切响应，不少用户从21年就开始催更，但始终未能实现。 
+[^2]: 在UI自动化测试过程中支持自动断言是一个很重要的能力，但几乎没有测试工具提供这样的能力。我们注意到[AppCrawler](https://ceshiren.com/t/topic/15801/5)的开发者曾经希望提供一种断言机制，得到了用户的热切响应，不少用户从21年就开始催更，但始终未能实现。

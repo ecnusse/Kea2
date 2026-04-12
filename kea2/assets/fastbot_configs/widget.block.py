@@ -6,7 +6,6 @@ def global_block_widgets(d: "Device"):
     """
     Specify UI widgets to be blocked globally during testing.
     Returns a list of widgets that should be blocked from exploration.
-    This function is only available in 'u2 agent' mode.
     """
     # return [d(text="widgets to block"), d.xpath(".//node[@text='widget to block']")]
     return []
@@ -24,7 +23,6 @@ def global_block_tree(d: "Device"):
     """
     Specify UI widget trees to be blocked globally during testing.
     Returns a list of root nodes whose entire subtrees will be blocked from exploration.
-    This function is only available in 'u2 agent' mode.
     """
     # return [d(text="trees to block"), d.xpath(".//node[@text='tree to block']")]
     return []

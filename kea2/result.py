@@ -34,6 +34,7 @@ class KeaJsonResult(TextTestResult):
     lastInvariantInfo: PropertyExecutionInfo
     executionInfoBuffer: Deque["PropertyExecutionInfo"] = deque()
     currentStepsCount: int
+    has_crash_or_anr: bool = False
 
     @classmethod
     def setProperties(cls, allProperties: Dict):
@@ -139,8 +140,7 @@ class KeaJsonResult(TextTestResult):
         invariant_fails = sum(_.fail for _ in self.res.values() if _.kind == "invariant")
         invariant_errors = sum(_.error for _ in self.res.values() if _.kind == "invariant")
         logger.info(f"[Property Execution Summary] Errors:{property_errors}, Fails:{property_fails}")
-        if invariant_fails > 0 or invariant_errors > 0:
-            logger.info(f"[Invariant Execution Summary] Errors:{invariant_errors}, Fails:{invariant_fails}")
+        logger.info(f"[Invariant Execution Summary] Errors:{invariant_errors}, Fails:{invariant_fails}")
     
     def flushResult(self):
         json_res = dict()

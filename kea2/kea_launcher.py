@@ -2,6 +2,15 @@ import sys
 import argparse
 import unittest
 from typing import List
+from enum import IntEnum
+
+
+class ReturnCode(IntEnum):
+    SUCCESS = 0                               # 0b000
+    PROPERTY_VIOLATION = 1                    # 0b001 
+    CRASH_OR_ANR = 2                          # 0b010
+    PROPERTY_VIOLATION_and_CRASH_OR_ANR = 3   # 0b011 (PROPERTY_VIOLATION | CRASH_OR_ANR)
+    ERROR = 4                                 # 0b100
 
 
 def _set_runner_parser(subparsers: "argparse._SubParsersAction[argparse.ArgumentParser]"):
@@ -47,15 +56,6 @@ def _set_runner_parser(subparsers: "argparse._SubParsersAction[argparse.Argument
     )
 
     parser.add_argument(
-        "--agent",
-        dest="agent",
-        type=str,
-        default="u2",
-        choices=["native", "u2"],
-        help="By default, `u2` is used and supports all the three important features of Kea2. If you hope to run the orignal Fastbot, please use `native`.",
-    )
-
-    parser.add_argument(
         "--running-minutes",
         dest="running_minutes",
         type=int,
@@ -69,7 +69,7 @@ def _set_runner_parser(subparsers: "argparse._SubParsersAction[argparse.Argument
         dest="max_step",
         type=int,
         required=False,
-        help="The maxium number of monkey events to send (only available in `--agent u2`)",
+        help="The maxium number of monkey events to send",
     )
 
     parser.add_argument(
@@ -85,7 +85,18 @@ def _set_runner_parser(subparsers: "argparse._SubParsersAction[argparse.Argument
         dest="driver_name",
         type=str,
         required=False,
+        default="d",
         help="The name of driver used in the kea2's scripts. If `--driver-name d` is specified, you should use `d` to interact with a device, e..g, `self.d(..).click()`. ",
+    )
+
+    # Deprecated argument placeholder: keep parsing to provide a clear error message.
+    parser.add_argument(
+        "--agent",
+        dest="agent",
+        type=str,
+        required=False,
+        default=None,
+        help=argparse.SUPPRESS,
     )
 
     parser.add_argument(
@@ -142,20 +153,46 @@ def _set_runner_parser(subparsers: "argparse._SubParsersAction[argparse.Argument
         help="The root of device output dir. Kea2 will temporarily save the screenshots and result log into `<device-output-root>/output_*********/`. Make sure the root dir can be access.",
     )
 
+    # FBM sync options
+    parser.add_argument(
+        "--merge-fbm",
+        dest="merge_fbm",
+        action="store_true",
+        required=False,
+        help="(Experimental) FBM merge at startup. When enabled, pull FBM(s) from the device at startup, merge them with local PC FBM data.",
+    )
+
+    parser.add_argument(
+        "--fastbot-agent",
+        dest="fastbot_agent",
+        type=str,
+        choices=["double-sarsa", "sarsa"],
+        required=False,
+        default="double-sarsa",
+        help="Fastbot agent strategy.",
+    )
+
+
     parser.add_argument(
         "--act-whitelist-file",
         dest="act_whitelist_file",
         required=False,
+        nargs="?",
+        const="/sdcard/.kea2/awl.strings",
+        default=None,
         type=str,
-        help="Activity WhiteList File. Only the activities listed in the file can be explored during testing.",
+        help="Activity WhiteList File. If omitted value (only `--act-whitelist-file`), defaults to `/sdcard/.kea2/awl.strings`.",
     )
 
     parser.add_argument(
         "--act-blacklist-file",
         dest="act_blacklist_file",
         required=False,
+        nargs="?",
+        const="/sdcard/.kea2/abl.strings",
+        default=None,
         type=str,
-        help="Activity BlackList File. The activities listed in the file will be avoided during testing.",
+        help="Activity BlackList File. If omitted value (only `--act-blacklist-file`), defaults to `/sdcard/.kea2/abl.strings`.",
     )
 
     parser.add_argument(
@@ -175,8 +212,6 @@ def _set_runner_parser(subparsers: "argparse._SubParsersAction[argparse.Argument
 
 
 def extra_args_info_logger(args):
-    if args.agent == "native":
-        print("[Warning] Property not availble in native agent.", flush=True)
     if args.unittest_args:
         print("Captured unittest args:", args.unittest_args, flush=True)
     if args.propertytest_args:
@@ -187,30 +222,20 @@ def extra_args_info_logger(args):
 
 def driver_info_logger(args):
     print("[INFO] Driver Settings:", flush=True)
-    if args.serial:
-        print("  serial:", args.serial, flush=True)
-    if args.transport_id:
-        print("  transport_id:", args.transport_id, flush=True)
-    if args.package_names:
-        print("  package_names:", args.package_names, flush=True)
-    if args.agent:
-        print("  agent:", args.agent, flush=True)
-    if args.running_minutes:
-        print("  running_minutes:", args.running_minutes, flush=True)
-    if args.throttle_ms:
-        print("  throttle_ms:", args.throttle_ms, flush=True)
-    if args.log_stamp:
-        print("  log_stamp:", args.log_stamp, flush=True)
+
+    for name, value in vars(args).items():
+        if name in ["take_screenshots", "pre_failure_screenshots", "post_failure_screenshots",
+                    "extra", "unittest_args", "propertytest_args", "subparser"]:
+            continue
+        if value:
+            print(f"  {name}: {value}", flush=True)
+    
     if args.take_screenshots:
         print("  take_screenshots:", args.take_screenshots, flush=True)
         if args.pre_failure_screenshots:
             print("  pre_failure_screenshots:", args.pre_failure_screenshots, flush=True)
         if args.post_failure_screenshots:
             print("  post_failure_screenshots:", args.post_failure_screenshots, flush=True)
-    if args.max_step:
-        print("  max_step:", args.max_step, flush=True)
-    if args.restart_app_period > 0:
-        print("  restart_app_period:", args.restart_app_period, flush=True)
 
 
 def parse_args(argv: List):
@@ -225,11 +250,13 @@ def parse_args(argv: List):
 def _sanitize_args(args):
     args.mode = None
     args.propertytest_args = None
-    if args.agent == "u2" and not args.driver_name:
+    if args.agent is not None:
+        raise ValueError("--agent is deprecated and native mode is no longer supported. Please remove this parameter.")
+    if not args.driver_name:
         if args.extra == []:
             args.driver_name = "d"
         else:
-            raise ValueError("--driver-name should be specified when customizing script in --agent u2")
+            raise ValueError("--driver-name should be specified when customizing script")
     
     extra_args = {
         "unittest": [],
@@ -253,7 +280,7 @@ def _sanitize_args(args):
     args.extra = extra_args["extra"]
 
 
-def run(args=None):
+def run(args=None) -> ReturnCode:
     if args is None:
         args = parse_args(sys.argv[1:])
     _sanitize_args(args)
@@ -261,8 +288,8 @@ def run(args=None):
     extra_args_info_logger(args)
 
     from kea2 import KeaTestRunner, HybridTestRunner, Options, keaTestLoader
+    from kea2.keaUtils import KeaRuntimeError
     options = Options(
-        agent=args.agent,
         driverName=args.driver_name,
         packageNames=args.package_names,
         serial=args.serial,
@@ -283,15 +310,37 @@ def run(args=None):
         propertytest_args=args.propertytest_args,
         unittest_args=args.unittest_args,
         extra_args=args.extra,
+        merge_fbm=args.merge_fbm,
+        fastbot_agent=args.fastbot_agent,
     )
-    
+
+
     is_hybrid_test = True if options.unittest_args else False
     if is_hybrid_test:
         HybridTestRunner.setOptions(options)
         testRunner = HybridTestRunner
         argv = ["python3 -m unittest"] + options.unittest_args
-    if not is_hybrid_test or options.agent == "u2":
+    if not is_hybrid_test:
         KeaTestRunner.setOptions(options)
         testRunner = KeaTestRunner
         argv = ["python3 -m unittest"] + options.propertytest_args
-    unittest.main(module=None, argv=argv, testRunner=testRunner, testLoader=keaTestLoader)
+
+    try:
+        program = unittest.main(
+            module=None,
+            argv=argv,
+            testRunner=testRunner,
+            testLoader=keaTestLoader,
+            exit=False,
+        )
+    except KeaRuntimeError:
+        return ReturnCode.ERROR
+    except Exception:
+        return ReturnCode.ERROR
+
+    result = getattr(program, "result", None)
+    if result is None or not hasattr(result, "wasSuccessful"):
+        return ReturnCode.ERROR
+    mask1 = ReturnCode.PROPERTY_VIOLATION if not result.wasSuccessful() else ReturnCode.SUCCESS
+    mask2 = ReturnCode.CRASH_OR_ANR if getattr(result, "has_crash_or_anr", False) else ReturnCode.SUCCESS
+    return mask1 | mask2

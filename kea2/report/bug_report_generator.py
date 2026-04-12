@@ -2,7 +2,8 @@ import json
 from datetime import datetime
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Dict, Tuple, TypedDict, List, Deque, NewType, Union, Optional
+from typing import Dict, Tuple, TypedDict, List, Deque, NewType, Optional
+from typing import TYPE_CHECKING
 from collections import deque
 from concurrent.futures import ThreadPoolExecutor
 
@@ -10,6 +11,12 @@ from jinja2 import Environment, FileSystemLoader, select_autoescape, PackageLoad
 from ..utils import getLogger, catchException
 from .mixin import CrashAnrMixin, PathParserMixin, ScreenshotsMixin
 from .utils import thread_pool
+from .widget_coverage import WidgetCoverage
+
+
+if TYPE_CHECKING:
+    from ..keaUtils import Options
+
 
 logger = getLogger(__name__)
 
@@ -43,8 +50,9 @@ class ReportData(TypedDict):
     bugs_found: int
     invariant_violations_count: int
     executed_events: int
-    total_testing_time: float
+    total_testing_time: str
     coverage: float
+    widget_coverage_count: int
     total_activities_count: int
     tested_activities_count: int
     total_activities: List
@@ -57,6 +65,7 @@ class ReportData(TypedDict):
     property_kind_summary: Dict[str, int]
     screenshot_info: Dict
     coverage_trend: List
+    widget_coverage_trend: List
     property_execution_trend: List  # Track executed properties count over steps
     activity_count_history: Dict[str, int]  # Activity traversal count from final coverage data
     crash_events: List[Dict]  # Crash events from crash-dump.log
@@ -125,6 +134,7 @@ class BugReportGenerator(CrashAnrMixin, PathParserMixin, ScreenshotsMixin):
 
     _cov_trend: Deque[CovData] = None
     _test_result: TestResult = None
+    _options: "Options"
     
     @property
     def cov_trend(self):
@@ -137,14 +147,15 @@ class BugReportGenerator(CrashAnrMixin, PathParserMixin, ScreenshotsMixin):
 
         cov_trend = list()
 
-        with open(self.data_path.coverage_log, "r", encoding="utf-8") as f:
-            for line in f:
-                if not line.strip():
-                    continue
+        if self.data_path.coverage_log.exists():
+            with open(self.data_path.coverage_log, "r", encoding="utf-8") as f:
+                for line in f:
+                    if not line.strip():
+                        continue
 
-                coverage_data = json.loads(line)
-                cov_trend.append(coverage_data)
-        self._cov_trend = cov_trend
+                    coverage_data = json.loads(line)
+                    cov_trend.append(coverage_data)
+            self._cov_trend = cov_trend
         return self._cov_trend
 
     @property
@@ -165,6 +176,17 @@ class BugReportGenerator(CrashAnrMixin, PathParserMixin, ScreenshotsMixin):
             with open(self.result_dir / "bug_report_config.json", "r", encoding="utf-8") as fp:
                 self._config = json.load(fp)
         return self._config
+    
+    @property
+    def options(self) -> "Options":
+        if self._options is None:
+            from ..keaUtils import Options
+            with open(self.result_dir / "options.json", "r", encoding="utf-8") as f:
+                options_data = json.load(f)
+            if options_data:
+                self._options = Options.from_dict(options_data)
+        return self._options
+            
 
     def __init__(self, result_dir=None, sync_data=False):
         """
@@ -173,19 +195,17 @@ class BugReportGenerator(CrashAnrMixin, PathParserMixin, ScreenshotsMixin):
         Args:
             result_dir: Directory path containing test results
         """
+        self._options = None
+        self._cov_trend = None
+        self._test_result = None
         if result_dir is None:
             raise RuntimeError("Result directory must be provided to generate report.")
         self.result_dir = Path(result_dir)
         if sync_data:
             from ..resultSyncer import ResultSyncer
-            with open(self.result_dir / "options.json", "r", encoding="utf-8") as f:
-                options_data = json.load(f)
-            if options_data:
-                from ..keaUtils import Options
-                options = Options.from_dict(options_data)
-                device_output_dir = f"{options.device_output_root}/output_{options.log_stamp}"
-                ResultSyncer(device_output_dir, options)._sync_device_data()
-        
+            device_output_dir = f"{self.options.device_output_root}/output_{self.options.log_stamp}"
+            ResultSyncer(device_output_dir, self.options)._sync_device_data()
+
     def __set_up_jinja_env(self):
         """Set up Jinja2 environment for HTML template rendering"""
         try:
@@ -222,6 +242,10 @@ class BugReportGenerator(CrashAnrMixin, PathParserMixin, ScreenshotsMixin):
         self.screenshots = deque()
         self._screenshot_id_by_filename = {}
 
+        # Genrate Widget Coverage Data
+        widget_coverage = WidgetCoverage(output_dir=self.data_path.output_dir, options=self.options)
+        widget_coverage.generate_coverage_report()
+
         test_data = None
         with thread_pool(max_workers=128) as executor:
             logger.debug("Starting bug report generation")
@@ -229,20 +253,20 @@ class BugReportGenerator(CrashAnrMixin, PathParserMixin, ScreenshotsMixin):
             # Collect test data
             test_data: ReportData = self._collect_test_data(executor)
 
+
         if not test_data:
             raise RuntimeError("No test data collected, cannot generate report.")
-
+        
         # Generate HTML report
         html_content = self._generate_html_report(test_data)
-
         # Save report
         report_path = self.result_dir / "bug_report.html"
         with open(report_path, "w", encoding="utf-8") as f:
             f.write(html_content)
 
-            logger.info(f"Bug report saved to: {report_path}")
-            return str(report_path)
 
+        logger.info(f"Bug report saved to: {report_path}")
+        return str(report_path)
 
     @catchException("Error when collecting test data")
     def _collect_test_data(self, executor: "ThreadPoolExecutor"=None) -> ReportData:
@@ -255,8 +279,9 @@ class BugReportGenerator(CrashAnrMixin, PathParserMixin, ScreenshotsMixin):
             "bugs_found": 0,
             "invariant_violations_count": 0,
             "executed_events": 0,
-            "total_testing_time": 0,
+            "total_testing_time": "00:00:00",
             "coverage": 0,
+            "widget_coverage_count": 0,
             "total_activities": [],
             "tested_activities": [],
             "all_properties_count": 0,
@@ -267,6 +292,7 @@ class BugReportGenerator(CrashAnrMixin, PathParserMixin, ScreenshotsMixin):
             "property_kind_summary": {},
             "screenshot_info": {},
             "coverage_trend": [],
+            "widget_coverage_trend": [],
             "property_execution_trend": [],
             "activity_count_history": {},
             "crash_events": [],
@@ -292,7 +318,8 @@ class BugReportGenerator(CrashAnrMixin, PathParserMixin, ScreenshotsMixin):
 
         current_property = None
         current_test = {}
-        first_step_time = last_step_time = ""
+        first_step_time: Optional[str] = None
+        last_step_time: Optional[str] = None
         step_index = 0
         monkey_events_count = 0  # Track monkey events separately
         last_monkey_step_count = 0
@@ -311,8 +338,15 @@ class BugReportGenerator(CrashAnrMixin, PathParserMixin, ScreenshotsMixin):
                 step_type = step_data.get("Type", "")
                 screenshot = step_data.get("Screenshot", "")
                 monkey_steps_count = step_data.get("MonkeyStepsCount", "")
+
                 
-                
+                monkey_steps_count_int = int(monkey_steps_count)
+
+
+                monkey_events_count = monkey_steps_count_int
+                if monkey_steps_count_int > last_monkey_step_count:
+                    last_monkey_step_count = monkey_steps_count_int
+
                 info = step_data.get("Info", {})
 
                 step_index = monkey_steps_count
@@ -324,7 +358,7 @@ class BugReportGenerator(CrashAnrMixin, PathParserMixin, ScreenshotsMixin):
                     pass
                 else:
                     __monkey_step_index_repeat_count += 1
-                    
+
                 step_id = f"{monkey_steps_count}-{__monkey_step_index_repeat_count}"
 
                 # Record restart-app marker events (no screenshot expected)
@@ -378,20 +412,23 @@ class BugReportGenerator(CrashAnrMixin, PathParserMixin, ScreenshotsMixin):
                         current_property, current_test, property_violations
                     )
 
-                # Store first and last step for time calculation
-                if int(monkey_steps_count) == 1 and not first_step_time:
-                    first_step_time = step_data["Time"]
-                last_step_time = step_data["Time"]
+                # Store first and last valid timestamps for testing duration calculation.
+                step_time = step_data.get("Time")
+                if step_time:
+                    if first_step_time is None:
+                        first_step_time = step_time
+                    last_step_time = step_time
 
 
             # Calculate test time
             if first_step_time and last_step_time:
-                def _get_datetime(raw_datetime) -> datetime:
-                    return datetime.strptime(raw_datetime, r"%Y-%m-%d %H:%M:%S.%f")
+                def _get_datetime(raw_datetime: str) -> datetime:
+                    # Use fromisoformat for compatibility with/without microseconds.
+                    return datetime.fromisoformat(raw_datetime)
 
                 test_time = _get_datetime(last_step_time) - _get_datetime(first_step_time)
-                
-                total_seconds = int(test_time.total_seconds())
+
+                total_seconds = max(0, int(test_time.total_seconds()))
                 hours, remainder = divmod(total_seconds, 3600)
                 minutes, seconds = divmod(remainder, 60)
                 data["total_testing_time"] = f"{hours:02d}:{minutes:02d}:{seconds:02d}"
@@ -471,6 +508,11 @@ class BugReportGenerator(CrashAnrMixin, PathParserMixin, ScreenshotsMixin):
             data["tested_activities_count"] = final_trend["testedActivitiesCount"]
             data["activity_count_history"] = final_trend["activityCountHistory"]
 
+        # Process widget coverage data
+        data["widget_coverage_trend"] = self._load_widget_coverage_trend()
+        if data["widget_coverage_trend"]:
+            data["widget_coverage_count"] = data["widget_coverage_trend"][-1].get("coverage", 0)
+
         # Generate property execution trend aligned with coverage trend
         data["property_execution_trend"] = self._generate_property_execution_trend(executed_properties_by_step)
 
@@ -518,6 +560,11 @@ class BugReportGenerator(CrashAnrMixin, PathParserMixin, ScreenshotsMixin):
             # Use the same field names as in coverage.log file
             data["coverage_trend"] = [{"stepsCount": 0, "coverage": 0, "testedActivitiesCount": 0}]
 
+        # Ensure widget_coverage_trend has data
+        if not data.get("widget_coverage_trend"):
+            logger.warning("No widget coverage trend data")
+            data["widget_coverage_trend"] = [{"stepsCount": 0, "coverage": 0}]
+
         # Convert coverage_trend to JSON string, ensuring all data points are included
         coverage_trend_json = json.dumps(data["coverage_trend"])
         logger.debug(f"Number of coverage trend data points: {len(data['coverage_trend'])}")
@@ -532,6 +579,7 @@ class BugReportGenerator(CrashAnrMixin, PathParserMixin, ScreenshotsMixin):
             'total_testing_time': data["total_testing_time"],
             'executed_events': data["executed_events"],
             'coverage_percent': round(data["coverage"], 2),
+            'widget_coverage_count': data.get("widget_coverage_count", 0),
             'total_activities_count': data["total_activities_count"],
             'tested_activities_count': data["tested_activities_count"],
             'tested_activities': data["tested_activities"],
@@ -545,6 +593,7 @@ class BugReportGenerator(CrashAnrMixin, PathParserMixin, ScreenshotsMixin):
             'property_error_details': data["property_error_details"],
             'property_kind_summary': data.get("property_kind_summary", {}),
             'coverage_data': coverage_trend_json,
+            'widget_coverage_data': json.dumps(data.get("widget_coverage_trend", [])),
             'take_screenshots': self.take_screenshots,  # Pass screenshot setting to template
             'property_execution_trend': data["property_execution_trend"],
             'property_execution_data': json.dumps(data["property_execution_trend"]),
@@ -567,6 +616,23 @@ class BugReportGenerator(CrashAnrMixin, PathParserMixin, ScreenshotsMixin):
         html_content = template.render(**template_data)
 
         return html_content
+
+    def _load_widget_coverage_trend(self) -> List[Dict]:
+        widget_coverage_log = self.data_path.output_dir / "widget_coverage.log"
+        if not widget_coverage_log.exists():
+            logger.warning(f"Widget coverage log {widget_coverage_log} not found")
+            return []
+
+        widget_coverage_trend = []
+        with open(widget_coverage_log, "r", encoding="utf-8") as f:
+            for line in f:
+                line = line.strip()
+                if not line:
+                    continue
+                record = json.loads(line)
+                widget_coverage_trend.append(record)
+
+        return widget_coverage_trend
 
     def _process_script_info(
         self,
@@ -898,7 +964,3 @@ class BugReportGenerator(CrashAnrMixin, PathParserMixin, ScreenshotsMixin):
                 event['screenshot_id'] = screenshot_id
             else:
                 event['screenshot_id'] = ""
-
-
-if __name__ == "__main__":
-    BugReportGenerator(result_dir="/Users/atria/Desktop/coding/Kea2/output/res_2026012416_0726885557").generate_report()

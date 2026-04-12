@@ -149,7 +149,7 @@ def setCustomProjectRoot(configs_path: Optional[Union[str, Path]]):
     _CUSTOM_PROJECT_ROOT = candidate
 
 
-def getProjectRoot():
+def getProjectRoot() -> Optional[Path]:
     if _CUSTOM_PROJECT_ROOT:
         return _CUSTOM_PROJECT_ROOT
 

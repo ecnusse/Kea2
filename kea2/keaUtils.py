@@ -6,7 +6,6 @@ import json
 import os
 import functools
 
-from collections import deque
 from copy import deepcopy
 from pathlib import Path
 from time import perf_counter, sleep
@@ -18,7 +17,6 @@ from unittest import main as unittest_main
 from dataclasses import dataclass, asdict, fields, is_dataclass
 from datetime import datetime
 from fnmatch import fnmatchcase
-
 import uiautomator2 as u2
 
 
@@ -33,9 +31,14 @@ from .fastbotManager import FastbotManager
 from .adbUtils import ADBDevice
 from .state import invariant, INVARIANT_MARKER
 from .result import KeaJsonResult, KeaTextTestResult
+from .fbm_plugin import merge_fbm
 
 logger = getLogger(__name__)
 hybrid_mode = ContextVar("hybrid_mode", default=False)
+
+
+class KeaRuntimeError(RuntimeError):
+    """Raised when Kea test run fails due to runtime errors."""
 
 
 
@@ -105,15 +108,13 @@ class Options:
     Kea and Fastbot configurations
     """
     # the driver_name in script (if self.d, then d.) 
-    driverName: str = None
+    driverName: str = "d"
     # list of package names. Specify the apps under test
     packageNames: List[str] = None
     # target device
     serial: str = None
     # target device with transport_id
     transport_id: str = None
-    # test agent. "native" for stage 1 and "u2" for stage 1~3
-    agent: Literal["u2", "native"] = "u2"
     # max step in exploration (availble in stage 2~3)
     maxStep: Union[str, float] = float("inf")
     # time(mins) for exploration
@@ -140,6 +141,8 @@ class Options:
     act_whitelist_file: str = None
     # Activity BlackList File
     act_blacklist_file: str = None
+    # Fastbot Agent
+    fastbot_agent: Literal["double-sarsa", "sarsa"] = "double-sarsa"
     # propertytest sub-commands args (eg. discover -s xxx -p xxx)
     propertytest_args: List[str] = None
     # period (N steps) to restart the app under test
@@ -148,6 +151,8 @@ class Options:
     unittest_args: List[str] = None
     # Extra args (directly passed to fastbot)
     extra_args: List[str] = None
+    # Whether to pull device FBM(s) at start, merge with PC FBM and push merged back to device
+    merge_fbm: bool = False
 
     def __setattr__(self, name, value):
         if value is None:
@@ -158,8 +163,7 @@ class Options:
         import logging
         logging.basicConfig(level=logging.DEBUG if self.debug else logging.INFO)
 
-        if self.agent == "u2":
-            self._set_driver()
+        self._set_driver()
 
         self.log_stamp = self.log_stamp if self.log_stamp else TimeStamp().getTimeStamp()
         self._sanitize_stamp(self.log_stamp)
@@ -172,35 +176,6 @@ class Options:
 
         _check_package_installation(self.packageNames)
         _save_bug_report_configs(self)
-
-        _save_options_configs(self)
-
-    def to_dict(self):
-        from copy import deepcopy
-        obj = deepcopy(self)
-        for f in fields(obj):
-            v = getattr(obj, f.name)
-            if isinstance(v, Path):
-                setattr(obj, f.name, str(v))
-        return asdict(obj)
-
-    @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> "Options":
-        data = dict(data)
-        path_fields = {
-            "output_dir",
-            "device_output_root",
-            "act_whitelist_file",
-            "act_blacklist_file",
-        }
-        obj = cls.__new__(cls)
-        for f in fields(cls):
-            if f.name in data:
-                value = data[f.name]
-                if f.name in path_fields and value is not None:
-                    value = Path(value)
-                setattr(obj, f.name, value)
-        return obj
 
         _save_options_configs(self)
 
@@ -251,7 +226,7 @@ class Options:
             raise ValueError("--pre-failure-screenshots should be 0 when --take-screenshots is not set.")
 
         if self.pre_failure_screenshots < self.post_failure_screenshots:
-            raise ValueError("--post-failure-screenshots should be smaller than --pre-failure-screenshots.")
+            raise ValueError("--post-failure-screenshots should be smaller than --pre-failure-screenshots.") 
 
         self.profile_period = int(self.profile_period)
         if self.profile_period < 1:
@@ -261,9 +236,6 @@ class Options:
         if self.throttle < 0:
             raise ValueError("--throttle should be greater than or equal to 0")
 
-        if self.agent == 'u2' and self.driverName == None:
-            raise ValueError("--driver-name should be specified when customizing script in --agent u2")
-
     def _set_driver(self):
         target_device = dict()
         if self.serial:
@@ -272,21 +244,21 @@ class Options:
             target_device["transport_id"] = self.transport_id
         U2Driver.setDevice(target_device)
         ADBDevice.setDevice(self.serial, self.transport_id)
-
+    
     def getKeaTestOptions(self, hybrid_test_count: int) -> "Options":
         """ Get the KeaTestOptions for hybrid test run when switching from unittest to kea2 test.
         hybrid_test_count: the count of hybrid test runs
         """
         if not self.unittest_args:
             raise RuntimeError("unittest_args is None. Cannot get KeaTestOptions from it")
-
+        
         opts = deepcopy(self)
-
+        
         time_stamp = TimeStamp().getTimeStamp()
         hybrid_test_stamp = f"{time_stamp}_hybrid_{hybrid_test_count}"
-
+        
         opts.output_dir = self.output_dir / f"res_{hybrid_test_stamp}"
-
+        
         opts.set_stamp(hybrid_test_stamp)
         opts.unittest_args = []
         return opts
@@ -358,7 +330,7 @@ class KeaTestLoader(TestLoader):
         testCaseClass.setUp = types.MethodType(setUp, testCaseClass)
         testCaseClass.tearDown = types.MethodType(tearDown, testCaseClass)
         return super().loadTestsFromTestCase(testCaseClass)
-
+        
     def getTestCaseNames(self, testCaseClass):
         """Return a sorted sequence of method names found within testCaseClass
         """
@@ -427,8 +399,9 @@ class KeaTestRunner(TextTestRunner, KeaOptionSetter, SetUpClassExtension):
         logger.info(f"Result file: {stamp_manager.result_file}")
         logger.info(f"Property execution info file: {stamp_manager.prop_exec_file}")
 
+    @merge_fbm
+    @catchException("Unexpected Error in KeaTestRunner.run")
     def run(self, test):
-
         self.validateAndCollectProperties(test)
 
         if len(self.allProperties) == 0:
@@ -454,136 +427,138 @@ class KeaTestRunner(TextTestRunner, KeaOptionSetter, SetUpClassExtension):
 
             log_watcher = LogWatcher(stamp_manager.log_file)
             
-            if self.options.agent == "u2":
-                # initialize the result.json file
-                result.flushResult()
-                # setUp for the u2 driver
-                self.scriptDriver = U2Driver.getScriptDriver(mode="proxy")
+            # initialize the result.json file
+            result.flushResult()
+            # setUp for the u2 driver
+            self.scriptDriver = U2Driver.getScriptDriver(mode="proxy")
 
-                for test in {**self.allProperties, **self.allInvariants}.values():
-                    self.setUpClass(test)
+            for test in {**self.allProperties, **self.allInvariants}.values():
+                self.setUpClass(test)
 
-                self.fb.check_alive()
-                self.fb.init(options=self.options, stamp=stamp_manager.stamp)
+            self.fb.check_alive()
+            self.fb.init(options=self.options, stamp=stamp_manager.stamp)
 
-                resultSyncer = ResultSyncer(self.fb.device_output_dir, self.options)
-                resultSyncer.run()
-                start_time = perf_counter()
-                fb_is_running = True
-                self.stepsCount = 0
+            resultSyncer = ResultSyncer(self.fb.device_output_dir, self.options)
+            resultSyncer.run()
+            start_time = perf_counter()
+            fb_is_running = True
+            self.stepsCount = 0
 
-                # Kea2 main testing loop
-                try:
-                    while self.stepsCount < self.options.maxStep:
-                        logger.info(f"[Property based testing] [New Iteration] Elapsed: {perf_counter()-start_time:.1f}s")
-                        if self.shouldStop(start_time):
-                            logger.info("Exploration time up (--running-minutes).")
-                            break
+            # Kea2 main testing loop
+            try:
+                while self.stepsCount < self.options.maxStep:
+                    logger.info(f"[Property based testing] [New Iteration] Elapsed: {perf_counter()-start_time:.1f}s")
+                    if self.shouldStop(start_time):
+                        logger.info("Exploration time up (--running-minutes).")
+                        break
 
-                        if self.options.restart_app_period and self.stepsCount and self.stepsCount % self.options.restart_app_period == 0:
+                    if self.options.restart_app_period and self.stepsCount and self.stepsCount % self.options.restart_app_period == 0:
+                        self.stepsCount += 1
+                        logger.info(f"Sending monkeyEvent {self._monkey_event_count}")
+                        logger.info("Kill all test apps to restart the app under test.")
+                        for app in self.options.packageNames:
+                            logger.info(f"Stopping app: {app}")
+                            self.scriptDriver.app_stop(app)
+                        sleep(3)
+                        self.fb.sendInfo("kill_apps")
+                        continue
+
+                    try:
+                        # determine whether to stepMonkey (normal step) or dumpHierarchy (after executing a property)
+                        # stepMonkey will change the ui state and return the new ui hierarchy
+                        # dumpHierarchy will just return the current ui hierarchy
+                        # this is to avoid losing the ui state after executing a property
+                        xml_raw: str = ""
+                        if self.fb.executed_prop:
+                            self.fb.executed_prop = False
+                            xml_raw = self.fb.dumpHierarchy()
+                        else:
                             self.stepsCount += 1
                             logger.info(f"Sending monkeyEvent {self._monkey_event_count}")
-                            logger.info("Kill all test apps to restart the app under test.")
-                            for app in self.options.packageNames:
-                                logger.info(f"Stopping app: {app}")
-                                self.scriptDriver.app_stop(app)
-                            sleep(3)
-                            self.fb.sendInfo("kill_apps")
-                            continue
+                            xml_raw = self.fb.stepMonkey(self._monkeyStepInfo)
+                    # If the connection is refused, fastbot might have stpped running
+                    except u2.HTTPError:
+                        logger.info("Connection refused by remote.")
+                        # If fastbot has exited normally, end the testing process
+                        if self.fb.get_return_code() == 0:
+                            logger.info("Exploration times up (--running-minutes).")
+                            fb_is_running = False
+                            break
+                        else:
+                            import traceback
+                            traceback.print_exc()
+                            raise RuntimeError("Fastbot Aborted.")
 
-                        try:
-                            # determine whether to stepMonkey (normal step) or dumpHierarchy (after executing a property)
-                            # stepMonkey will change the ui state and return the new ui hierarchy
-                            # dumpHierarchy will just return the current ui hierarchy
-                            # this is to avoid losing the ui state after executing a property
-                            xml_raw: str = ""
-                            if self.fb.executed_prop:
-                                self.fb.executed_prop = False
-                                xml_raw = self.fb.dumpHierarchy()
-                            else:
-                                self.stepsCount += 1
-                                logger.info(f"Sending monkeyEvent {self._monkey_event_count}")
-                                xml_raw = self.fb.stepMonkey(self._monkeyStepInfo)
-                        # If the connection is refused, fastbot might have stpped running
-                        except u2.HTTPError:
-                            logger.info("Connection refused by remote.")
-                            # If fastbot has exited normally, end the testing process
-                            if self.fb.get_return_code() == 0:
-                                logger.info("Exploration times up (--running-minutes).")
-                                fb_is_running = False
-                                break
-                            else:
-                                import traceback
-                                traceback.print_exc()
-                                raise RuntimeError("Fastbot Aborted.")
+                    if not xml_raw:
+                        logger.warning("Empty ui hierarchy returned. Skip this step.")
+                        continue
 
-                        if not xml_raw:
-                            logger.warning("Empty ui hierarchy returned. Skip this step.")
-                            continue
+                    result.setCurrentStepsCount(self.stepsCount)
 
-                        result.setCurrentStepsCount(self.stepsCount)
-
-                        # check all invariants
-                        staticCheckerDriver = U2Driver.getStaticChecker(hierarchy=xml_raw)
-                        if self.allInvariants:
-                            print(f"[INFO] Checking {len(self.allInvariants)} invariants...", flush=True)
-                        for _, test in self.allInvariants.items():
-                            setattr(test, self.options.driverName, staticCheckerDriver)
-                            try:
-                                test(result)
-                            finally:
-                                result.printError(test)
-                                result.updateExecutionInfo(test)
-                                if result.lastInvariantInfo.state in {"fail", "error"}:
-                                    self.fb.logScript(result.lastInvariantInfo)
-
-                        # Trigger the result syncer to get the coverage result periodically (Set by profile_period)
-                        if self.options.profile_period and self.stepsCount % self.options.profile_period == 0:
-                            resultSyncer.sync_event.set()
-
-                        # get the checkable properties
-                        checkableProperties = self.getCheckableProperties(xml_raw, result, staticCheckerDriver)
-
-                        if not checkableProperties:
-                            continue
-
-                        self.scriptDriver = U2Driver.getScriptDriver(mode="proxy")
-
-                        # randomly select a property to execute
-                        propertyName = random.choice(checkableProperties)
-                        test = self.allProperties[propertyName]
-                        result.addExcutedProperty(test, self.stepsCount)
-                        self.fb.logScript(result.lastPropertyInfo)
-                        # Dependency Injection. driver when doing scripts
-                        setattr(test, self.options.driverName, self.scriptDriver)
+                    # check all invariants
+                    staticCheckerDriver = U2Driver.getStaticChecker(hierarchy=xml_raw)
+                    if self.allInvariants:
+                        print(f"[INFO] Checking {len(self.allInvariants)} invariants...", flush=True)
+                    for _, test in self.allInvariants.items():
+                        setattr(test, self.options.driverName, staticCheckerDriver)
                         try:
                             test(result)
                         finally:
                             result.printError(test)
-                        result.updateExecutionInfo(test)
-                        self.fb.logScript(result.lastPropertyInfo)
-                        self.fb.executed_prop = True
-                        result.flushResult()
-                except KeyboardInterrupt:
-                    logger.info("KeyboardInterrupt received. Stopping the testing process.")
-                finally:
-                    if fb_is_running:
-                        self.fb.stopMonkey()
+                            result.updateExecutionInfo(test)
+                            if result.lastInvariantInfo.state in {"fail", "error"}:
+                                self.fb.logScript(result.lastInvariantInfo)
+
+                    # Trigger the result syncer to get the coverage result periodically (Set by profile_period)
+                    if self.options.profile_period and self.stepsCount % self.options.profile_period == 0:
+                        resultSyncer.sync_event.set()
+
+                    # get the checkable properties
+                    checkableProperties = self.getCheckableProperties(xml_raw, result, staticCheckerDriver)
+
+                    if not checkableProperties:
+                        continue
+
+                    self.scriptDriver = U2Driver.getScriptDriver(mode="proxy")
+
+                    # randomly select a property to execute
+                    propertyName = random.choice(checkableProperties)
+                    test = self.allProperties[propertyName]
+                    result.addExcutedProperty(test, self.stepsCount)
+                    self.fb.logScript(result.lastPropertyInfo)
+                    # Dependency Injection. driver when doing scripts
+                    setattr(test, self.options.driverName, self.scriptDriver)
+                    try:
+                        test(result)
+                    finally:
+                        result.printError(test)
+                    result.updateExecutionInfo(test)
+                    self.fb.logScript(result.lastPropertyInfo)
+                    self.fb.executed_prop = True
                     result.flushResult()
-                    resultSyncer.close()
+            except KeyboardInterrupt:
+                logger.info("KeyboardInterrupt received. Stopping the testing process.")
+            except Exception as e:
+                import traceback
+                traceback.print_exc()
+                raise KeaRuntimeError("Kea test run interrupted by exception.") from e
+            finally:
+                if fb_is_running:
+                    self.fb.stopMonkey()
+                result.flushResult()
+                resultSyncer.close()
 
-            self.fb.join()
-            print(f"Finish sending monkey events.", flush=True)
-            log_watcher.close()
-        
-        result.logSummary()
+                self.fb.join()
+                print(f"Finish sending monkey events.", flush=True)
+                log_watcher.close()
+                result.has_crash_or_anr = log_watcher.has_crash_or_anr
 
-        if self.options.agent == "u2":
-            self._generate_bug_report()
+                result.logSummary()
+                self._generate_bug_report()
 
         self.tearDown()
         return result
-
+    
     def shouldStop(self, start_time):
         if self.options.running_mins is None:
             return False
@@ -827,7 +802,6 @@ class KeaTestRunner(TextTestRunner, KeaOptionSetter, SetUpClassExtension):
         except Exception:
             # Ignore exceptions in __del__ to avoid "Exception ignored" warnings
             pass
-
 
 class HybridTestRunner(TextTestRunner, KeaOptionSetter):
 

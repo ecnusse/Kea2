@@ -424,7 +424,7 @@
         .table-property-stats th:nth-child(2),
         .table-property-stats td:nth-child(2) {
             width: 22%;
-            min-width: 200px;
+            min-width: 260px;
             text-align: left;
         }
 
@@ -458,6 +458,23 @@
             min-width: 80px;
         }
 
+        .property-name-cell {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            min-width: 0;
+        }
+
+        .property-name-badge {
+            display: block;
+            flex: 1 1 auto;
+            min-width: 0;
+            white-space: normal;
+            text-align: left;
+            word-break: normal;
+            overflow-wrap: break-word;
+        }
+
         .table-property-stats th:nth-child(8),
         .table-property-stats td:nth-child(8) {
             width: 26%;
@@ -479,55 +496,103 @@
         }
         
         .stat-value {
-            font-size: 2.2rem;
+            font-size: 1.8rem;
             font-weight: 700;
             display: block;
-            margin-bottom: 0.8rem;
+            margin-bottom: 0.5rem;
             line-height: 1.2;
         }
         
         .stat-label {
-            font-size: 1rem;
+            font-size: 0.9rem;
             color: #666;
             display: block;
-            margin-top: 5px;
+            margin-top: 2px;
+        }
+
+        .summary-groups {
+            display: grid;
+            gap: 18px;
+        }
+
+        .summary-group-title {
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: #334155;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            margin-bottom: 10px;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .summary-group-title::before {
+            content: '';
+            width: 20px;
+            height: 2px;
+            background: linear-gradient(90deg, var(--primary-color), var(--secondary-color));
+            border-radius: 999px;
+            display: inline-block;
         }
 
         .summary-grid {
             display: grid;
-            grid-template-columns: repeat(4, minmax(0, 1fr));
-            gap: 24px;
+            gap: 14px;
+            overflow-x: auto;
+            padding-bottom: 4px;
+        }
+
+        .summary-grid.cols-5 {
+            grid-template-columns: repeat(5, minmax(160px, 1fr));
+        }
+
+        .summary-grid.cols-4 {
+            grid-template-columns: repeat(4, minmax(160px, 1fr));
+        }
+
+        .summary-grid.cols-3 {
+            grid-template-columns: repeat(3, minmax(160px, 1fr));
+        }
+
+        .summary-grid.cols-2 {
+            grid-template-columns: repeat(2, minmax(160px, 1fr));
         }
 
         @media (max-width: 1200px) {
-            .summary-grid {
-                grid-template-columns: repeat(2, minmax(0, 1fr));
+            .summary-grid.cols-5,
+            .summary-grid.cols-4,
+            .summary-grid.cols-3,
+            .summary-grid.cols-2 {
+                grid-template-columns: repeat(2, minmax(160px, 1fr));
             }
         }
 
         @media (max-width: 768px) {
-            .summary-grid {
+            .summary-grid.cols-4,
+            .summary-grid.cols-3,
+            .summary-grid.cols-2 {
                 grid-template-columns: 1fr;
             }
         }
 
         .summary-item {
             text-align: center;
-            padding: 20px 16px;
-            border-radius: 12px;
+            padding: 14px 12px;
+            border-radius: 10px;
             background-color: #f8fafc;
             transition: transform 0.2s ease, box-shadow 0.2s ease;
         }
 
         .summary-item:hover {
-            transform: translateY(-4px);
-            box-shadow: 0 6px 12px rgba(15, 23, 42, 0.08);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(15, 23, 42, 0.08);
         }
 
         .summary-item i {
-            font-size: 2rem;
+            font-size: 1.6rem;
             display: block;
-            margin-bottom: 12px;
+            margin-bottom: 8px;
         }
         
         .chart-container {
@@ -556,6 +621,32 @@
             background: linear-gradient(to right, var(--primary-color), var(--secondary-color));
             border-radius: 3px;
         }
+
+        .section-title .summary-link {
+            margin-left: 12px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            text-decoration: none;
+            color: #1d4ed8;
+            background: rgba(59, 130, 246, 0.12);
+            border: 1px solid rgba(59, 130, 246, 0.25);
+            padding: 4px 10px;
+            border-radius: 999px;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease;
+        }
+
+        .section-title .summary-link:hover {
+            background: rgba(59, 130, 246, 0.2);
+            border-color: rgba(59, 130, 246, 0.45);
+            color: #1e3a8a;
+        }
+
+        .section-title .summary-link i {
+            font-size: 0.9em;
+        }
         
         .section-block {
             margin-bottom: 70px;
@@ -581,8 +672,12 @@
             border-radius: 12px;
             background-color: white;
             box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
-            padding: 30px;
-            margin-bottom: 40px;
+            padding: 22px;
+            margin-bottom: 28px;
+        }
+
+        .summary-card .section-title {
+            margin-bottom: 18px;
         }
         
         .link-button {
@@ -642,10 +737,50 @@
             background-color: white;
             border-radius: 0 0 8px 8px;
             box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            flex-wrap: wrap;
+            gap: 12px 16px;
         }
 
         .pagination-container.pagination-violations {
             padding: 10px 16px;
+        }
+
+        .pagination-container > .d-flex {
+            flex: 0 1 auto;
+            flex-wrap: wrap;
+            row-gap: 8px;
+            min-width: 0;
+        }
+
+        .pagination-container > nav {
+            flex: 1 1 320px;
+            min-width: 0;
+            max-width: 100%;
+            display: flex;
+            justify-content: flex-end;
+            overflow-x: auto;
+            overflow-y: hidden;
+            -webkit-overflow-scrolling: touch;
+            scrollbar-width: thin;
+        }
+
+        .pagination-container > nav::-webkit-scrollbar {
+            height: 6px;
+        }
+
+        .pagination-container > nav::-webkit-scrollbar-thumb {
+            background-color: rgba(52, 152, 219, 0.45);
+            border-radius: 999px;
+        }
+
+        .pagination-container > nav .pagination {
+            flex-wrap: nowrap;
+            width: max-content;
+            white-space: nowrap;
+        }
+
+        .pagination-container > nav .page-link {
+            white-space: nowrap;
         }
         
         .activity-item {
@@ -790,15 +925,24 @@
         }
 
         .table-violations th:nth-child(2), .table-violations td:nth-child(2) { /* Property Name */
-            width: 40%;
-            min-width: 200px;
+            width: 45%;
+            min-width: 260px;
             text-align: left;
         }
 
         .table-violations th:nth-child(3), .table-violations td:nth-child(3) { /* Interaction Scenario Pages */
-            width: 50%;
+            width: 45%;
             min-width: 150px;
             text-align: center;
+        }
+
+        .table-violations td:nth-child(2) .badge-custom {
+            display: inline-block;
+            max-width: 100%;
+            white-space: normal;
+            word-break: normal;
+            overflow-wrap: break-word;
+            text-align: left;
         }
         
         @media (max-width: 768px) {
@@ -1404,46 +1548,61 @@
             <div class="col-12">
                 <div class="summary-card">
                     <h2 class="section-title">Test Summary</h2>
-                    <div class="summary-grid">
-                        <div class="summary-item">
-                            <i class="bi bi-bug text-danger"></i>
-                            <span class="stat-value value-danger">{{ bugs_found }}</span>
-                            <span class="stat-label">Property Violations</span>
+                    <div class="summary-groups">
+                        <div class="summary-group">
+                            <div class="summary-group-title">Basic Data</div>
+                            <div class="summary-grid cols-5">
+                                <div class="summary-item">
+                                    <i class="bi bi-clock-history text-primary"></i>
+                                    <span class="stat-value value-highlight">{{ total_testing_time }}</span>
+                                    <span class="stat-label">Total Testing Time</span>
+                                </div>
+                                <div class="summary-item">
+                                    <i class="bi bi-activity text-success"></i>
+                                    <span class="stat-value value-success">{{ executed_events }}</span>
+                                    <span class="stat-label">Executed Events</span>
+                                </div>
+                                <div class="summary-item">
+                                    <i class="bi bi-list-check text-info"></i>
+                                    <span class="stat-value value-highlight">{{ executed_properties_count }}/{{ all_properties_count }}</span>
+                                    <span class="stat-label">Executed Properties</span>
+                                </div>
+                                <div class="summary-item">
+                                    <i class="bi bi-pie-chart text-warning"></i>
+                                    <span class="stat-value value-warning">{{ coverage_percent }}%</span>
+                                    <span class="stat-label">Activity Coverage</span>
+                                </div>
+                                <div class="summary-item">
+                                    <i class="bi bi-grid-3x3-gap text-info"></i>
+                                    <span class="stat-value value-highlight">{{ widget_coverage_count }}</span>
+                                    <span class="stat-label">Widget Coverage</span>
+                                </div>
+                            </div>
                         </div>
-                        <div class="summary-item">
-                            <i class="bi bi-shield-exclamation text-warning"></i>
-                            <span class="stat-value value-warning">{{ invariant_violations_count }}</span>
-                            <span class="stat-label">Invariant Violations</span>
-                        </div>
-                        <div class="summary-item">
-                            <i class="bi bi-clock-history text-primary"></i>
-                            <span class="stat-value value-highlight">{{ total_testing_time }}</span>
-                            <span class="stat-label">Total Testing Time</span>
-                        </div>
-                        <div class="summary-item">
-                            <i class="bi bi-activity text-success"></i>
-                            <span class="stat-value value-success">{{ executed_events }}</span>
-                            <span class="stat-label">Executed Events</span>
-                        </div>
-                        <div class="summary-item">
-                            <i class="bi bi-pie-chart text-warning"></i>
-                            <span class="stat-value value-warning">{{ coverage_percent }}%</span>
-                            <span class="stat-label">Activity Coverage</span>
-                        </div>
-                        <div class="summary-item">
-                            <i class="bi bi-list-check text-info"></i>
-                            <span class="stat-value value-highlight">{{ executed_properties_count }}/{{ all_properties_count }}</span>
-                            <span class="stat-label">Executed Properties</span>
-                        </div>
-                        <div class="summary-item">
-                            <i class="bi bi-exclamation-octagon text-danger"></i>
-                            <span class="stat-value value-danger">{{ triggered_crash_count }}</span>
-                            <span class="stat-label">Triggered Crash</span>
-                        </div>
-                        <div class="summary-item">
-                            <i class="bi bi-hourglass-split text-warning"></i>
-                            <span class="stat-value value-warning">{{ triggered_anr_count }}</span>
-                            <span class="stat-label">Triggered ANR</span>
+                        <div class="summary-group">
+                            <div class="summary-group-title">Problematic Data</div>
+                            <div class="summary-grid cols-4">
+                                <div class="summary-item">
+                                    <i class="bi bi-bug text-danger"></i>
+                                    <span class="stat-value value-danger">{{ bugs_found }}</span>
+                                    <span class="stat-label">Property Violations</span>
+                                </div>
+                                <div class="summary-item">
+                                    <i class="bi bi-shield-exclamation text-warning"></i>
+                                    <span class="stat-value value-warning">{{ invariant_violations_count }}</span>
+                                    <span class="stat-label">Invariant Violations</span>
+                                </div>
+                                <div class="summary-item">
+                                    <i class="bi bi-exclamation-octagon text-danger"></i>
+                                    <span class="stat-value value-danger">{{ triggered_crash_count }}</span>
+                                    <span class="stat-label">Triggered Crash</span>
+                                </div>
+                                <div class="summary-item">
+                                    <i class="bi bi-hourglass-split text-warning"></i>
+                                    <span class="stat-value value-warning">{{ triggered_anr_count }}</span>
+                                    <span class="stat-label">Triggered ANR</span>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -1452,9 +1611,23 @@
 
         <!-- Coverage Trend Chart -->
         <div class="section-block">
-            <h2 class="section-title">Coverage Trend</h2>
+            <h2 class="section-title">Activity Coverage Trend</h2>
             <div class="chart-container">
                 <canvas id="coverageChart"></canvas>
+            </div>
+        </div>
+
+        <!-- Widget Coverage Trend Chart -->
+        <div class="section-block">
+            <h2 class="section-title">
+                Widget Coverage Trend
+                <a href="output_{{ log_stamp }}/widget_coverage_report.txt" class="summary-link" title="Open widget_coverage_report.txt">
+                    Widget Coverage Report
+                    <i class="bi bi-box-arrow-up-right"></i>
+                </a>
+            </h2>
+            <div class="chart-container">
+                <canvas id="widgetCoverageChart"></canvas>
             </div>
         </div>
 
@@ -1468,7 +1641,7 @@
 
         <!-- Activities Coverage -->
         <div class="section-block">
-            <h2 class="section-title">Activities Coverage</h2>
+            <h2 class="section-title">Activity Coverage</h2>
 
             <!-- Search Controls for Activities -->
             <div class="mb-4">
@@ -1541,7 +1714,7 @@
                 </table>
 
                 <!-- Pagination for Activities -->
-                <div class="d-flex justify-content-between align-items-center mt-3">
+                <div class="d-flex justify-content-between align-items-center mt-3 pagination-container">
                     <div class="d-flex align-items-center">
                         <label for="activities-page-size" class="form-label me-2 mb-0">Show:</label>
                         <select class="form-select form-select-sm" id="activities-page-size" style="width: auto;">
@@ -1940,12 +2113,14 @@
                             data-errors="{{ test_result.error|default(0) }}">
                             <td>{{ loop.index }}</td>
                             <td>
-                                <span class="badge bg-light text-dark badge-custom">{{ property_name }}</span>
                                 {% set kind_label = test_result.kind|default('unknown') %}
                                 {% set is_invariant = kind_label == 'invariant' %}
-                                <span class="badge ms-1 {% if kind_label == 'property' %}bg-info text-dark{% elif kind_label == 'invariant' %}bg-warning text-dark{% else %}bg-secondary text-white{% endif %}">
-                                    {{ kind_label|capitalize }}
-                                </span>
+                                <div class="property-name-cell">
+                                    <span class="badge me-1 {% if kind_label == 'property' %}bg-info text-dark{% elif kind_label == 'invariant' %}bg-warning text-dark{% else %}bg-secondary text-white{% endif %}">
+                                        {{ kind_label|capitalize }}
+                                    </span>
+                                    <span class="badge bg-light text-dark badge-custom property-name-badge">{{ property_name }}</span>
+                                </div>
                             </td>
                             <td>{{ '/' if is_invariant else test_result.precond_satisfied|default(0) }}</td>
                             <td>{{ '/' if is_invariant else test_result.executed|default(0) }}</td>
@@ -2097,7 +2272,7 @@
                 </table>
                 
                 <!-- Pagination for Property Checking Statistics -->
-                <div class="d-flex justify-content-between align-items-center mt-3">
+                <div class="d-flex justify-content-between align-items-center mt-3 pagination-container">
                     <div class="d-flex align-items-center">
                         <label for="stats-page-size" class="form-label me-2 mb-0">Show:</label>
                         <select class="form-select form-select-sm" id="stats-page-size" style="width: auto;">
@@ -2271,6 +2446,144 @@
                             },
                             grid: {
                                 display: false
+                            }
+                        }
+                    },
+                    interaction: {
+                        mode: 'index',
+                        intersect: false
+                    },
+                    hover: {
+                        mode: 'index',
+                        intersect: false
+                    },
+                    animation: {
+                        duration: 1000,
+                        easing: 'easeOutQuart'
+                    }
+                }
+            });
+
+            // Draw widget coverage trend chart
+            var widgetCoverageData = {{ widget_coverage_data|safe }};
+            console.log("Widget coverage data points:", widgetCoverageData.length);
+
+            if (!Array.isArray(widgetCoverageData) || widgetCoverageData.length === 0) {
+                widgetCoverageData = [{"stepsCount": 0, "coverage": 0}];
+            }
+
+            widgetCoverageData.sort(function(a, b) {
+                return a.stepsCount - b.stepsCount;
+            });
+
+            var widgetSteps = widgetCoverageData.map(function(item) { return item.stepsCount; });
+            var widgetCoverages = widgetCoverageData.map(function(item) { return item.coverage; });
+
+            if (widgetSteps.length > 0 && widgetSteps[0] > 0) {
+                widgetSteps.unshift(0);
+                widgetCoverages.unshift(0);
+            }
+
+            var widgetMax = widgetCoverages.length > 0 ? Math.max(...widgetCoverages) : 0;
+            var widgetStep = widgetMax > 0 ? Math.max(1, Math.ceil(widgetMax / 10)) : 1;
+            var widgetYAxisMax = widgetMax > 0 ? Math.ceil((widgetMax + widgetStep) / widgetStep) * widgetStep : 1;
+
+            var widgetCtx = document.getElementById('widgetCoverageChart').getContext('2d');
+            var widgetChart = new Chart(widgetCtx, {
+                type: 'line',
+                data: {
+                    labels: widgetSteps,
+                    datasets: [
+                        {
+                            label: 'Covered Widgets',
+                            data: widgetCoverages.map((value, index) => ({x: widgetSteps[index], y: value})),
+                            borderColor: '#f39c12',
+                            backgroundColor: 'rgba(243, 156, 18, 0.1)',
+                            borderWidth: 3,
+                            fill: true,
+                            tension: 0.4,
+                            cubicInterpolationMode: 'monotone',
+                            pointRadius: 4,
+                            pointHoverRadius: 6
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    aspectRatio: 2,
+                    plugins: {
+                        legend: {
+                            position: 'top',
+                            labels: {
+                                boxWidth: 15,
+                                usePointStyle: true,
+                                pointStyle: 'circle'
+                            }
+                        },
+                        tooltip: {
+                            mode: 'index',
+                            intersect: false,
+                            backgroundColor: 'rgba(0, 0, 0, 0.7)',
+                            titleColor: '#fff',
+                            bodyColor: '#fff',
+                            borderColor: 'rgba(255, 255, 255, 0.2)',
+                            borderWidth: 1,
+                            padding: 10,
+                            displayColors: true,
+                            callbacks: {
+                                label: function(context) {
+                                    return 'Covered Widgets: ' + context.parsed.y;
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            type: 'linear',
+                            beginAtZero: true,
+                            max: widgetSteps.length > 0 ? Math.max(...widgetSteps) : 10,
+                            grid: {
+                                display: false
+                            },
+                            title: {
+                                display: true,
+                                text: 'Steps Count',
+                                font: {
+                                    size: 14
+                                }
+                            },
+                            ticks: {
+                                stepSize: widgetSteps.length > 0 ? Math.max(1, Math.ceil(Math.max(...widgetSteps) / 10)) : 1,
+                                callback: function(value) {
+                                    if (Number.isInteger(value) && value <= (widgetSteps.length > 0 ? Math.max(...widgetSteps) : 10)) {
+                                        return value;
+                                    }
+                                    return null;
+                                }
+                            }
+                        },
+                        y: {
+                            beginAtZero: true,
+                            max: widgetYAxisMax,
+                            title: {
+                                display: true,
+                                text: 'Covered Widgets',
+                                font: {
+                                    size: 14
+                                }
+                            },
+                            grid: {
+                                borderDash: [5, 5]
+                            },
+                            ticks: {
+                                stepSize: widgetStep,
+                                callback: function(value) {
+                                    if (Number.isInteger(value)) {
+                                        return value;
+                                    }
+                                    return null;
+                                }
                             }
                         }
                     },

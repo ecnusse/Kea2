@@ -584,32 +584,33 @@ class KeaTestRunner(TextTestRunner, KeaOptionSetter, SetUpClassExtension):
         }
 
     def getCheckableProperties(self, xml_raw: str, result: KeaJsonResult, staticCheckerDriver: U2StaticDevice) -> List:
-        # Get the precondition satisfied properties
+        from concurrent.futures import ThreadPoolExecutor
+
+        # Get the precondition satisfied properties — evaluated in parallel (each property is independent)
         precondSatisfiedProperties = list()
-        for propName, test in self.allProperties.items():
-            valid = True
+
+        def _check_property(args):
+            propName, test = args
             property = getattr(test, test._testMethodName)
-            # check if all preconds passed
+            setattr(test, self.options.driverName, staticCheckerDriver)
             for precond in property.preconds:
-                # Dependency injection. Static driver checker for precond
-                setattr(test, self.options.driverName, staticCheckerDriver)
-                # excecute the precondition
                 try:
                     if not precond(test):
-                        valid = False
-                        break
-                except u2.UiObjectNotFoundError as e:
-                    valid = False
-                    break
+                        return propName, False
+                except u2.UiObjectNotFoundError:
+                    return propName, False
                 except Exception as e:
                     logger.error(f"Error when checking precond: {propName}")
                     traceback.print_exc()
-                    valid = False
-                    break
-            # if all the precond passed. make it the candidate prop.
-            if valid:
-                result.addPropertyPrecondSatisfied(test)
-                precondSatisfiedProperties.append(propName)
+                    return propName, False
+            return propName, True
+
+        n_workers = max(min(len(self.allProperties), 4), 1)
+        with ThreadPoolExecutor(max_workers=n_workers) as executor:
+            for propName, valid in executor.map(_check_property, self.allProperties.items()):
+                if valid:
+                    result.addPropertyPrecondSatisfied(self.allProperties[propName])
+                    precondSatisfiedProperties.append(propName)
 
         # get the checkable properties
         checkableProperties = []
@@ -729,7 +730,13 @@ class KeaTestRunner(TextTestRunner, KeaOptionSetter, SetUpClassExtension):
            """
         def _get_xpath_widgets(func):
             blocked_set = set()
-            script_driver = U2Driver.getScriptDriver()
+            # Use cached static checker to avoid live ADB call for block preconditions.
+            # Fall back to live driver only on first step (static checker not yet initialized).
+            _checker = U2Driver.staticChecker
+            if _checker is not None and _checker.d.xml is not None:
+                script_driver = _checker.d
+            else:
+                script_driver = U2Driver.getScriptDriver()
             preconds = getattr(func, PRECONDITIONS_MARKER, [])
 
             def preconds_pass(preconds):

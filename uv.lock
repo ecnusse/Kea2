@@ -2,13 +2,14 @@ version = 1
 revision = 3
 requires-python = ">=3.8"
 resolution-markers = [
-    "python_full_version >= '3.9'",
+    "python_full_version >= '3.10'",
+    "python_full_version == '3.9.*'",
     "python_full_version < '3.9'",
 ]
 
 [[package]]
 name = "adbutils"
-version = "2.9.3"
+version = "2.12.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "deprecation" },
@@ -17,12 +18,12 @@ dependencies = [
     { name = "requests" },
     { name = "retry2" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/89/26/d522ca7dd18e51e48952046e5f26b0436532f1f433f9d1376f3b4700f99e/adbutils-2.9.3.tar.gz", hash = "sha256:9adb922796f1096cb5bfebc6754f419ec781136b3f38a5588ca58a07bec26147", size = 187867, upload-time = "2025-06-23T00:41:04.139Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/64/a9/ebe3356cb224d5bbbf9d3d31ef6d31935d356340b2d37a09b6796ffcf2f4/adbutils-2.12.0.tar.gz", hash = "sha256:3653a8f39735620bc45b15ee2e7a00e502c9f1a259452e1fb2bbba3ea59d0e68", size = 191920, upload-time = "2025-11-12T06:09:33.82Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/66/3b/616c81dc14b8cf03ffb3202365d2593a3e5aad5c91356b6e41090e3b56cb/adbutils-2.9.3-py3-none-macosx_10_9_intel.macosx_10_9_x86_64.macosx_10_10_intel.macosx_10_10_x86_64.whl", hash = "sha256:db11a3273f755f50bd7d80d14feb470ad5f02fe73d3d6b8442a1408374a5174b", size = 6706764, upload-time = "2025-06-23T00:40:57.5Z" },
-    { url = "https://files.pythonhosted.org/packages/6b/27/5da73f56315694de3bbbbb3ded61199b4ea4a714e19df5ad5285f9b2534f/adbutils-2.9.3-py3-none-manylinux1_x86_64.whl", hash = "sha256:fe91d59324dfcdebf01cd76e843467d8efb1ab78bd697bc81ec9b83918dc9c8d", size = 3577714, upload-time = "2025-06-23T00:40:59.568Z" },
-    { url = "https://files.pythonhosted.org/packages/d6/9c/fe66312844bd048190fc3cbb803c19eb57a2679f1ea0aea5e2f6dd2ef4a1/adbutils-2.9.3-py3-none-win32.whl", hash = "sha256:82cf82ad5b4ff74cbe44c54c9a92364c906c6fd93eba25b1f47941862140edfa", size = 3338333, upload-time = "2025-06-23T00:41:01.037Z" },
-    { url = "https://files.pythonhosted.org/packages/f3/56/ecc00bcb16dc7358573f9886571281ed4dfdb14d20c47783301b046d96f7/adbutils-2.9.3-py3-none-win_amd64.whl", hash = "sha256:73f6ca710bdfb9bc72d9b7e5c9c51325751c1e43d4bdc98b9cee910e2e97588c", size = 3338338, upload-time = "2025-06-23T00:41:02.699Z" },
+    { url = "https://files.pythonhosted.org/packages/fb/7b/9b8e55a9357244148380bce6ce51402f92fe441f2fb7673cedc6d509dd5b/adbutils-2.12.0-py3-none-macosx_10_9_intel.macosx_10_9_x86_64.macosx_10_10_intel.macosx_10_10_x86_64.whl", hash = "sha256:adf131c746519f8a9576765d8f1315396d2573c9f178d6104e2a42dc9a714a3f", size = 6707555, upload-time = "2025-11-12T06:09:28.266Z" },
+    { url = "https://files.pythonhosted.org/packages/9f/bd/47dfb989b4a086cf8ca67b4b56c2760dea5e61064e3869175579c9ccad23/adbutils-2.12.0-py3-none-manylinux1_x86_64.whl", hash = "sha256:fe2699b15150c828a7f81c4753e2f22da9c506b72ac785658ddd90c1362701ee", size = 3578510, upload-time = "2025-11-12T06:09:29.857Z" },
+    { url = "https://files.pythonhosted.org/packages/35/2c/4a6c0e7405b61b62698157a50d364348dac1c572f13ec7506b9f9bbc95e9/adbutils-2.12.0-py3-none-win32.whl", hash = "sha256:189e0060737bb84111892ccaf7bcd098603297ecdd89a9224f390c2949ba8a5a", size = 3339129, upload-time = "2025-11-12T06:09:31.322Z" },
+    { url = "https://files.pythonhosted.org/packages/d3/b5/da4d7929d2e4db4fe811efcde669e178539e1695ddc33a9c2741998df805/adbutils-2.12.0-py3-none-win_amd64.whl", hash = "sha256:e7629bb5783f4aa40942889da1455c879b21f9d1cc057596003b42f3371543be", size = 3339132, upload-time = "2025-11-12T06:09:32.498Z" },
 ]
 
 [[package]]
@@ -122,6 +123,46 @@ wheels = [
 ]
 
 [[package]]
+name = "click"
+version = "8.1.8"
+source = { registry = "https://pypi.org/simple" }
+resolution-markers = [
+    "python_full_version == '3.9.*'",
+    "python_full_version < '3.9'",
+]
+dependencies = [
+    { name = "colorama", marker = "python_full_version < '3.10' and sys_platform == 'win32'" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/b9/2e/0090cbf739cee7d23781ad4b89a9894a41538e4fcf4c31dcdd705b78eb8b/click-8.1.8.tar.gz", hash = "sha256:ed53c9d8990d83c2a27deae68e4ee337473f6330c040a31d4225c9574d16096a", size = 226593, upload-time = "2024-12-21T18:38:44.339Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/7e/d4/7ebdbd03970677812aac39c869717059dbb71a4cfc033ca6e5221787892c/click-8.1.8-py3-none-any.whl", hash = "sha256:63c132bbbed01578a06712a2d1f497bb62d9c1c0d329b7903a866228027263b2", size = 98188, upload-time = "2024-12-21T18:38:41.666Z" },
+]
+
+[[package]]
+name = "click"
+version = "8.4.2"
+source = { registry = "https://pypi.org/simple" }
+resolution-markers = [
+    "python_full_version >= '3.10'",
+]
+dependencies = [
+    { name = "colorama", marker = "python_full_version >= '3.10' and sys_platform == 'win32'" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/76/d4/81420972a676e8ffea40450d8c8c92943e7218a78fe9b64359836cc9876b/click-8.4.2.tar.gz", hash = "sha256:9a6cea6e60b17ebe0a44c5cc636d94f09bd66142c1cd7d8b4cd731c4917a15f6", size = 338000, upload-time = "2026-06-24T17:45:15.148Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/fb/e2/79c688af8b210d232694e31e59da9f6ec747bae31c3f5946e4e9b98860d5/click-8.4.2-py3-none-any.whl", hash = "sha256:e6f9f66136c816745b9d65817da91d61d957fb16e02e4dcd0552553c5a197b76", size = 119243, upload-time = "2026-06-24T17:45:13.73Z" },
+]
+
+[[package]]
+name = "colorama"
+version = "0.4.6"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/d8/53/6f443c9a4a8358a93a6792e2acffb9d9d5cb0a5cfd8802644b7b1c9a02e4/colorama-0.4.6.tar.gz", hash = "sha256:08695f5cb7ed6e0531a20572697297273c47b8cae5a63ffc6d6ed5c201be6e44", size = 27697, upload-time = "2022-10-25T02:36:22.414Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/d1/d6/3965ed04c63042e047cb6a3e6ed1a63a35087b6a609aa3a15ed8ac56c221/colorama-0.4.6-py2.py3-none-any.whl", hash = "sha256:4f1d9991f5acc0ca119f9d443620b77f9d6b33703e51011c16baf57afb285fc6", size = 25335, upload-time = "2022-10-25T02:36:20.889Z" },
+]
+
+[[package]]
 name = "decorator"
 version = "5.2.1"
 source = { registry = "https://pypi.org/simple" }
@@ -205,7 +246,7 @@ requires-dist = [
     { name = "jinja2", specifier = ">=3.0.0" },
     { name = "packaging", specifier = ">=25.0" },
     { name = "rtree", specifier = ">=1.3.0" },
-    { name = "uiautomator2", specifier = ">=3.3.3" },
+    { name = "uiautomator2", specifier = ">=3.7.0" },
 ]
 
 [[package]]
@@ -389,7 +430,8 @@ name = "markupsafe"
 version = "3.0.2"
 source = { registry = "https://pypi.org/simple" }
 resolution-markers = [
-    "python_full_version >= '3.9'",
+    "python_full_version >= '3.10'",
+    "python_full_version == '3.9.*'",
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/b2/97/5d42485e71dfc078108a86d6de8fa46db44a1a9295e89c5d6d4a06e23a62/markupsafe-3.0.2.tar.gz", hash = "sha256:ee55d3edf80167e48ea11a923c7386f4669df67d7994554387f84e7d8b0a2bf0", size = 20537, upload-time = "2024-10-18T15:21:54.129Z" }
 wheels = [
@@ -559,7 +601,8 @@ name = "pillow"
 version = "11.2.1"
 source = { registry = "https://pypi.org/simple" }
 resolution-markers = [
-    "python_full_version >= '3.9'",
+    "python_full_version >= '3.10'",
+    "python_full_version == '3.9.*'",
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/af/cb/bb5c01fcd2a69335b86c22142b2bccfc3464087efb7fd382eee5ffc7fdf7/pillow-11.2.1.tar.gz", hash = "sha256:a64dd61998416367b7ef979b73d3a85853ba9bec4c2925f74e588879a58716b6", size = 47026707, upload-time = "2025-04-12T17:50:03.289Z" }
 wheels = [
@@ -697,7 +740,8 @@ name = "rtree"
 version = "1.4.0"
 source = { registry = "https://pypi.org/simple" }
 resolution-markers = [
-    "python_full_version >= '3.9'",
+    "python_full_version >= '3.10'",
+    "python_full_version == '3.9.*'",
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/18/b8/0091f020acafcb034daa5b062f0626f6a73c7e0d64826af23861390a9585/rtree-1.4.0.tar.gz", hash = "sha256:9d97c7c5dcf25f6c0599c76d9933368c6a8d7238f2c1d00e76f1a69369ca82a0", size = 50789, upload-time = "2025-03-05T23:31:45.962Z" }
 wheels = [
@@ -714,10 +758,12 @@ wheels = [
 
 [[package]]
 name = "uiautomator2"
-version = "3.3.3"
+version = "3.7.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "adbutils" },
+    { name = "click", version = "8.1.8", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.10'" },
+    { name = "click", version = "8.4.2", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.10'" },
     { name = "importlib-resources", marker = "python_full_version < '3.9'" },
     { name = "lxml" },
     { name = "pillow", version = "10.4.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.9'" },
@@ -725,9 +771,9 @@ dependencies = [
     { name = "requests" },
     { name = "retry2" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/6c/9c/83c3c7a6071133deced5d1ca4b3dc432b3f658d172f4908dd45beb6c2138/uiautomator2-3.3.3.tar.gz", hash = "sha256:15e5425dba73913979a234dae917f576f91a6862784af816042ab0ba4d94fa1e", size = 5198521, upload-time = "2025-06-20T12:36:50.213Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/f4/91/ebf4a51460f64a8627595cae43380d1a9ca0cd8a93ea342339f95df914c5/uiautomator2-3.7.0.tar.gz", hash = "sha256:d9640a1cdd4a689d56bf8a83f62c5b7b2fca6dc4905ffda88f96c0365d96650f", size = 5176919, upload-time = "2026-06-26T13:10:09.015Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/0b/50/d41b28eb876ad7049215a0bf1e28725d9b900ca797c6bc78b72bb712307f/uiautomator2-3.3.3-py3-none-any.whl", hash = "sha256:8e1b0bdf788f15e1c81cf53817d066a908301c64f040aa4d7a8407e999f24328", size = 5192985, upload-time = "2025-06-20T12:36:47.824Z" },
+    { url = "https://files.pythonhosted.org/packages/55/23/a5f93de8bb197ae2d2d0185c2c13d4b36ae7f18215e3e599e217f8e90e0d/uiautomator2-3.7.0-py3-none-any.whl", hash = "sha256:731bf4e26e35cd440cd165b399b8a4d4b795178d78b9243769e336aee6dce985", size = 5174323, upload-time = "2026-06-26T13:10:06.5Z" },
 ]
 
 [[package]]
@@ -747,7 +793,8 @@ name = "urllib3"
 version = "2.5.0"
 source = { registry = "https://pypi.org/simple" }
 resolution-markers = [
-    "python_full_version >= '3.9'",
+    "python_full_version >= '3.10'",
+    "python_full_version == '3.9.*'",
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/15/22/9ee70a2574a4f4599c47dd506532914ce044817c7752a79b6a51286319bc/urllib3-2.5.0.tar.gz", hash = "sha256:3fc47733c7e419d4bc3f6b3dc2b4f890bb743906a30d56ba4a5bfa4bbff92760", size = 393185, upload-time = "2025-06-18T14:07:41.644Z" }
 wheels = [

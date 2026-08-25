@@ -68,11 +68,11 @@ class _Node:
 
 
 class _Index:
-    def __init__(self, max_entries: int = 16, min_entries: Optional[int] = None):
+    def __init__(self, max_entries: int = 100, min_entries: Optional[int] = None):
         if max_entries < 2:
             raise ValueError("max_entries must be at least 2")
         self.max_entries = max_entries
-        self.min_entries = min_entries if min_entries is not None else max_entries // 2
+        self.min_entries = min_entries if min_entries is not None else max(1, int(max_entries * 0.7))
         self.root = _Node(leaf=True)
 
     def insert(self, item_id: int, bounds, obj=None) -> None:

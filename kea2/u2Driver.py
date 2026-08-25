@@ -5,7 +5,7 @@ from importlib.metadata import version
 import uiautomator2 as u2
 import adbutils
 import types
-import rtree
+from . import rtree
 import re
 
 from typing import List, Literal, Union, Optional

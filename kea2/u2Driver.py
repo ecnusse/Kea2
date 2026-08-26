@@ -5,7 +5,7 @@ from importlib.metadata import version
 import uiautomator2 as u2
 import adbutils
 import types
-import rtree
+from . import rtree
 import re
 
 from typing import List, Literal, Union, Optional
@@ -402,14 +402,45 @@ def _get_bounds(raw_bounds):
     return bounds
 
 
+class RTreeMismatchError(RuntimeError):
+    """Raised when the built-in rtree and the external rtree disagree on the
+    computed ``covered`` attributes during the A/B validation period."""
+
+
+# Temporary A/B validation: compute ``covered`` with both the built-in
+# ``kea2.rtree`` and the external ctypes-backed ``rtree`` package, and crash if
+# the two disagree. Flip to False (or delete the external path) once the
+# built-in implementation has been validated against the external one.
+_VERIFY_RTREE_AGAINST_EXTERNAL = True
+
+
+class _ExternalRTreeIndex:
+    """Thin adapter so the external ``rtree`` package exposes the same
+    ``insert``/``delete``/``contains`` (ids-only) surface as ``kea2.rtree``."""
+
+    def __init__(self):
+        import rtree as _external_rtree
+        self._idx = _external_rtree.index.Index()
+
+    def insert(self, id, bounds, obj=None):
+        self._idx.insert(id, bounds)
+
+    def delete(self, id, bounds):
+        self._idx.delete(id, bounds)
+
+    def contains(self, bounds):
+        return list(self._idx.contains(bounds, objects=False))
+
+
 class _HindenWidgetFilter:
     def __init__(self, root: etree._Element):
         # self.global_drawing_order = 0
         self._nodes = []
 
-        self.idx = rtree.index.Index()
         try:
             self.set_covered_attr(root)
+        except RTreeMismatchError:
+            raise
         except Exception as e:
             import traceback, uuid
             traceback.print_exc()
@@ -442,12 +473,37 @@ class _HindenWidgetFilter:
             yield from self._iter_by_drawing_order(child)
    
     def set_covered_attr(self, root: etree._Element):
-        self._nodes: List[etree._Element] = list()
+        # Reset every node up front; the original loop set "covered" before the
+        # bounds check, so nodes without bounds also end up "false".
         for e in self._iter_by_drawing_order(root):
-            # e.set("global-order", str(self.global_drawing_order))
-            # self.global_drawing_order += 1
             e.set("covered", "false")
 
+        covered, nodes = self._compute_covered(root, rtree.index.Index())
+
+        if _VERIFY_RTREE_AGAINST_EXTERNAL:
+            covered_external, _ = self._compute_covered(root, _ExternalRTreeIndex())
+            if covered != covered_external:
+                self._raise_rtree_mismatch(root, covered, covered_external)
+
+        for covered_id in covered:
+            nodes[covered_id].set("covered", "true")
+
+        self._nodes = nodes
+
+    def _compute_covered(self, root: etree._Element, index):
+        """Run one coverage pass with ``index`` (an ``insert``/``delete``/
+        ``contains`` object) and return ``(covered, nodes)``.
+
+        ``nodes[i]`` is the element whose drawing-order id is ``i`` (only
+        elements that have bounds); ``covered`` is the set of ids that get
+        marked covered.
+
+        This is side-effect free w.r.t. the XML tree, so it can be run once per
+        index implementation and the results compared.
+        """
+        nodes: List[etree._Element] = []
+        covered = set()
+        for e in self._iter_by_drawing_order(root):
             # algorithm: filter by "clickable"
             clickable = (e.get("clickable", "false") == "true")
             _raw_bounds = e.get("bounds")
@@ -455,26 +511,45 @@ class _HindenWidgetFilter:
                 continue
             bounds = _get_bounds(_raw_bounds)
             if clickable:
-                covered_widget_ids = list(self.idx.contains(bounds))
-                if covered_widget_ids:
-                    for covered_widget_id in covered_widget_ids:
-                        node = self._nodes[covered_widget_id]
-                        node.set("covered", "true")
-                        self.idx.delete(
-                            covered_widget_id,
-                            _get_bounds(self._nodes[covered_widget_id].get("bounds"))
-                        )
+                covered_widget_ids = list(index.contains(bounds))
+                for covered_widget_id in covered_widget_ids:
+                    covered.add(covered_widget_id)
+                    index.delete(
+                        covered_widget_id,
+                        _get_bounds(nodes[covered_widget_id].get("bounds"))
+                    )
 
-            cur_id = len(self._nodes)
+            cur_id = len(nodes)
             center = [
                 (bounds[0] + bounds[2]) / 2,
                 (bounds[1] + bounds[3]) / 2
             ]
-            self.idx.insert(
+            index.insert(
                 cur_id,
                 (center[0], center[1], center[0], center[1])
             )
-            self._nodes.append(e)
+            nodes.append(e)
+
+        return covered, nodes
+
+    def _raise_rtree_mismatch(self, root: etree._Element, covered, covered_external):
+        import os
+        import uuid
+
+        out_dir = "rtree_mismatch"
+        os.makedirs(out_dir, exist_ok=True)
+        fname = os.path.join(out_dir, f"kea2_rtree_mismatch_{uuid.uuid4().hex}.xml")
+        xml_bytes = etree.tostring(root, pretty_print=True, encoding="utf-8", xml_declaration=True)
+        with open(fname, "wb") as f:
+            f.write(xml_bytes)
+
+        only_builtin = sorted(covered - covered_external)
+        only_external = sorted(covered_external - covered)
+        raise RTreeMismatchError(
+            f"Built-in rtree and external rtree disagree on 'covered': "
+            f"builtin-only={only_builtin}, external-only={only_external}; "
+            f"XML saved to {fname}"
+        )
 
 
 class U2StaticDevice(u2.Device):

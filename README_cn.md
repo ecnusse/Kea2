@@ -396,8 +396,9 @@ kea2做了什么：
 表单链接：<https://sy8pzmhmun.feishu.cn/share/base/form/shrcn5An36fzPzPEZsZ7mzSCE4b>
 
 <div align="center">
-    <img src="docs/images/kea2_signup_qr.png" alt="Kea2 报名表单二维码" style="border-radius: 14px; width: 20%; height: 20%;"/>
+    <img src="https://github.com/user-attachments/assets/8227c18f-d939-4006-99ec-fecb45e75d2e" alt="Kea2 报名表单二维码" style="border-radius: 14px; width: 20%; height: 20%;"/>
 </div>
+
 
 ### 维护者/贡献者
 

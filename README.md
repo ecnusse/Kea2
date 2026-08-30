@@ -404,7 +404,7 @@ Of course, we are also ready on GitHub to answer your questions/feedback.
 Form link: <https://sy8pzmhmun.feishu.cn/share/base/form/shrcn5An36fzPzPEZsZ7mzSCE4b>
 
 <div align="center">
-    <img src="docs/images/kea2_signup_qr.png" alt="Kea2 signup form QR code" style="border-radius: 14px; width: 20%; height: 20%;"/>
+    <img src="https://github.com/user-attachments/assets/ed2b16d7-6a7c-4814-8325-1a855e872f22" alt="Kea2 signup form QR code" style="border-radius: 14px; width: 20%; height: 20%;"/>
 </div>
 
 ### Maintainers/Contributors

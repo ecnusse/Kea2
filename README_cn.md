@@ -341,6 +341,8 @@ kea2做了什么：
 
 - [Kea2: Practical Property-based Testing for Mobile Apps](https://dl.acm.org/doi/10.1145/3803437.3806416). FSE 2026.
 - [General and Practical Property-based Testing for Android Apps](https://dl.acm.org/doi/10.1145/3691620.3694986). ASE 2024.
+- [Model-guided Property-based Testing of WeChat Pay at Billion-user Scale](). ASE 2026.
+- [PropGen: Automated Property Generation for Property-Based Testing of Mobile Apps](). ASE 2026.
 - [An Empirical Study of Functional Bugs in Android Apps](https://dl.acm.org/doi/10.1145/3597926.3598138). ISSTA 2023.
 - [Fastbot2: Reusable Automated Model-based GUI Testing for Android Enhanced by Reinforcement Learning](https://dl.acm.org/doi/10.1145/3551349.3559505). ASE 2022.
 - [Guided, Stochastic Model-Based GUI Testing of Android Apps](https://dl.acm.org/doi/10.1145/3106237.3106298). ESEC/FSE 2017.

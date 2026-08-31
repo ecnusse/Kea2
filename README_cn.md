@@ -391,9 +391,14 @@ kea2做了什么：
 
 当然，我们也在GitHub上随时欢迎你的问题和反馈。
 
+**来自企业或高校？** 如果你的组织正在使用或评估 Kea2，欢迎点击链接或者扫描二维码填写一份简短的表单，以便我们更好地支持你。
+
+表单链接：<https://sy8pzmhmun.feishu.cn/share/base/form/shrcn5An36fzPzPEZsZ7mzSCE4b>
+
 <div align="center">
-    <img src="https://github.com/user-attachments/assets/8d9f8750-1e10-411b-a49f-7d8367bbe9fe" style="border-radius: 14px; width: 20%; height: 20%;"/> 
+    <img src="https://github.com/user-attachments/assets/8227c18f-d939-4006-99ec-fecb45e75d2e" alt="Kea2 报名表单二维码" style="border-radius: 14px; width: 20%; height: 20%;"/>
 </div>
+
 
 ### 维护者/贡献者
 

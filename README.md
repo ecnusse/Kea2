@@ -399,8 +399,12 @@ Please contact Xixian Liang at [xixian@stu.ecnu.edu.cn](xixian@stu.ecnu.edu.cn) 
 
 Of course, we are also ready on GitHub to answer your questions/feedback.
 
+**From an enterprise or university?** If your organization is using or evaluating Kea2, you are welcome to fill in a short form by clicking the link or scanning the QR code below, so that we can support you better.
+
+Form link: <https://sy8pzmhmun.feishu.cn/share/base/form/shrcn5An36fzPzPEZsZ7mzSCE4b>
+
 <div align="center">
-    <img src="https://github.com/user-attachments/assets/8d9f8750-1e10-411b-a49f-7d8367bbe9fe" style="border-radius: 14px; width: 20%; height: 20%;"/> 
+    <img src="https://github.com/user-attachments/assets/ed2b16d7-6a7c-4814-8325-1a855e872f22" alt="Kea2 signup form QR code" style="border-radius: 14px; width: 20%; height: 20%;"/>
 </div>
 
 ### Maintainers/Contributors

@@ -292,7 +292,16 @@ Please see the [user manual](/docs/manual_en.md) for more details on how to use 
 
 
 ## :mega: News & Media
-- [Kea2: Practical Property-based Testing for Mobile Apps](https://dl.acm.org/doi/10.1145/3803437.3806416) 被 FSE 2026 接收。
+- 中文博客
+
+    - [别再苦哈哈写测试脚本了，生成它们吧！(一)](https://mp.weixin.qq.com/s/R2kLCkXpDjpa8wCX4Eidtg)
+
+    - [别再苦哈哈写测试脚本了，生成它们吧！(二)](https://mp.weixin.qq.com/s/s4WkdstNcKupu9OP8jeOXw)
+
+    - [别再苦哈哈写测试脚本了，生成它们吧！(三)](https://mp.weixin.qq.com/s/BjXyo-xJRmPB_sCc4pmh8g)
+
+    - [Kea2: 当自动遍历开始 "懂业务"，移动测试会发生什么？](https://mp.weixin.qq.com/s/-lLDOm11ZZJltHwZ-UXMcQ)
+
 -  [功能性质驱动的测试技术：下一代GUI自动化测试技术](https://appw8oh6ysg4044.xet.citv.cn/p/course/video/v_6882fa14e4b0694ca0ec0a1b) - 视频回放与 PPT @ MTSC 2025
 - [2025 Let’s GoSSIP 软件安全暑期学校：Kea2（预告 #1）](https://mp.weixin.qq.com/s/8_0_GNNin8E5BqTbJU33wg)
 

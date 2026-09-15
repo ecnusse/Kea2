@@ -24,6 +24,7 @@ English | [简体中文](/docs/manual_cn.md)
 - [Advanced Feature 2: Invariant Checks](#advanced-feature-2-ivariant-checks-不变式检查)
 - [Advanced Feature 3: Reusing regression tests](#advanced-feature-3-reusing-regression-tests-兼容已有脚本通过前置脚本步骤到达特定层次)
 - [Advanced Feature 4: Support for WebView Interaction](#advanced-feature-4-support-for-webview-interaction-支持-webview-操作)
+- [Advanced Feature 5: Support for Flutter Interaction](#advanced-feature-5-support-for-flutter-interaction-支持-flutter-应用操作)
 
 ### 7. Experimental Feature
 - [Experimental Feature1: FBM Merge](#experimental-feature1-fbm-merge)
@@ -731,6 +732,60 @@ class Sample_Test(unittest.TestCase):
 
 
 https://github.com/user-attachments/assets/f0e5c116-03da-41b0-8f12-c62620fc09a8
+
+
+## Advanced Feature 5: Support for Flutter Interaction (支持 Flutter 应用操作)
+
+Kea2 supports Flutter application testing via the external `u2_flutter` extension plugin. It enables interaction with Flutter widgets and DiagnosticableTree hierarchy during property testing.
+
+u2_flutter GitHub Repository: https://github.com/assassinaj602/u2_flutter
+
+Prerequisites: Ensure `u2_flutter` is installed:
+```bash
+pip install u2_flutter
+```
+
+> **Phase 2 Scope:** Native preconditions (`self.d`) + Flutter actions (`self.flutter`). Flutter preconditions will be supported in Phase 3.
+
+**Usage and Core API**
+
+Operating a Flutter page in Kea2 can be accomplished with `u2_flutter`:
+
+1. **Applying the Decorator:** Add the `@with_flutter` decorator to test methods requiring Flutter widget interaction.
+2. **Native Preconditions:** Check native screen state using `self.d(...)` in `@precondition`.
+3. **Flutter Actions:** Access Flutter widgets using `self.flutter` helper inside `@with_flutter` decorated methods.
+
+**Sample**
+
+```python
+import unittest
+import logging
+from kea2 import precondition, prob
+
+try:
+    from u2_flutter import with_flutter
+    HAS_U2_FLUTTER = True
+except ImportError:
+    HAS_U2_FLUTTER = False
+    with_flutter = lambda func: func
+
+logger = logging.getLogger(__name__)
+
+@unittest.skipIf(not HAS_U2_FLUTTER, "u2_flutter not installed")
+class TestFlutterInteraction(unittest.TestCase):
+    """Test properties for Flutter app (Phase 2: Native precondition + Flutter action)"""
+
+    @with_flutter
+    @prob(0.4)
+    # Phase 2: Native precondition (self.d)
+    @precondition(lambda self: self.d(text="Open Flutter").exists)
+    def test_flutter_interaction(self):
+        """Perform Flutter interaction once native precondition is met"""
+        buttons = self.flutter.find_by_type("ElevatedButton")
+        if buttons:
+            buttons.tap()
+            logger.info("[OK] ElevatedButton tapped")
+```
 
 
 # Experimental Feature

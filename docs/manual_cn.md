@@ -25,6 +25,7 @@
 - [高级功能 2：不变式检查](#高级功能-2不变式检查invariant-checks)
 - [高级功能 3：复用回归脚本](#高级功能-3复用回归脚本兼容已有脚本通过前置脚本步骤到达特定层次)
 - [高级功能 4：支持 WebView 操作](#高级功能-4支持-webview-操作)
+- [高级功能 5：支持 Flutter 应用操作](#高级功能-5支持-flutter-应用操作)
 ### 7. 实验性功能
 - [实验性功能1：FBM Merge（模型合并）](#实验性功能1fbm-merge模型合并)
 ### 8. 常见问题与技巧
@@ -709,6 +710,60 @@ class Sample_Test(unittest.TestCase):
 ```
 
 https://github.com/user-attachments/assets/f0e5c116-03da-41b0-8f12-c62620fc09a8
+
+
+## 高级功能 5：支持 Flutter 应用操作 (Support for Flutter Interaction)
+
+Kea2 通过扩展插件 `u2_flutter` 支持 Flutter 应用的自动化 UI 测试与属性测试。
+
+u2_flutter 仓库地址：https://github.com/assassinaj602/u2_flutter
+
+前置要求：安装 `u2_flutter` 库：
+```bash
+pip install u2_flutter
+```
+
+> **Phase 2 范围说明：** 支持原生前置条件 (`self.d`) + Flutter 操作 (`self.flutter`)。Flutter 前置条件将在 Phase 3 中支持。
+
+**使用方式与核心 API**
+
+在 Kea2 中与 Flutter 页面进行交互非常简单：
+
+1. **挂载装饰器**：在需要与 Flutter 界面交互的测试方法上添加 `@with_flutter` 装饰器。
+2. **原生前置条件**：在 `@precondition` 中使用 `self.d(...)` 检查原生界面状态。
+3. **Flutter 操作**：在带有 `@with_flutter` 装饰的方法中，通过 `self.flutter` 进行控件查找与交互。
+
+**示例**
+
+```python
+import unittest
+import logging
+from kea2 import precondition, prob
+
+try:
+    from u2_flutter import with_flutter
+    HAS_U2_FLUTTER = True
+except ImportError:
+    HAS_U2_FLUTTER = False
+    with_flutter = lambda func: func
+
+logger = logging.getLogger(__name__)
+
+@unittest.skipIf(not HAS_U2_FLUTTER, "未安装 u2_flutter")
+class TestFlutterInteraction(unittest.TestCase):
+    """Flutter 应用属性测试示例（Phase 2：原生前置条件 + Flutter 操作）"""
+
+    @with_flutter
+    @prob(0.4)
+    # Phase 2：原生前置条件 (self.d)
+    @precondition(lambda self: self.d(text="Open Flutter").exists)
+    def test_flutter_interaction(self):
+        """满足原生前置条件后进行 Flutter 操作"""
+        buttons = self.flutter.find_by_type("ElevatedButton")
+        if buttons:
+            buttons.tap()
+            logger.info("[OK] 已点击 ElevatedButton")
+```
 
 
 # 实验性功能

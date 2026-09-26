@@ -178,6 +178,7 @@ class Options:
 
         _check_package_installation(self.packageNames)
         _save_bug_report_configs(self)
+
         _save_options_configs(self)
 
     def to_dict(self):
@@ -221,11 +222,11 @@ class Options:
                 raise ValueError(
                     f"char: `{char}` is illegal in --log-stamp. current stamp: {stamp}"
                 )
-    
+
     def _sanitize_args(self):
         if not self.take_screenshots and self.pre_failure_screenshots > 0:
             raise ValueError("--pre-failure-screenshots should be 0 when --take-screenshots is not set.")
-        
+
         if self.pre_failure_screenshots < self.post_failure_screenshots:
             raise ValueError("--post-failure-screenshots should be smaller than --pre-failure-screenshots.") 
 
@@ -331,7 +332,7 @@ class KeaTestLoader(TestLoader):
         testCaseClass.setUp = types.MethodType(setUp, testCaseClass)
         testCaseClass.tearDown = types.MethodType(tearDown, testCaseClass)
         return super().loadTestsFromTestCase(testCaseClass)
-
+        
     def getTestCaseNames(self, testCaseClass):
         """Return a sorted sequence of method names found within testCaseClass
         """
@@ -387,6 +388,7 @@ class KeaTestRunner(TextTestRunner, KeaOptionSetter, SetUpClassExtension):
     allProperties: PropertyStore
     allInvariants: PropertyStore
     _block_funcs: Dict[Literal["widgets", "trees"], List[Callable]] = None
+    fb = FastbotManager
 
     def _setOuputDir(self):
         output_dir = self.options.output_dir
@@ -422,8 +424,8 @@ class KeaTestRunner(TextTestRunner, KeaOptionSetter, SetUpClassExtension):
 
         with warnings.catch_warnings():
             stamp_manager = StampManager()
-            fb = FastbotManager(self.options, stamp_manager.log_file)
-            fb.start()
+            self.fb = FastbotManager(self.options, stamp_manager.log_file)
+            self.fb.start()
 
             log_watcher = LogWatcher(stamp_manager.log_file)
             
@@ -435,10 +437,10 @@ class KeaTestRunner(TextTestRunner, KeaOptionSetter, SetUpClassExtension):
             for test in {**self.allProperties, **self.allInvariants}.values():
                 self.setUpClass(test)
 
-            fb.check_alive()
-            fb.init(options=self.options, stamp=stamp_manager.stamp)
+            self.fb.check_alive()
+            self.fb.init(options=self.options, stamp=stamp_manager.stamp)
 
-            resultSyncer = ResultSyncer(fb.device_output_dir, self.options)
+            resultSyncer = ResultSyncer(self.fb.device_output_dir, self.options)
             resultSyncer.run()
             start_time = perf_counter()
             fb_is_running = True
@@ -460,7 +462,7 @@ class KeaTestRunner(TextTestRunner, KeaOptionSetter, SetUpClassExtension):
                             logger.info(f"Stopping app: {app}")
                             self.scriptDriver.app_stop(app)
                         sleep(3)
-                        fb.sendInfo("kill_apps")
+                        self.fb.sendInfo("kill_apps")
                         continue
 
                     try:
@@ -469,18 +471,18 @@ class KeaTestRunner(TextTestRunner, KeaOptionSetter, SetUpClassExtension):
                         # dumpHierarchy will just return the current ui hierarchy
                         # this is to avoid losing the ui state after executing a property
                         xml_raw: str = ""
-                        if fb.executed_prop:
-                            fb.executed_prop = False
-                            xml_raw = fb.dumpHierarchy()
+                        if self.fb.executed_prop:
+                            self.fb.executed_prop = False
+                            xml_raw = self.fb.dumpHierarchy()
                         else:
                             self.stepsCount += 1
                             logger.info(f"Sending monkeyEvent {self._monkey_event_count}")
-                            xml_raw = fb.stepMonkey(self._monkeyStepInfo)
+                            xml_raw = self.fb.stepMonkey(self._monkeyStepInfo)
                     # If the connection is refused, fastbot might have stpped running
                     except u2.HTTPError:
                         logger.info("Connection refused by remote.")
                         # If fastbot has exited normally, end the testing process
-                        if fb.get_return_code() == 0:
+                        if self.fb.get_return_code() == 0:
                             logger.info("Exploration times up (--running-minutes).")
                             fb_is_running = False
                             break
@@ -507,7 +509,7 @@ class KeaTestRunner(TextTestRunner, KeaOptionSetter, SetUpClassExtension):
                             result.printError(test)
                             result.updateExecutionInfo(test)
                             if result.lastInvariantInfo.state in {"fail", "error"}:
-                                fb.logScript(result.lastInvariantInfo)
+                                self.fb.logScript(result.lastInvariantInfo)
 
                     # Trigger the result syncer to get the coverage result periodically (Set by profile_period)
                     if self.options.profile_period and self.stepsCount % self.options.profile_period == 0:
@@ -525,7 +527,7 @@ class KeaTestRunner(TextTestRunner, KeaOptionSetter, SetUpClassExtension):
                     propertyName = random.choice(checkableProperties)
                     test = self.allProperties[propertyName]
                     result.addExcutedProperty(test, self.stepsCount)
-                    fb.logScript(result.lastPropertyInfo)
+                    self.fb.logScript(result.lastPropertyInfo)
                     # Dependency Injection. driver when doing scripts
                     setattr(test, self.options.driverName, self.scriptDriver)
                     try:
@@ -533,8 +535,8 @@ class KeaTestRunner(TextTestRunner, KeaOptionSetter, SetUpClassExtension):
                     finally:
                         result.printError(test)
                     result.updateExecutionInfo(test)
-                    fb.logScript(result.lastPropertyInfo)
-                    fb.executed_prop = True
+                    self.fb.logScript(result.lastPropertyInfo)
+                    self.fb.executed_prop = True
                     result.flushResult()
             except KeyboardInterrupt:
                 logger.info("KeyboardInterrupt received. Stopping the testing process.")
@@ -544,11 +546,11 @@ class KeaTestRunner(TextTestRunner, KeaOptionSetter, SetUpClassExtension):
                 raise KeaRuntimeError("Kea test run interrupted by exception.") from e
             finally:
                 if fb_is_running:
-                    fb.stopMonkey()
+                    self.fb.stopMonkey()
                 result.flushResult()
                 resultSyncer.close()
 
-                fb.join()
+                self.fb.join()
                 print(f"Finish sending monkey events.", flush=True)
                 log_watcher.close()
                 result.has_crash_or_anr = log_watcher.has_crash_or_anr
@@ -615,6 +617,10 @@ class KeaTestRunner(TextTestRunner, KeaOptionSetter, SetUpClassExtension):
                     raise KeaRuntimeError(f"Error when checking precond: {propName}") from e
             # if all the precond passed. make it the candidate prop.
             if valid:
+                self.fb.sendFirstTimeSatisfiedSignal()
+                # if not hasattr(test, '_has_been_satisfied'):
+                #     self.fb.sendFirstTimeSatisfiedSignal()
+                #     test._has_been_satisfied = True
                 result.addPropertyPrecondSatisfied(test)
                 precondSatisfiedProperties.append(propName)
 

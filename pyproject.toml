@@ -4,6 +4,9 @@ version = "1.2.4"
 description = "A python library for supporting and customizing automated UI testing for mobile apps"
 readme = "README.md"
 requires-python = ">=3.8"
+authors = [
+    { name = "Xixian Liang", email = "xixian@stu.ecnu.edu.cn" }
+]
 dependencies = [
     "rtree>=1.3.0",
     "jinja2>=3.0.0",
@@ -12,8 +15,11 @@ dependencies = [
     "flatbuffers>=25.9.23",
     "packaging>=25.0",
 ]
-authors = [
-    { name = "Xixian Liang", email = "xixian@stu.ecnu.edu.cn" }
+
+[project.optional-dependencies]
+mcp = [
+    "mcp>=2.2.0; python_version >= '3.10'",
+    "aiofiles>=23.0.0; python_version >= '3.10'",
 ]
 
 [project.scripts]
@@ -24,6 +30,6 @@ include = ["kea2*"]
 
 [tool.setuptools.package-data]
 kea2 = [
-    "assets/**/*", 
+    "assets/**/*",
     "report/templates/**/*"
 ]

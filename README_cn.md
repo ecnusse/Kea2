@@ -292,7 +292,16 @@ Please see the [user manual](/docs/manual_en.md) for more details on how to use 
 
 
 ## :mega: News & Media
-- [Kea2: Practical Property-based Testing for Mobile Apps](https://dl.acm.org/doi/10.1145/3803437.3806416) 被 FSE 2026 接收。
+- 中文博客
+
+    - [别再苦哈哈写测试脚本了，生成它们吧！(一)](https://mp.weixin.qq.com/s/R2kLCkXpDjpa8wCX4Eidtg)
+
+    - [别再苦哈哈写测试脚本了，生成它们吧！(二)](https://mp.weixin.qq.com/s/s4WkdstNcKupu9OP8jeOXw)
+
+    - [别再苦哈哈写测试脚本了，生成它们吧！(三)](https://mp.weixin.qq.com/s/BjXyo-xJRmPB_sCc4pmh8g)
+
+    - [Kea2: 当自动遍历开始 "懂业务"，移动测试会发生什么？](https://mp.weixin.qq.com/s/-lLDOm11ZZJltHwZ-UXMcQ)
+
 -  [功能性质驱动的测试技术：下一代GUI自动化测试技术](https://appw8oh6ysg4044.xet.citv.cn/p/course/video/v_6882fa14e4b0694ca0ec0a1b) - 视频回放与 PPT @ MTSC 2025
 - [2025 Let’s GoSSIP 软件安全暑期学校：Kea2（预告 #1）](https://mp.weixin.qq.com/s/8_0_GNNin8E5BqTbJU33wg)
 
@@ -341,6 +350,8 @@ kea2做了什么：
 
 - [Kea2: Practical Property-based Testing for Mobile Apps](https://dl.acm.org/doi/10.1145/3803437.3806416). FSE 2026.
 - [General and Practical Property-based Testing for Android Apps](https://dl.acm.org/doi/10.1145/3691620.3694986). ASE 2024.
+- [Model-guided Property-based Testing of WeChat Pay at Billion-user Scale](). ASE 2026.
+- [PropGen: Automated Property Generation for Property-Based Testing of Mobile Apps](). ASE 2026.
 - [An Empirical Study of Functional Bugs in Android Apps](https://dl.acm.org/doi/10.1145/3597926.3598138). ISSTA 2023.
 - [Fastbot2: Reusable Automated Model-based GUI Testing for Android Enhanced by Reinforcement Learning](https://dl.acm.org/doi/10.1145/3551349.3559505). ASE 2022.
 - [Guided, Stochastic Model-Based GUI Testing of Android Apps](https://dl.acm.org/doi/10.1145/3106237.3106298). ESEC/FSE 2017.
@@ -391,9 +402,14 @@ kea2做了什么：
 
 当然，我们也在GitHub上随时欢迎你的问题和反馈。
 
+**来自企业或高校？** 如果你的组织正在使用或评估 Kea2，欢迎点击链接或者扫描二维码填写一份简短的表单，以便我们更好地支持你。
+
+表单链接：<https://sy8pzmhmun.feishu.cn/share/base/form/shrcn5An36fzPzPEZsZ7mzSCE4b>
+
 <div align="center">
-    <img src="https://github.com/user-attachments/assets/8d9f8750-1e10-411b-a49f-7d8367bbe9fe" style="border-radius: 14px; width: 20%; height: 20%;"/> 
+    <img src="https://github.com/user-attachments/assets/8227c18f-d939-4006-99ec-fecb45e75d2e" alt="Kea2 报名表单二维码" style="border-radius: 14px; width: 20%; height: 20%;"/>
 </div>
+
 
 ### 维护者/贡献者
 

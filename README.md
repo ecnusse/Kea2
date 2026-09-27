@@ -300,7 +300,16 @@ Please see the [user manual](/docs/manual_en.md) for more details on how to use 
 
 
 ## :mega: News & Media
-- [Kea2: Practical Property-based Testing for Mobile Apps](https://dl.acm.org/doi/10.1145/3803437.3806416) has been accepted at FSE 2026.
+- Blogs(In Chinese)
+
+    - [别再苦哈哈写测试脚本了，生成它们吧！(一)](https://mp.weixin.qq.com/s/R2kLCkXpDjpa8wCX4Eidtg)
+
+    - [别再苦哈哈写测试脚本了，生成它们吧！(二)](https://mp.weixin.qq.com/s/s4WkdstNcKupu9OP8jeOXw)
+
+    - [别再苦哈哈写测试脚本了，生成它们吧！(三)](https://mp.weixin.qq.com/s/BjXyo-xJRmPB_sCc4pmh8g)
+
+    - [Kea2: 当自动遍历开始 "懂业务"，移动测试会发生什么？](https://mp.weixin.qq.com/s/-lLDOm11ZZJltHwZ-UXMcQ)
+
 -  [Property-driven Testing Technology: Next-generation GUI Automated Testing](https://appw8oh6ysg4044.xet.citv.cn/p/course/video/v_6882fa14e4b0694ca0ec0a1b) - Video replay and slides @ MTSC 2025
 - [Let's GoSSIP 2025 Software Security Summer School: Kea2 (Preview #1)](https://mp.weixin.qq.com/s/8_0_GNNin8E5BqTbJU33wg)
 
@@ -349,6 +358,8 @@ What Kea2 has changed:
 
 - [Kea2: Practical Property-based Testing for Mobile Apps](https://dl.acm.org/doi/10.1145/3803437.3806416). FSE 2026.
 - [General and Practical Property-based Testing for Android Apps](https://dl.acm.org/doi/10.1145/3691620.3694986). ASE 2024.
+- [Model-guided Property-based Testing of WeChat Pay at Billion-user Scale](). ASE 2026.
+- [PropGen: Automated Property Generation for Property-Based Testing of Mobile Apps](). ASE 2026.
 - [An Empirical Study of Functional Bugs in Android Apps](https://dl.acm.org/doi/10.1145/3597926.3598138). ISSTA 2023.
 - [Fastbot2: Reusable Automated Model-based GUI Testing for Android Enhanced by Reinforcement Learning](https://dl.acm.org/doi/10.1145/3551349.3559505). ASE 2022.
 - [Guided, Stochastic Model-Based GUI Testing of Android Apps](https://dl.acm.org/doi/10.1145/3106237.3106298). ESEC/FSE 2017.
@@ -399,8 +410,12 @@ Please contact Xixian Liang at [xixian@stu.ecnu.edu.cn](xixian@stu.ecnu.edu.cn) 
 
 Of course, we are also ready on GitHub to answer your questions/feedback.
 
+**From an enterprise or university?** If your organization is using or evaluating Kea2, you are welcome to fill in a short form by clicking the link or scanning the QR code below, so that we can support you better.
+
+Form link: <https://sy8pzmhmun.feishu.cn/share/base/form/shrcn5An36fzPzPEZsZ7mzSCE4b>
+
 <div align="center">
-    <img src="https://github.com/user-attachments/assets/8d9f8750-1e10-411b-a49f-7d8367bbe9fe" style="border-radius: 14px; width: 20%; height: 20%;"/> 
+    <img src="https://github.com/user-attachments/assets/ed2b16d7-6a7c-4814-8325-1a855e872f22" alt="Kea2 signup form QR code" style="border-radius: 14px; width: 20%; height: 20%;"/>
 </div>
 
 ### Maintainers/Contributors

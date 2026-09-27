@@ -9,7 +9,7 @@ from concurrent.futures import ThreadPoolExecutor
 
 from jinja2 import Environment, FileSystemLoader, select_autoescape, PackageLoader
 from ..utils import getLogger, catchException
-from .mixin import CrashAnrMixin, PathParserMixin, ScreenshotsMixin
+from .mixin import CrashAnrRecorder, PathParser, ScreenshotsRecorder
 from .utils import thread_pool
 from .widget_coverage import WidgetCoverage
 
@@ -127,7 +127,7 @@ PropertyName = NewType("PropertyName", str)
 TestResult = NewType("TestResult", Dict[PropertyName, PropertyExecResult])
 
 
-class BugReportGenerator(CrashAnrMixin, PathParserMixin, ScreenshotsMixin):
+class BugReportGenerator(CrashAnrRecorder, PathParser, ScreenshotsRecorder):
     """
     Generate HTML format bug reports
     """

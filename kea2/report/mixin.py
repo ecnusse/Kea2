@@ -30,7 +30,7 @@ class DataPath:
 logger = getLogger(__name__)
 
 
-class CrashAnrMixin:
+class CrashAnrRecorder:
     def _iter_crash_info(self: "BugReportGenerator", content: str, pattern: str):
         """
         Iterate over crash info blocks in crash-dump.log content
@@ -243,7 +243,7 @@ class CrashAnrMixin:
         # If all else fails, return the original but truncated
         return full_reason[:50] + "..." if len(full_reason) > 50 else full_reason
 
-class PathParserMixin:
+class PathParser:
 
     _data_path: DataPath = None
     
@@ -290,7 +290,7 @@ class PathParserMixin:
         )
 
 
-class ScreenshotsMixin:
+class ScreenshotsRecorder:
 
     _take_screenshots: bool = None
     _all_screenshot_names = set()

@@ -158,8 +158,40 @@ async def kea2_run_test(
 
 
 def _process_alive(pid: int | None) -> bool:
-    if not pid:
+    if not pid or pid <= 0:
         return False
+    if os.name == "nt":
+        import ctypes
+        from ctypes import wintypes
+
+        # On Windows, signal 0 is CTRL_C_EVENT: os.kill(pid, 0) can
+        # interrupt the test and its MCP server instead of checking liveness.
+        kernel32 = ctypes.WinDLL("kernel32", use_last_error=True)
+        kernel32.OpenProcess.argtypes = [wintypes.DWORD, wintypes.BOOL, wintypes.DWORD]
+        kernel32.OpenProcess.restype = wintypes.HANDLE
+        kernel32.WaitForSingleObject.argtypes = [wintypes.HANDLE, wintypes.DWORD]
+        kernel32.WaitForSingleObject.restype = wintypes.DWORD
+        kernel32.CloseHandle.argtypes = [wintypes.HANDLE]
+        kernel32.CloseHandle.restype = wintypes.BOOL
+
+        handle = kernel32.OpenProcess(0x00100000, False, pid)  # SYNCHRONIZE
+        if not handle:
+            error = ctypes.get_last_error()
+            if error == 87:  # ERROR_INVALID_PARAMETER: no such PID
+                return False
+            if error == 5:  # ERROR_ACCESS_DENIED: preserve POSIX behavior
+                return True
+            raise ctypes.WinError(error)
+        try:
+            result = kernel32.WaitForSingleObject(handle, 0)
+            if result == 258:  # WAIT_TIMEOUT: still running
+                return True
+            if result == 0:  # WAIT_OBJECT_0: exited
+                return False
+            raise ctypes.WinError(ctypes.get_last_error())
+        finally:
+            kernel32.CloseHandle(handle)
+
     try:
         os.kill(pid, 0)
         return True
@@ -199,7 +231,6 @@ async def kea2_get_status(task_id: str) -> dict:
         return {"error": "not found"}
 
     pid = rec.get("pid")
-    alive = _process_alive(pid)
     progress, result_available = _read_progress(rec.get("result_file"))
 
     status = rec.get("status")
@@ -208,7 +239,7 @@ async def kea2_get_status(task_id: str) -> dict:
         status = "finished" if int(exit_code) == 0 else "failed"
     if status in {"finished", "failed", "cancelled"}:
         phase = "done"
-    elif alive:
+    elif _process_alive(pid):
         phase = "running"
     else:
         phase = "starting"

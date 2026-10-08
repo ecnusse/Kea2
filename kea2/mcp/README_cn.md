@@ -1,7 +1,7 @@
 # Kea2 MCP Server
 
 本模块为 Kea2 提供本地 MCP 服务器，使 AI 客户端（如 Claude Desktop、
-Claude Code、Cursor）可以通过自然语言驱动 Kea2 测试任务。
+Claude Code、Cursor、Codex）可以通过自然语言驱动 Kea2 测试任务。
 
 ## 部署形态
 
@@ -30,49 +30,124 @@ from mcp.server.mcpserver import MCPServer
 安装带 MCP 扩展的 Kea2：
 
 ```bash
-pip install "kea2-python[mcp]"
+python -m pip install "kea2-python[mcp]"
 ```
 
 ## 客户端配置
 
-### Claude Desktop / Cursor
+### 选择 Python 环境和测试项目
 
-在 `claude_desktop_config.json` 中加入：
+以下示例以 Windows 上的 `C:/path/to/test_project` 为测试项目目录。
+请将所有占位路径替换为自己的绝对路径。测试项目是存放 `configs/`
+和测试输出的可写目录，不一定是 Kea2 源码仓库。
+
+- 使用已安装 `kea2-python[mcp]` 的 Python 解释器绝对路径。Windows
+  通常为 `.venv/Scripts/python.exe`；macOS/Linux 则使用
+  `/absolute/path/to/test_project/.venv/bin/python`。
+- 使用该解释器的 `-m pip` 安装依赖。在终端激活虚拟环境，不会使已经
+  运行的图形客户端自动使用该环境。
+- 将服务器工作目录设为测试项目。Kea2 当前按工作目录查找 `configs/`，
+  `kea2_init` 也在这里写入文件。支持 `cwd` 的客户端应在配置中明确填写。
+- 只有客户端能够找到正确的解释器、且工作目录正确时，才适合直接使用
+  `kea2 mcp` 或 `python -m kea2.cli mcp`。裸写 `python3` 不保证使用
+  目标虚拟环境。
+- STDIO 服务由客户端启动，无需先在终端另起服务，也无需配置 HTTP 地址或端口。
+
+启动 MCP 前，确认客户端为 MCP 服务设置的工作目录是测试项目根目录；
+仅在客户端中打开项目不一定能保证这一点。
+若设备检查正常，但启动测试提示找不到 `configs/`，请检查 MCP 服务的工作目录。
+
+### Claude Desktop
+
+在 Claude Desktop 的开发者设置中编辑 `claude_desktop_config.json`。
+将以下条目合并到已有的 `mcpServers` 中，保留其他服务器配置。
+下面的命令直接启动 Kea2，不负责设置工作目录。
 
 ```json
 {
   "mcpServers": {
     "kea2": {
-      "command": "kea2",
-      "args": ["mcp"]
-    }
-  }
-}
-```
-
-### Claude Code
-
-```bash
-claude mcp add kea2 -- kea2 mcp
-```
-
-### 如果 `kea2` 命令不在 PATH 中
-
-当 Kea2 装在虚拟环境或使用 `--user` 安装时，AI 客户端可能找不到
-`kea2` 命令。此时改用模块形式：
-
-```json
-{
-  "mcpServers": {
-    "kea2": {
-      "command": "python3",
+      "command": "C:/path/to/test_project/.venv/Scripts/python.exe",
       "args": ["-m", "kea2.cli", "mcp"]
     }
   }
 }
 ```
 
-两种写法都可移植，且不含绝对路径。
+不同系统的配置文件位置参见
+[本地 MCP 配置指南](https://modelcontextprotocol.io/docs/develop/connect-local-servers)。
+
+### Cursor
+
+使用测试项目中的 `.cursor/mcp.json`，或个人全局配置
+`~/.cursor/mcp.json`。Cursor **不使用** `claude_desktop_config.json`。
+在对应文件中加入上面的 `mcpServers` JSON 配置，替换解释器绝对路径，
+并确认服务工作目录与测试项目一致。参见
+[Cursor MCP 配置指南](https://prod.cursor.com/help/customization/mcp)。
+
+### Claude Code
+
+在测试项目目录中以 local 作用域注册 Kea2 MCP，避免将本机绝对路径写入
+团队共享的项目配置。
+
+Windows（PowerShell）：
+
+```powershell
+Set-Location 'C:\path\to\test_project'
+claude mcp add --transport stdio --scope local kea2 -- "C:/path/to/test_project/.venv/Scripts/python.exe" -m kea2.cli mcp
+```
+
+macOS/Linux：
+
+```bash
+cd /absolute/path/to/test_project
+claude mcp add --transport stdio --scope local kea2 -- /absolute/path/to/test_project/.venv/bin/python -m kea2.cli mcp
+```
+
+使用 `claude mcp get kea2` 检查注册的命令，在 Claude Code 内使用
+`/mcp` 检查连接。参见
+[Claude Code MCP 指南](https://code.claude.com/docs/en/mcp)。
+
+### Codex
+
+在测试项目的 `.codex/config.toml` 中添加以下内容，或使用个人全局配置
+`~/.codex/config.toml`。Codex 支持通过 `cwd` 明确设置服务工作目录。
+
+```toml
+[mcp_servers.kea2]
+command = 'C:\path\to\test_project\.venv\Scripts\python.exe'
+args = ["-m", "kea2.cli", "mcp"]
+cwd = 'C:\path\to\test_project'
+startup_timeout_sec = 30
+```
+
+macOS/Linux 下，将 `command` 改为虚拟环境的 `.venv/bin/python` 绝对路径，
+将 `cwd` 改为测试项目绝对路径。项目配置需要在客户端中被信任并允许加载。
+参见 [Codex MCP 指南](https://developers.openai.com/codex/mcp) 和
+[配置参考](https://learn.chatgpt.com/docs/config-file/config-reference)。
+
+### 配置与安装更新后的生效步骤
+
+完成配置或更新 Kea2 后，重新启动客户端的 MCP 服务连接。
+如果客户端没有重启入口，完全退出并重新打开客户端。
+仅替换磁盘上的 wheel 或安装文件，不会重新加载现有 Python 进程中的代码。
+
+重新安装**相同版本**的本地 wheel 时，使用 `--force-reinstall`，
+并明确指定 MCP 配置中的同一个解释器。例如，已安装 MCP 依赖后，
+在测试项目目录运行：
+
+```powershell
+& '.\.venv\Scripts\python.exe' -m pip install --force-reinstall --no-deps '.\kea2_python-1.2.4-py3-none-any.whl'
+```
+
+```bash
+./.venv/bin/python -m pip install --force-reinstall --no-deps ./kea2_python-1.2.4-py3-none-any.whl
+```
+
+按实际情况替换 wheel 文件名。`--no-deps` 仅适用于依赖已安装且兼容的环境；
+全新环境应安装带 MCP extra 的 wheel，例如
+`python -m pip install "./kea2_python-1.2.4-py3-none-any.whl[mcp]"`，
+并将 `python` 替换为配置中的解释器。安装后重启 MCP 连接，再按下文验证。
 
 ## 已实现的工具
 
@@ -143,9 +218,14 @@ claude mcp add kea2 -- kea2 mcp
 
 > 帮我看看有哪些 Android 设备连着
 
-客户端应该调用 `kea2_check_device`（而不是通过 shell 跑 `adb devices`），
-并返回设备列表。如果客户端退回 shell 命令，通常说明 MCP 服务器没有
-连接成功——检查客户端的 `/mcp` 面板状态。
+明确要求客户端调用 `kea2_check_device`，并检查工具返回值。
+通过 shell 执行 `adb devices` 不能证明 MCP 已连接。如果工具不可用或调用失败，
+检查客户端的 MCP 设置与日志（Claude Code 中使用 `/mcp`），并核对解释器路径、
+依赖和工作目录。设备查询成功本身并不能证明 `configs/` 配置正确。
+
+要端到端验证更新后的安装，可明确指定设备和应用，启动一次短时测试，
+在运行中调用 `kea2_get_status`，确认查询不会中断测试且任务最终正常结束。
+`result_available: true` 仅表示结果文件已存在，不代表测试已结束。
 
 ## 已知限制
 

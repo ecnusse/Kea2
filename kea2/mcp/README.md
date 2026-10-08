@@ -1,7 +1,7 @@
 # Kea2 MCP Server
 
 This module provides a local MCP server for Kea2. It enables AI clients
-(for example Claude Desktop, Claude Code, and Cursor) to trigger Kea2 test
+(for example Claude Desktop, Claude Code, Cursor, and Codex) to trigger Kea2 test
 tasks with natural-language requests.
 
 ## Deployment model
@@ -31,50 +31,134 @@ from mcp.server.mcpserver import MCPServer
 Install Kea2 with the MCP extra:
 
 ```bash
-pip install "kea2-python[mcp]"
+python -m pip install "kea2-python[mcp]"
 ```
 
 ## Client configuration
 
-### Claude Desktop / Cursor
+### Choose the Python environment and test project
 
-Add the following entry to `claude_desktop_config.json`:
+The examples below use a Windows test project at `C:/path/to/test_project`.
+Replace every placeholder with your own absolute path. The test project is
+the writable directory containing `configs/` and test outputs; it need not
+be the Kea2 source repository.
+
+- Use the absolute path to the Python interpreter where `kea2-python[mcp]`
+  is installed. On Windows this is typically `.venv/Scripts/python.exe`;
+  on macOS/Linux, use `/absolute/path/to/test_project/.venv/bin/python`.
+- Install packages with that interpreter's `-m pip`. Activating a virtual
+  environment in a terminal does not activate it in an already running GUI client.
+- Set the server's working directory to the test project. Kea2 currently
+  checks `configs/` relative to its working directory, and `kea2_init`
+  writes files there. If the client supports `cwd`, set it explicitly.
+- You may use `kea2 mcp` or `python -m kea2.cli mcp` directly if the
+  client resolves the correct executable and working directory. A bare
+  `python3` is not guaranteed to use your virtual environment.
+- The client launches the STDIO server; do not start a separate server
+  manually or configure an HTTP URL/port.
+
+Before starting MCP, ensure the client's server working directory is the
+test project root; opening the project alone does not guarantee this.
+If device checks succeed but starting a test reports missing `configs/`,
+check the MCP server's working directory.
+
+### Claude Desktop
+
+Open Claude Desktop's developer settings and edit
+`claude_desktop_config.json`. Merge the following entry into the existing
+`mcpServers` object, preserving any other servers. The command below starts
+Kea2 directly; it does not set the working directory.
 
 ```json
 {
   "mcpServers": {
     "kea2": {
-      "command": "kea2",
-      "args": ["mcp"]
-    }
-  }
-}
-```
-
-### Claude Code
-
-```bash
-claude mcp add kea2 -- kea2 mcp
-```
-
-### If `kea2` is not in PATH
-
-When Kea2 is installed inside a virtual environment or with `--user`, the
-`kea2` command may not be visible to the AI client. In that case use the
-module form instead:
-
-```json
-{
-  "mcpServers": {
-    "kea2": {
-      "command": "python3",
+      "command": "C:/path/to/test_project/.venv/Scripts/python.exe",
       "args": ["-m", "kea2.cli", "mcp"]
     }
   }
 }
 ```
 
-Both forms are portable and contain no absolute paths.
+See the [local MCP setup guide](https://modelcontextprotocol.io/docs/develop/connect-local-servers)
+for locating the configuration file on your operating system.
+
+### Cursor
+
+Use `.cursor/mcp.json` in the test project, or `~/.cursor/mcp.json`
+for a personal global configuration. Cursor does **not** use
+`claude_desktop_config.json`. Add the same `mcpServers` JSON entry shown
+above, with the absolute path to your interpreter. Ensure the server's
+working directory matches the test project.
+See [Cursor's MCP configuration guide](https://prod.cursor.com/help/customization/mcp).
+
+### Claude Code
+
+From the test project directory, register Kea2 MCP with local scope.
+This keeps machine-specific absolute paths out of a shared project config.
+
+Windows (PowerShell):
+
+```powershell
+Set-Location 'C:\path\to\test_project'
+claude mcp add --transport stdio --scope local kea2 -- "C:/path/to/test_project/.venv/Scripts/python.exe" -m kea2.cli mcp
+```
+
+macOS/Linux:
+
+```bash
+cd /absolute/path/to/test_project
+claude mcp add --transport stdio --scope local kea2 -- /absolute/path/to/test_project/.venv/bin/python -m kea2.cli mcp
+```
+
+Use `claude mcp get kea2` to inspect the registered command and `/mcp`
+inside Claude Code to inspect the connection.
+See [Claude Code's MCP guide](https://code.claude.com/docs/en/mcp).
+
+### Codex
+
+Add the following to the test project's `.codex/config.toml`, or to
+`~/.codex/config.toml` for a personal global configuration. Codex supports
+`cwd` to set the server's working directory explicitly.
+
+```toml
+[mcp_servers.kea2]
+command = 'C:\path\to\test_project\.venv\Scripts\python.exe'
+args = ["-m", "kea2.cli", "mcp"]
+cwd = 'C:\path\to\test_project'
+startup_timeout_sec = 30
+```
+
+On macOS/Linux, replace `command` with the virtual environment's absolute
+`.venv/bin/python` path and `cwd` with the absolute test project path.
+The project configuration must be trusted/enabled by the client.
+See the [Codex MCP guide](https://developers.openai.com/codex/mcp)
+and [configuration reference](https://learn.chatgpt.com/docs/config-file/config-reference).
+
+### Apply configuration and package updates
+
+After configuring or updating Kea2, restart the client's MCP server
+connection. If the client has no restart action, fully quit and reopen
+the client. Replacing a wheel on disk does not reload an existing Python process.
+
+When reinstalling a locally built wheel with the **same version**, use
+`--force-reinstall` and the exact interpreter from your MCP configuration.
+For example, after installing the MCP dependencies, run in the test project:
+
+```powershell
+& '.\.venv\Scripts\python.exe' -m pip install --force-reinstall --no-deps '.\kea2_python-1.2.4-py3-none-any.whl'
+```
+
+```bash
+./.venv/bin/python -m pip install --force-reinstall --no-deps ./kea2_python-1.2.4-py3-none-any.whl
+```
+
+Replace the wheel filename as appropriate. `--no-deps` is only for an
+environment whose dependencies are already installed and compatible; for a
+fresh environment, install the wheel with its MCP extra instead, for example
+`python -m pip install "./kea2_python-1.2.4-py3-none-any.whl[mcp]"`,
+using the configured interpreter in place of `python`. Restart the MCP
+connection afterward and use the verification steps below.
 
 ## Implemented tools
 
@@ -151,10 +235,16 @@ After configuring the AI client, ask:
 
 > List the connected Android devices.
 
-The client should call `kea2_check_device` (not `adb devices` via shell)
-and return a device list. If the client falls back to shell commands, the
-MCP server is probably not connected — check the client's `/mcp` panel for
-status.
+Explicitly ask the client to call `kea2_check_device` and inspect the tool
+response. A shell invocation of `adb devices` does not verify the MCP connection.
+If the tool is unavailable or fails, inspect the client's MCP settings and
+logs (`/mcp` in Claude Code); verify the interpreter path, dependencies, and
+working directory. A successful device query alone does not verify `configs/`.
+
+To check an updated installation end to end, explicitly request a short test
+on a chosen device and app, query `kea2_get_status` while it is running, and
+confirm it completes without interruption. `result_available: true` only
+means a result file exists; it does not mean the test has finished.
 
 ## Current limitations
 

@@ -164,31 +164,130 @@ connection afterward and use the verification steps below.
 
 The server currently exposes six tools:
 
-1. `kea2_init`
-   - Initializes a Kea2 project in the current working directory by
-     creating `configs/` and sample files.
-   - Supports `force` mode to overwrite existing configs.
-2. `kea2_check_device`
-   - Lists local ADB-visible devices.
-3. `kea2_run_test`
-   - Starts a Kea2 run task asynchronously and returns a task handle.
-4. `kea2_get_status`
-   - Reads persisted task status and summarizes progress from
-     `result_<stamp>.json` when available.
-5. `kea2_get_results`
-   - Lists files under the task output directory.
-6. `kea2_cancel_test`
-   - Cancels a running subprocess and attempts to clean the device-side
-     monkey process.
+### `kea2_init`
+
+Initializes a Kea2 project in the current working directory by creating
+`configs/` and sample files. Supports `force` mode to overwrite existing configs.
+
+### `kea2_check_device`
+
+Lists local ADB-visible devices.
+
+### `kea2_run_test`
+
+Starts a Kea2 run asynchronously and immediately returns a task handle
+containing `task_id`. Supports the existing fuzzing workflow and optional
+property selection.
+
+#### Parameters
+
+| Parameter | Required | Default | Description |
+| --- | --- | --- | --- |
+| `serial` | Yes | — | Target Android device serial. |
+| `packages` | Yes | — | List of target app package names. |
+| `running_minutes` | No | `10` | Test duration in minutes. |
+| `output_dir` | No | `output` | Parent directory for test output. |
+| `property_path` | No | Not set | Property `.py` file or directory, relative to the server working directory or absolute. |
+| `property_pattern` | No | `test*.py` | Filename glob for directory discovery; ignored for a single file. |
+| `driver_name` | No | `d` | Device attribute used by selected scripts, e.g. `self.d`. |
+| `max_step` | No | CLI default | Maximum exploration steps; positive integer. |
+| `throttle_ms` | No | CLI default | Delay between events in milliseconds; non-negative integer. |
+| `take_screenshots` | No | CLI default | Enable screenshots at every step when `true`. |
+| `profile_period` | No | CLI default | Coverage and screenshot collection period in steps; positive integer. |
+| `restart_app_period` | No | CLI default | App restart period in steps; `0` disables periodic restarts. |
+| `act_whitelist_file` | No | Not set | Device destination for `configs/awl.strings`; mutually exclusive with blacklist. |
+| `act_blacklist_file` | No | Not set | Device destination for `configs/abl.strings`; mutually exclusive with whitelist. |
+
+Omitted optional run settings are not forwarded, leaving the CLI defaults intact.
+`take_screenshots: false` omits the CLI's opt-in `--take-screenshots` flag.
+Activity list paths are **Android device paths**, not local input files. For example,
+`"act_whitelist_file": "/sdcard/.kea2/awl.strings"` uploads the project's
+`configs/awl.strings` to that destination. Prepare the corresponding config file first.
+
+For example, add these fields to either run example below to use a 500 ms delay,
+enable per-step screenshots, and collect coverage/screenshots every 20 steps:
+
+```json
+{
+  "throttle_ms": 500,
+  "take_screenshots": true,
+  "profile_period": 20
+}
+```
+
+#### Fuzzing without explicit property selection
+
+Omit `property_path` to preserve the existing fuzzing behavior:
+
+```json
+{
+  "serial": "YOUR_DEVICE_SERIAL",
+  "packages": ["com.example.app"],
+  "running_minutes": 5
+}
+```
+
+#### Selecting properties
+
+For a single file:
+
+```json
+{
+  "serial": "YOUR_DEVICE_SERIAL",
+  "packages": ["com.example.app"],
+  "running_minutes": 5,
+  "property_path": "quicktest.py",
+  "driver_name": "d"
+}
+```
+
+For a directory, use `"property_path": "properties"` and optionally
+`"property_pattern": "test_*.py"`. Discovery follows `unittest` conventions:
+use importable Python module names and `__init__.py` in nested test packages.
+This selects files, not individual classes or methods.
+
+#### Notes
+
+Paths and patterns are checked before creating a task. Scripts are imported
+only in the test subprocess; only select scripts you trust. MCP forwards the
+selection to the existing CLI without changing its discovery behavior. Import
+errors or zero discovered properties/invariants may still allow fuzzing to
+continue. Inspect the task log to confirm which properties loaded; `running`
+or `finished` status alone does not confirm successful property loading.
+The selected parameters are saved with the task metadata.
+
+Properties run alongside Fastbot exploration, subject to their preconditions,
+probability and attempt limits; selecting a file does not guarantee execution.
+Reinstall the updated package and restart the MCP connection to refresh the
+tool schema before using these parameters.
+
+### `kea2_get_status`
+
+Reads persisted task status and summarizes progress from
+`result_<stamp>.json` when available.
+
+### `kea2_get_results`
+
+Lists files under the task output directory.
+
+### `kea2_cancel_test`
+
+Cancels a running subprocess and attempts to clean the device-side monkey process.
 
 ## Task and output model
 
 - Task metadata is stored in SQLite at `~/.kea2/tasks.db`.
 - Task output directory layout follows Kea2 conventions:
   - `<output_parent>/res_<stamp>/`
-  - `fastbot_<stamp>.log`
+  - `fastbot_<stamp>.log` (written exclusively by Fastbot)
+  - `kea2_<stamp>.log` (Python subprocess stdout/stderr captured by MCP)
   - `result_<stamp>.json`
   - `property_exec_info_<stamp>.json` (if produced by test flow)
+
+New tasks store `kea2_<stamp>.log` as their diagnostic `log_file`; inspect it
+for startup errors and Python tracebacks. Both logs are listed by
+`kea2_get_results`. Keeping them separate prevents concurrent writes from
+corrupting the log reader's UTF-8 position. Existing task records are unchanged.
 
 ## Typical interaction flow
 

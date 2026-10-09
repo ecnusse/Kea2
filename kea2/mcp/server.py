@@ -106,11 +106,45 @@ async def kea2_run_test(
     packages: list[str],
     running_minutes: int = 10,
     output_dir: str | None = None,
+    property_path: str | None = None,
+    property_pattern: str = "test*.py",
+    driver_name: str = "d",
+    max_step: int | None = None,
+    throttle_ms: int | None = None,
+    take_screenshots: bool | None = None,
+    profile_period: int | None = None,
+    restart_app_period: int | None = None,
+    act_whitelist_file: str | None = None,
+    act_blacklist_file: str | None = None,
 ) -> dict:
-    """在指定 Android 设备上启动一轮 Kea2 性质测试。参数：
+    """在指定 Android 设备上启动 Kea2 测试。参数：
     serial(设备序列号), packages(目标应用包名列表),
-    running_minutes(测试时长,默认10), output_dir(可选输出目录)。
+    running_minutes(测试时长,默认10), output_dir(可选输出目录),
+    property_path(可选性质 .py 文件或目录，相对服务工作目录；省略保持原有模糊测试用法),
+    property_pattern(目录中的文件名匹配模式，默认 test*.py；指定文件时忽略),
+    driver_name(脚本的设备属性名，默认 d，即 self.d)。
+    可选运行参数（省略沿用 CLI 默认值）：max_step(最大探索步数，正整数),
+    throttle_ms(事件间隔毫秒，非负整数), take_screenshots(每步截图),
+    profile_period(覆盖率和截图采集周期，正整数步数),
+    restart_app_period(重启应用周期，非负整数，0 不定期重启),
+    act_whitelist_file / act_blacklist_file(互斥，设备端目标路径；
+    内容来自项目 configs 下对应名单文件，不是本机文件路径)。
+    指定性质时仍由 Fastbot 探索，满足前置条件后按性质规则执行。
     立即返回 task_id，测试在后台运行。"""
+    run_options = {
+        "max_step": max_step,
+        "throttle_ms": throttle_ms,
+        "take_screenshots": take_screenshots,
+        "profile_period": profile_period,
+        "restart_app_period": restart_app_period,
+        "act_whitelist_file": act_whitelist_file,
+        "act_blacklist_file": act_blacklist_file,
+    }
+    try:
+        runner.run_option_args(run_options)
+        runner.property_args(property_path, property_pattern, driver_name)
+    except (ValueError, OSError) as exc:
+        return {"error": str(exc), "hint": "检查运行参数、性质路径、文件匹配模式和 driver_name"}
     task_store.init_db()
     err = _precheck_run_test(serial, packages)
     if err:
@@ -125,6 +159,10 @@ async def kea2_run_test(
         "packages": packages,
         "running_minutes": running_minutes,
         "output_dir": output_dir,
+        "property_path": str(Path(property_path).expanduser().resolve()) if property_path is not None else None,
+        "property_pattern": property_pattern,
+        "driver_name": driver_name,
+        **run_options,
     }
 
     task_store.create_task(
@@ -137,7 +175,11 @@ async def kea2_run_test(
         extra_json=params,
     )
 
-    proc, out_dir, log_file, result_file = await runner.launch_kea2_subprocess(params, stamp)
+    try:
+        proc, out_dir, log_file, result_file = await runner.launch_kea2_subprocess(params, stamp)
+    except (ValueError, OSError) as exc:
+        task_store.update_task_status(task_id, "failed", exit_code=4)
+        return {"task_id": task_id, "status": "failed", "error": str(exc)}
     _procs[task_id] = proc
     task_store.update_task_status(
         task_id,

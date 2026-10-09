@@ -153,28 +153,122 @@ macOS/Linux 下，将 `command` 改为虚拟环境的 `.venv/bin/python` 绝对�
 
 服务器当前暴露 6 个工具：
 
-1. `kea2_init`
-   - 在当前工作目录初始化 Kea2 项目，生成 `configs/` 目录和模板文件。
-   - 支持 `force` 模式覆盖已有配置。
-2. `kea2_check_device`
-   - 列出本机 ADB 可见的设备。
-3. `kea2_run_test`
-   - 异步启动一轮 Kea2 测试任务，返回任务句柄。
-4. `kea2_get_status`
-   - 读取持久化的任务状态，并在 `result_<stamp>.json` 可用时汇总进度。
-5. `kea2_get_results`
-   - 列出任务输出目录下的文件。
-6. `kea2_cancel_test`
-   - 取消正在运行的子进程，并尝试清理设备端的 monkey 进程。
+### `kea2_init`
+
+在当前工作目录初始化 Kea2 项目，生成 `configs/` 目录和模板文件。
+支持 `force` 模式覆盖已有配置。
+
+### `kea2_check_device`
+
+列出本机 ADB 可见的设备。
+
+### `kea2_run_test`
+
+异步启动一轮 Kea2 测试，立即返回包含 `task_id` 的任务句柄。
+支持原有模糊测试用法，也可以选择加载性质。
+
+#### 参数
+
+| 参数 | 必填 | 默认值 | 说明 |
+| --- | --- | --- | --- |
+| `serial` | 是 | — | 目标 Android 设备序列号。 |
+| `packages` | 是 | — | 目标应用包名列表。 |
+| `running_minutes` | 否 | `10` | 测试时长，单位为分钟。 |
+| `output_dir` | 否 | `output` | 测试输出的父目录。 |
+| `property_path` | 否 | 未设置 | 性质 `.py` 文件或目录，支持绝对路径或相对 MCP 服务工作目录的路径。 |
+| `property_pattern` | 否 | `test*.py` | 目录发现时的文件名匹配模式；指定单个文件时忽略。 |
+| `driver_name` | 否 | `d` | 所选脚本中的设备属性名，例如 `self.d`。 |
+| `max_step` | 否 | CLI 默认值 | 最大探索步数，正整数。 |
+| `throttle_ms` | 否 | CLI 默认值 | 事件间隔毫秒数，非负整数。 |
+| `take_screenshots` | 否 | CLI 默认值 | `true` 时开启每步截图。 |
+| `profile_period` | 否 | CLI 默认值 | 覆盖率和截图采集周期，单位为步，正整数。 |
+| `restart_app_period` | 否 | CLI 默认值 | 重启应用的步数周期，非负整数；`0` 关闭定期重启。 |
+| `act_whitelist_file` | 否 | 未设置 | `configs/awl.strings` 上传到设备的目标路径，与黑名单互斥。 |
+| `act_blacklist_file` | 否 | 未设置 | `configs/abl.strings` 上传到设备的目标路径，与白名单互斥。 |
+
+未指定的可选运行参数不转发，沿用 CLI 默认值。`take_screenshots: false`
+不会传入 CLI 的 `--take-screenshots` 开启标志。
+Activity 名单路径是 **Android 设备路径**，不是本机输入文件。例如
+`"act_whitelist_file": "/sdcard/.kea2/awl.strings"` 会将项目的
+`configs/awl.strings` 上传到该位置；请事先准备对应配置文件。
+
+例如，在下方任一启动示例中添加以下字段，即可设置 500 毫秒事件间隔、
+开启每步截图，并每 20 步采集覆盖率和截图：
+
+```json
+{
+  "throttle_ms": 500,
+  "take_screenshots": true,
+  "profile_period": 20
+}
+```
+
+#### 不显式指定性质的模糊测试
+
+省略 `property_path`，保持原有模糊测试行为：
+
+```json
+{
+  "serial": "YOUR_DEVICE_SERIAL",
+  "packages": ["com.example.app"],
+  "running_minutes": 5
+}
+```
+
+#### 指定性质
+
+指定单个文件：
+
+```json
+{
+  "serial": "YOUR_DEVICE_SERIAL",
+  "packages": ["com.example.app"],
+  "running_minutes": 5,
+  "property_path": "quicktest.py",
+  "driver_name": "d"
+}
+```
+
+指定目录时，使用 `"property_path": "properties"`，并可设置
+`"property_pattern": "test_*.py"`。发现规则沿用 `unittest`：文件名应为可导入的
+Python 模块名，嵌套测试包应包含 `__init__.py`。目前按文件选择，不按单个类或方法筛选。
+
+#### 注意事项
+
+创建任务前检查路径和匹配模式。脚本仅在测试子进程中导入，请仅选择可信脚本。
+MCP 将选择参数转发给现有 CLI，不改变其性质发现行为。导入失败或未发现任何
+性质／不变量时，仍可能继续模糊测试。请查看任务日志，确认实际加载的性质；
+仅凭 `running` 或 `finished` 状态不能确认性质已成功加载。
+选择参数会保存在任务元数据中。
+
+性质与 Fastbot 探索一起运行，仍受前置条件、概率和执行次数限制；指定文件不保证
+其中的性质一定执行。使用新参数前，请重新安装更新后的包并重启 MCP 连接，刷新工具 schema。
+
+### `kea2_get_status`
+
+读取持久化的任务状态，并在 `result_<stamp>.json` 可用时汇总进度。
+
+### `kea2_get_results`
+
+列出任务输出目录下的文件。
+
+### `kea2_cancel_test`
+
+取消正在运行的子进程，并尝试清理设备端的 monkey 进程。
 
 ## 任务与输出模型
 
 - 任务元数据存储在 SQLite：`~/.kea2/tasks.db`。
 - 任务输出目录遵循 Kea2 约定：
   - `<output_parent>/res_<stamp>/`
-  - `fastbot_<stamp>.log`
+  - `fastbot_<stamp>.log`（仅由 Fastbot 写入）
+  - `kea2_<stamp>.log`（MCP 捕获的 Python 子进程 stdout/stderr）
   - `result_<stamp>.json`
   - `property_exec_info_<stamp>.json`（若测试流程产生）
+
+新任务的诊断 `log_file` 指向 `kea2_<stamp>.log`，启动错误和 Python 异常堆栈
+应查看此文件。`kea2_get_results` 会列出两份日志。分开写入可避免并发写入破坏
+日志读取的 UTF-8 字节位置。已有任务记录保持不变。
 
 ## 典型交互流程
 

@@ -1,7 +1,7 @@
 """Coverage details, corruption handling and existing HTML trend parity."""
 
 import asyncio
-import importlib.util
+from mcp_dependencies import MCP_AVAILABLE
 import unittest
 from unittest.mock import patch
 from kea2.results import ResultSnapshot, ResultError
@@ -87,7 +87,7 @@ class TestResultCoverage(unittest.TestCase):
         self.assertEqual(snapshot.availability["steps"], "partial")
         self.assertEqual(snapshot.query("property_execution_trend")["items"][0]["executed_property_count"], 0)
 
-    @unittest.skipUnless(importlib.util.find_spec("mcp"), "requires optional MCP")
+    @unittest.skipUnless(MCP_AVAILABLE, "requires optional MCP")
     def test_new_sections_return_native_structured_content(self):
         from kea2.mcp import server, task_store
         self.widgets("activity:Home|class:Button|resourceId:|content-desc:|")

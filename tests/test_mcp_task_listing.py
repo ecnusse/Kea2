@@ -1,6 +1,6 @@
 """Task discovery uses persisted metadata and never chooses an analysis target."""
 import asyncio
-import importlib.util
+from mcp_dependencies import MCP_AVAILABLE
 import tempfile
 import unittest
 from pathlib import Path
@@ -53,7 +53,7 @@ class TestTaskListing(unittest.TestCase):
             with self.subTest(kwargs=kwargs), self.assertRaises(ValueError):
                 task_store.list_tasks_page(**kwargs)
 
-    @unittest.skipUnless(importlib.util.find_spec("mcp"), "requires MCP")
+    @unittest.skipUnless(MCP_AVAILABLE, "requires MCP")
     def test_registered_tool_and_errors(self):
         from kea2.mcp import server
         self.populate()

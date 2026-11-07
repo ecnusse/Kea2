@@ -1,6 +1,6 @@
 """Offline regression tests for non-destructive MCP status queries."""
 import asyncio
-import importlib.util
+from mcp_dependencies import MCP_AVAILABLE
 import os
 import subprocess
 import sys
@@ -10,8 +10,7 @@ from pathlib import Path
 from unittest.mock import patch
 
 
-MCP_AVAILABLE = (importlib.util.find_spec("mcp") is not None
-                 and importlib.util.find_spec("aiofiles") is not None)
+
 if MCP_AVAILABLE:
     from kea2.mcp import server, task_store
 

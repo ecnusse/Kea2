@@ -4,6 +4,7 @@ import asyncio
 import base64
 import hashlib
 import importlib.util
+from mcp_dependencies import MCP_AVAILABLE
 import json
 import unittest
 from unittest.mock import patch
@@ -213,7 +214,7 @@ class TestResultEvidence(unittest.TestCase):
                 snapshot.artifact(artifact["id"], snapshot.snapshot_id)
         self.assertEqual(before, hashes())
 
-    @unittest.skipUnless(importlib.util.find_spec("mcp") and importlib.util.find_spec("jsonschema"),
+    @unittest.skipUnless(MCP_AVAILABLE and importlib.util.find_spec("jsonschema"),
                          "requires optional MCP dependencies")
     def test_native_mcp_image_transport_and_schema(self):
         from kea2.mcp import server, task_store

@@ -5,6 +5,7 @@ These tests check interface compatibility, not an LLM's compliance or analysis q
 
 import asyncio
 import importlib.util
+from mcp_dependencies import MCP_AVAILABLE
 import json
 from pathlib import Path
 import re
@@ -32,7 +33,7 @@ class TestAnalysisSkillReferences(unittest.TestCase):
                 self.assertTrue(target.is_file(), str(target))
 
 
-@unittest.skipUnless(importlib.util.find_spec("mcp") and importlib.util.find_spec("jsonschema"),
+@unittest.skipUnless(MCP_AVAILABLE and importlib.util.find_spec("jsonschema"),
                      "requires optional MCP and JSON Schema validator")
 class TestAnalysisSkillExamples(unittest.TestCase):
     setUp = fixtures.TestResultEvidence.setUp

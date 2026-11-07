@@ -2,7 +2,7 @@
 
 import asyncio
 import hashlib
-import importlib.util
+from mcp_dependencies import MCP_AVAILABLE
 import json
 import tempfile
 import unittest
@@ -295,8 +295,7 @@ class TestStructuredResults(unittest.TestCase):
                 snapshot.query(**kwargs)
 
 
-MCP_AVAILABLE = (importlib.util.find_spec("mcp") is not None
-                 and importlib.util.find_spec("aiofiles") is not None)
+
 
 
 @unittest.skipUnless(MCP_AVAILABLE, "requires optional MCP dependencies")

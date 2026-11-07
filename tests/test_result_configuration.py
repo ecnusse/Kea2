@@ -1,7 +1,7 @@
 """Saved configuration provenance, legacy serialization and MCP queries."""
 
 import asyncio
-import importlib.util
+from mcp_dependencies import MCP_AVAILABLE
 import json
 import unittest
 from unittest.mock import patch
@@ -71,7 +71,7 @@ class TestResultConfiguration(unittest.TestCase):
             ResultSnapshot(self.task).query("configuration", cursor=page["next_cursor"])
         self.assertEqual(caught.exception.code, "STALE_SNAPSHOT")
 
-    @unittest.skipUnless(importlib.util.find_spec("mcp"), "requires optional MCP")
+    @unittest.skipUnless(MCP_AVAILABLE, "requires optional MCP")
     def test_configuration_mcp_structured_response(self):
         from kea2.mcp import server, task_store
         self.write("options.json", {"running_mins": 10})

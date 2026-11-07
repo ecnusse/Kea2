@@ -1,5 +1,5 @@
 import asyncio
-import importlib.util
+from mcp_dependencies import MCP_AVAILABLE
 import os
 import tempfile
 import unittest
@@ -48,7 +48,7 @@ class TestRunIdentity(unittest.TestCase):
                 task_store.create_task("t", "t", output_dir=str(path), reserve_output=True)
             self.assertIsNone(task_store.get_task("t"))
 
-    @unittest.skipUnless(importlib.util.find_spec("mcp"), "requires optional MCP")
+    @unittest.skipUnless(MCP_AVAILABLE, "requires optional MCP")
     def test_mcp_retries_database_and_directory_collisions(self):
         from kea2.mcp import server
         with tempfile.TemporaryDirectory() as tmp, \

@@ -1,6 +1,6 @@
 """Offline registration, lifecycle, legacy migration and historical result integration."""
 import asyncio
-import importlib.util
+from mcp_dependencies import MCP_AVAILABLE
 from concurrent.futures import ThreadPoolExecutor
 import json
 import os
@@ -180,7 +180,7 @@ class TestTaskRegistration(unittest.TestCase):
         self.assertIsNone(task_store.get_task("uuid-old")["origin"])
         self.assertEqual(task_store.get_task("uuid-old")["status"], "finished")
 
-    @unittest.skipUnless(importlib.util.find_spec("mcp"), "requires optional MCP")
+    @unittest.skipUnless(MCP_AVAILABLE, "requires optional MCP")
     def test_hybrid_child_relation_and_parent_query(self):
         from kea2.mcp import server
         task_store.init_db()
@@ -196,7 +196,7 @@ class TestTaskRegistration(unittest.TestCase):
         result = asyncio.run(server.kea2_get_report("parent"))
         self.assertEqual(result["error"]["code"], "CHILD_TASK_REQUIRED")
 
-    @unittest.skipUnless(importlib.util.find_spec("mcp"), "requires optional MCP")
+    @unittest.skipUnless(MCP_AVAILABLE, "requires optional MCP")
     def test_registration_tool_and_cli(self):
         from kea2.mcp import server
         from kea2.cli import cmd_register_result

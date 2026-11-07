@@ -1,6 +1,6 @@
 """Offline coverage for optional MCP property discovery."""
 import asyncio
-import importlib.util
+from mcp_dependencies import MCP_AVAILABLE
 import os
 import tempfile
 import unittest
@@ -8,8 +8,7 @@ from pathlib import Path
 from unittest.mock import AsyncMock, patch
 from types import SimpleNamespace
 
-MCP_AVAILABLE = (importlib.util.find_spec("mcp") is not None
-                 and importlib.util.find_spec("aiofiles") is not None)
+
 if MCP_AVAILABLE:
     from kea2.mcp import runner, server
 

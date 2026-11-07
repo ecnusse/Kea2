@@ -3,6 +3,7 @@
 import asyncio
 import copy
 import importlib.util
+from mcp_dependencies import MCP_AVAILABLE
 import json
 import unittest
 from pathlib import Path
@@ -189,7 +190,7 @@ class TestResultModels(unittest.TestCase):
         bad["summary"]["unique_triggered_widget_count"] = "12%"
         self.assertFalse(Draft7Validator(json_schema("report")).is_valid(bad))
 
-    @unittest.skipUnless(importlib.util.find_spec("mcp"), "requires optional MCP")
+    @unittest.skipUnless(MCP_AVAILABLE, "requires optional MCP")
     def test_schema_tool_and_contract_errors_through_mcp(self):
         from kea2.mcp import server, task_store
 

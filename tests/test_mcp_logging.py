@@ -1,14 +1,13 @@
 """MCP must never append stdout to the file owned by Fastbot."""
 import asyncio
-import importlib.util
+from mcp_dependencies import MCP_AVAILABLE
 import tempfile
 import unittest
 from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import AsyncMock, patch
 
-MCP_AVAILABLE = (importlib.util.find_spec("mcp") is not None
-                 and importlib.util.find_spec("aiofiles") is not None)
+
 if MCP_AVAILABLE:
     from kea2.mcp import runner
 

@@ -158,11 +158,13 @@ environment whose dependencies are already installed and compatible; for a
 fresh environment, install the wheel with its MCP extra instead, for example
 `python -m pip install "./kea2_python-1.2.4-py3-none-any.whl[mcp]"`,
 using the configured interpreter in place of `python`. Restart the MCP
-connection afterward and use the verification steps below.
+connection afterward and ask the client to call `kea2_check_device`. A successful
+`devices` response confirms the MCP call completed; an empty list means ADB found
+no devices. See [Quick verification](#quick-verification).
 
 ## Implemented tools
 
-The server currently exposes six tools:
+The server exposes 13 tools for test execution, task management, historical registration and structured evidence retrieval. Replace angle-bracketed IDs in the examples with actual values.
 
 ### `kea2_init`
 
@@ -274,7 +276,80 @@ Lists files under the task output directory.
 
 Cancels a running subprocess and attempts to clean the device-side monkey process.
 
+### `kea2_list_tasks`
+
+Discover tasks registered for the current user. Optional filters are status (queued/running/cancelling/cancelled/finished/failed/unknown), origin (cli/mcp/imported) and parent_task_id. Use limit (default 20, range 1–100) and offset (default 0); follow next_offset until null. The response includes tasks and total. Ask the user to select an ID before analysis.
+
+```json
+{"origin":"cli","limit":20}
+```
+
+### `kea2_register_result`
+
+Register an existing experiment directory. Requires result_dir; optional stamp selects an experiment and task_id supplies an alias. Inspects the directory and immediate res_* children without modifying historical files. registered and already_registered return an ID; selection_required returns candidates; identity_conflict can be resolved with an explicit alias; unsupported and invalid explain the problem. HTML alone is insufficient. Imported lifecycle state is unknown.
+
+```json
+{"result_dir":"E:/experiments/res_old","stamp":"old"}
+```
+
+### `kea2_get_result_schema`
+
+Read the structured result contract (currently 1.5). No task_id required. document defaults to experiment and also accepts report, query, finding, artifact and error. Returns the corresponding JSON Schema.
+
+```json
+{"document":"query"}
+```
+
+### `kea2_get_report`
+
+Read an overview by task_id, including execution and exit information, check statistics, Activity coverage, widget count, Crash/ANR occurrences, log observations, source availability, warnings and snapshot_id. Missing statistics are null. On CHILD_TASK_REQUIRED, list children by parent_task_id and select a child experiment.
+
+```json
+{"task_id":"<task_id>"}
+```
+
+### `kea2_query_report`
+
+Page through a task_id and section. filters and cursor are optional; limit defaults to 50 (1–100). Returns items, total, next_cursor and snapshot_id. Keep the section and filters unchanged while following next_cursor until null.
+
+```json
+{"task_id":"<task_id>","section":"checks","filters":{"kind":"property"}}
+```
+
+| section | Contents | Filter fields |
+| --- | --- | --- |
+| `checks` | Check statistics | name, kind, has_findings |
+| `findings` | Individual check failures, crashes and ANRs | type, check_name, state |
+| `activities` | Activity coverage | name, covered |
+| `trends` | Coverage and widget trends | metric |
+| `steps` | Event timeline | type, start_step, end_step, execution_id |
+| `executions` | Execution boundaries | id, check_name, kind, state |
+| `artifacts` | Evidence metadata | id, kind, availability |
+| `widgets` | Widget inventory and parse status | activity, class_name, resource_id, content_description, parse_status |
+| `property_execution_trend` | Distinct properties started | start_step, end_step |
+| `configuration` | Saved run/report configuration | document, key |
+
+Property passes are derived as `max(executed - fail - error, 0)`. Invariants report fail/error counts and exception details; precondition, execution and pass counts are null. Findings are occurrences. Unreadable sources cannot support a zero count.
+
+### `kea2_get_finding`
+
+Supply task_id plus finding_id and snapshot_id from a findings page. Returns trace text, related execution, log context and evidence references for one occurrence. offset defaults to 0, limit to 8000 characters (1–32000); follow next_offset. context_before and context_after each default to 0 and accept 0–20 entries. Ambiguous screenshot links remain unresolved.
+
+```json
+{"task_id":"<task_id>","finding_id":"<finding_id>","snapshot_id":"<snapshot_id>","context_before":3,"context_after":3}
+```
+
+### `kea2_get_artifact`
+
+Supply task_id, artifact_id and snapshot_id from an artifact query or finding detail to retrieve content. Text is paged by character: offset defaults to 0 and limit to 8000 (1–32000). Images require offset=0 and return native MCP image content and metadata (8 MiB maximum); viewing requires client support. Relevant text sources over 64 MiB are marked too_large. On STALE_SNAPSHOT, refresh the overview and relevant list.
+
+```json
+{"task_id":"<task_id>","artifact_id":"<artifact_id>","snapshot_id":"<snapshot_id>"}
+```
+
 ## Task and output model
+
+New runs default to a timestamp for both task_id and stamp. CLI runs register automatically; MCP parent and child processes share one task. The experiment directory contains `kea2_task.json` for identity recovery. Legacy UUID tasks remain queryable.
 
 - Task metadata is stored in SQLite at `~/.kea2/tasks.db`.
 - Task output directory layout follows Kea2 conventions:
@@ -300,6 +375,8 @@ corrupting the log reader's UTF-8 position. Existing task records are unchanged.
 5. `kea2_get_results` — discover generated files.
 6. `kea2_cancel_test` — early stop if needed.
 
+For an existing experiment, discover tasks with `kea2_list_tasks` or register a selected historical directory with `kea2_register_result`. After the user supplies a specific task_id, read the overview, query records and retrieve traces or screenshots as needed. The client agent writes the analysis using MCP evidence. See the [complete workflow](../../docs/mcp_extension_en.md), [analysis skill guide](../../docs/result_analysis_skill_en.md) and [registration guide](../../docs/task_registration_en.md).
+
 ## Run prechecks and auto-fix hint
 
 Before creating a task, `kea2_run_test` runs local prechecks:
@@ -321,7 +398,7 @@ If `configs/` is missing, the tool returns an auto-fix style response:
 
 Before use:
 
-- `adb devices` can see at least one target device.
+- Running a test requires a target visible to `adb devices`; saved results can be read offline.
 - Kea2 is installed in the local environment.
 - The AI host supports MCP subprocess integration.
 - The project root is writable (so `kea2_init` can create `configs/`).
@@ -350,9 +427,7 @@ means a result file exists; it does not mean the test has finished.
 - Local single-machine execution only.
 - No remote sharing / remote transport support.
 - No multi-client coordination guarantee.
-- Log files may contain non-UTF-8 bytes produced by Fastbot. The server
-  reads them with `errors="replace"` and only returns file metadata, not
-  raw content.
+- `kea2_get_results` lists files. Use `kea2_get_artifact` to read registered text evidence; non-UTF-8 content returns a read error.
 - Long-running tasks are asynchronous: `kea2_run_test` returns a task
   handle immediately. Clients should poll `kea2_get_status` instead of
   waiting for the test to finish.

@@ -91,7 +91,8 @@ class TestMcpProperties(unittest.TestCase):
                     patch.object(runner, "getProjectRoot", return_value=Path(tmp)):
                 await runner.launch_kea2_subprocess({"serial": "device", "packages": ["app"],
                     "running_minutes": 5, "output_dir": tmp, "property_path": selection,
-                    "throttle_ms": 500, "take_screenshots": True, "max_step": 50}, "test")
+                    "throttle_ms": 500, "take_screenshots": True, "max_step": 50},
+                    "with_property" if selection else "without_property")
                 cmd = launch.call_args.args
                 self.assertEqual(launch.call_args.kwargs["cwd"], tmp)
                 self.assertEqual("propertytest" in cmd, selection is not None)

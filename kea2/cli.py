@@ -131,6 +131,14 @@ def cmd_mcp(args):
     return 0
 
 
+def cmd_register_result(args):
+    import json
+    from .task_registry import register_result
+    result = register_result(args.path, args.stamp, args.task_id)
+    print(json.dumps(result, ensure_ascii=False, indent=2))
+    return 0 if result["status"] in ("registered", "already_registered") else 1
+
+
 _commands = [
     dict(action=cmd_version, command="version", help="show version"),
     dict(
@@ -214,6 +222,11 @@ def main():
     from .kea_launcher import _set_runner_parser
     _set_runner_parser(subparser)
     actions["run"] = cmd_run
+    register_parser = subparser.add_parser("register-result", help="Register an existing experiment directory")
+    register_parser.add_argument("-p", "--path", required=True)
+    register_parser.add_argument("--stamp")
+    register_parser.add_argument("--task-id", help="Explicit alias for an ID conflict; does not rename files")
+    actions["register-result"] = cmd_register_result
 
     actions["mcp"] = cmd_mcp
     mcp_parser = subparser.add_parser("mcp", help="Start MCP server (STDIO mode)")

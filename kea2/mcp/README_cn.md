@@ -147,11 +147,11 @@ macOS/Linux 下，将 `command` 改为虚拟环境的 `.venv/bin/python` 绝对�
 按实际情况替换 wheel 文件名。`--no-deps` 仅适用于依赖已安装且兼容的环境；
 全新环境应安装带 MCP extra 的 wheel，例如
 `python -m pip install "./kea2_python-1.2.4-py3-none-any.whl[mcp]"`，
-并将 `python` 替换为配置中的解释器。安装后重启 MCP 连接，再按下文验证。
+并将 `python` 替换为配置中的解释器。安装后重启 MCP 连接，让客户端调用 `kea2_check_device`。成功返回 `devices` 表示此次 MCP 调用已完成；列表为空表示 ADB 当前未发现设备。参见[快速验证](#快速验证)。
 
 ## 已实现的工具
 
-服务器当前暴露 6 个工具：
+服务器提供 13 个工具，覆盖测试启动、任务管理、历史结果登记和结构化证据查询。下文 JSON 示例中的尖括号表示需要替换的实际 ID。
 
 ### `kea2_init`
 
@@ -256,7 +256,80 @@ MCP 将选择参数转发给现有 CLI，不改变其性质发现行为。导入
 
 取消正在运行的子进程，并尝试清理设备端的 monkey 进程。
 
+### `kea2_list_tasks`
+
+查询当前用户任务库。可选 status（queued/running/cancelling/cancelled/finished/failed/unknown）、origin（cli/mcp/imported）、parent_task_id、limit（默认 20，1–100）和 offset（默认 0）。返回 tasks、total 和 next_offset。用于找 ID；分析前请用户明确选择任务。
+
+```json
+{"origin":"cli","limit":20}
+```
+
+### `kea2_register_result`
+
+登记指定的历史实验目录。result_dir 必填；可选 stamp 选择实验，task_id 为用户指定的别名。检查指定目录及直接 res_* 子目录，不修改历史文件。registered 和 already_registered 返回可查询的 ID；selection_required 要求选择候选；identity_conflict 可通过明确指定别名解决；unsupported 或 invalid 会说明原因。只有 HTML 时无法登记。导入任务的结束状态为 unknown。
+
+```json
+{"result_dir":"E:/experiments/res_old","stamp":"old"}
+```
+
+### `kea2_get_result_schema`
+
+查看结构化数据契约（当前 1.5）。无需 task_id；document 默认为 experiment，也支持 report、query、finding、artifact、error。返回对应 JSON Schema。
+
+```json
+{"document":"query"}
+```
+
+### `kea2_get_report`
+
+按 task_id 读取概览。返回执行状态和退出信息、性质统计、Activity 覆盖率、控件数量、Crash/ANR 次数、日志观测、来源可用性、警告和 snapshot_id。数据缺失时返回 null。Hybrid 父任务返回 CHILD_TASK_REQUIRED，用 list_tasks 的 parent_task_id 查询子任务后再选择。
+
+```json
+{"task_id":"<task_id>"}
+```
+
+### `kea2_query_report`
+
+按 task_id 和 section 分页查询。filters、cursor 可选；limit 默认 50，范围 1–100。返回 items、total、next_cursor 和 snapshot_id。翻页时保持筛选条件不变，使用返回的 next_cursor 直到 null。
+
+```json
+{"task_id":"<task_id>","section":"checks","filters":{"kind":"property"}}
+```
+
+| section | 内容 | 可选筛选字段 |
+| --- | --- | --- |
+| `checks` | 检查项统计 | name, kind, has_findings |
+| `findings` | 逐次性质异常、Crash、ANR | type, check_name, state |
+| `activities` | Activity 覆盖 | name, covered |
+| `trends` | 覆盖和控件数量趋势 | metric |
+| `steps` | 事件时间线 | type, start_step, end_step, execution_id |
+| `executions` | 性质执行片段 | id, check_name, kind, state |
+| `artifacts` | 已登记证据元数据 | id, kind, availability |
+| `widgets` | 控件清单和解析状态 | activity, class_name, resource_id, content_description, parse_status |
+| `property_execution_trend` | 已启动的不同 property 数量 | start_step, end_step |
+| `configuration` | 运行和报告配置 | document, key |
+
+Property 的通过次数按 `max(executed - fail - error, 0)` 派生。Invariant 只统计 Fail、Error 和异常详情，前置条件、执行、通过次数为 null。Findings 是发生记录；不可读的来源不能按零处理。
+
+### `kea2_get_finding`
+
+传入 findings 页返回的 finding_id 和 snapshot_id，以及 task_id，读取一次异常的堆栈、相关执行片段、前后日志和证据引用。offset 默认 0，limit 默认 8000 个字符（1–32000），沿 next_offset 续读。context_before 和 context_after 默认 0，各允许 0–20 条。关联不明确时不猜测截图。
+
+```json
+{"task_id":"<task_id>","finding_id":"<finding_id>","snapshot_id":"<snapshot_id>","context_before":3,"context_after":3}
+```
+
+### `kea2_get_artifact`
+
+传入 task_id 以及查询或异常详情返回的 artifact_id、snapshot_id，读取实际内容。文本按字符分页，offset 默认 0，limit 默认 8000（1–32000）。截图要求 offset=0，以 MCP 原生图片和元数据返回（上限 8 MiB）；需客户端支持才能查看。超过 64 MiB 的相关文本来源会标为 too_large。遇到 STALE_SNAPSHOT 时重新获取概览和相应列表。
+
+```json
+{"task_id":"<task_id>","artifact_id":"<artifact_id>","snapshot_id":"<snapshot_id>"}
+```
+
 ## 任务与输出模型
+
+新实验默认以时间戳作为 task_id 和 stamp。CLI 自动登记，MCP 启动时父子进程共用一条记录。实验目录里的 `kea2_task.json` 保存身份信息，旧 UUID 任务仍可查询。
 
 - 任务元数据存储在 SQLite：`~/.kea2/tasks.db`。
 - 任务输出目录遵循 Kea2 约定：
@@ -279,6 +352,8 @@ MCP 将选择参数转发给现有 CLI，不改变其性质发现行为。导入
 5. `kea2_get_results` —— 获取生成的文件列表。
 6. `kea2_cancel_test` —— 如需提前停止。
 
+分析已有实验时，先用 `kea2_list_tasks` 查找任务，或用 `kea2_register_result` 登记指定的历史目录。用户给出具体 task_id 后，依次读取概览、查询明细，再按需读取异常堆栈和截图。Agent 使用 MCP 返回的证据生成分析报告。参见[如何让 Agent 通过 Kea2 MCP 扩展启动测试、获取并分析测试结果](../../docs/mcp_extension_cn.md)、[分析 Skill 手册](../../docs/result_analysis_skill_cn.md)和[任务登记手册](../../docs/task_registration_cn.md)。
+
 ## 前置校验与自动修复提示
 
 在创建任务前，`kea2_run_test` 会做本地前置校验：
@@ -300,7 +375,7 @@ MCP 将选择参数转发给现有 CLI，不改变其性质发现行为。导入
 
 使用前需要满足：
 
-- `adb devices` 能看到至少一台目标设备。
+- 启动测试时，`adb devices` 能看到目标设备；读取已保存结果可以离线进行。
 - Kea2 已安装在本地环境中。
 - AI 客户端支持 MCP 子进程集成。
 - 项目根目录可写（`kea2_init` 会创建 `configs/`）。
@@ -326,8 +401,7 @@ MCP 将选择参数转发给现有 CLI，不改变其性质发现行为。导入
 - 仅支持本地单机运行。
 - 不支持远程共享 / 远程传输。
 - 不保证多客户端并发协调。
-- Fastbot 日志可能包含非 UTF-8 字节。服务器以 `errors="replace"`
-  读取，且只返回文件元数据，不返回原始内容。
+- `kea2_get_results` 返回文件清单。读取已登记的文本证据请用 `kea2_get_artifact`；非 UTF-8 文本会返回读取错误。
 - 长时间任务是异步的：`kea2_run_test` 立即返回任务句柄，
   客户端应轮询 `kea2_get_status`，而不是阻塞等待测试结束。
 

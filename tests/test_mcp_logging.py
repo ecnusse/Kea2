@@ -42,7 +42,8 @@ class TestMcpLogging(unittest.TestCase):
                     patch.object(runner, "_stream_to_file", side_effect=observed_writer), \
                     patch.object(runner, "getProjectRoot", return_value=Path(tmp)):
                 returned, out_dir, log_file, result_file = await runner.launch_kea2_subprocess(
-                    {"serial": "device", "packages": ["app"], "output_dir": tmp}, "logging")
+                    {"serial": "device", "packages": ["app"], "output_dir": tmp,
+                     "_reserved_output_dir": str(output)}, "logging")
                 await asyncio.wait_for(finished.wait(), timeout=5)
             self.assertIs(returned, proc)
             self.assertEqual(out_dir, output)

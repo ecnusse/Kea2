@@ -290,6 +290,28 @@ def _sanitize_args(args):
 
 
 def run(args=None) -> ReturnCode:
+    from .task_registry import SESSION, finish_session
+    session = {}
+    token = SESSION.set(session)
+    code, cancelled = ReturnCode.ERROR, False
+    try:
+        code = _run(args)
+        return code
+    except KeyboardInterrupt:
+        cancelled = True
+        code = 130
+        raise
+    except SystemExit as exc:
+        code = exc.code if isinstance(exc.code, int) else ReturnCode.ERROR
+        raise
+    finally:
+        try:
+            finish_session(session, int(code), cancelled)
+        finally:
+            SESSION.reset(token)
+
+
+def _run(args=None) -> ReturnCode:
     if args is None:
         args = parse_args(sys.argv[1:])
     _sanitize_args(args)

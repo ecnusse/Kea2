@@ -1,5 +1,6 @@
 import asyncio
 import sys
+import re
 from pathlib import Path
 
 import pytest
@@ -72,6 +73,9 @@ async def test_normal_flow(patch_runner):
         output_dir=output_dir,
     )
     task_id = run_res["task_id"]
+    assert re.fullmatch(r"\d{10}_\d{10}", task_id)
+    assert run_res["stamp"] == task_id
+    assert Path(run_res["output_dir"]).name == f"res_{task_id}"
 
     status1 = await server.kea2_get_status(task_id)
     assert status1["task_id"] == task_id

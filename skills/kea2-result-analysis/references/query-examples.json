@@ -1,0 +1,16 @@
+[
+  {"tool": "kea2_get_report", "arguments": {"task_id": "$task_id"}},
+  {"tool": "kea2_get_result_schema", "arguments": {"document": "query"}},
+  {"tool": "kea2_query_report", "arguments": {"task_id": "$task_id", "section": "configuration", "filters": {"document": "run_options"}, "limit": 25}},
+  {"tool": "kea2_query_report", "arguments": {"task_id": "$task_id", "section": "checks", "filters": {"has_findings": true}, "limit": 25}},
+  {"tool": "kea2_query_report", "arguments": {"task_id": "$task_id", "section": "activities", "limit": 25}},
+  {"tool": "kea2_query_report", "arguments": {"task_id": "$task_id", "section": "trends", "limit": 25}},
+  {"tool": "kea2_query_report", "arguments": {"task_id": "$task_id", "section": "property_execution_trend", "limit": 25}},
+  {"tool": "kea2_query_report", "arguments": {"task_id": "$task_id", "section": "findings", "filters": {"type": "property"}, "limit": 25}},
+  {"tool": "kea2_query_report", "arguments": {"task_id": "$task_id", "section": "widgets", "limit": 25}},
+  {"tool": "kea2_query_report", "arguments": {"task_id": "$task_id", "section": "steps", "filters": {"execution_id": "$execution_id"}, "limit": 25}},
+  {"tool": "kea2_query_report", "arguments": {"task_id": "$task_id", "section": "executions", "limit": 25}},
+  {"tool": "kea2_query_report", "arguments": {"task_id": "$task_id", "section": "artifacts", "filters": {"kind": "screenshot", "availability": "available"}, "limit": 25}},
+  {"tool": "kea2_get_finding", "arguments": {"task_id": "$task_id", "finding_id": "$finding_id", "snapshot_id": "$snapshot_id", "offset": 0, "limit": 8000, "context_before": 3, "context_after": 3}},
+  {"tool": "kea2_get_artifact", "arguments": {"task_id": "$task_id", "artifact_id": "$artifact_id", "snapshot_id": "$snapshot_id"}}
+]

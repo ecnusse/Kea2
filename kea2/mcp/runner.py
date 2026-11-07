@@ -5,6 +5,8 @@ import aiofiles
 from kea2.utils import getProjectRoot
 import fnmatch
 import keyword
+import os
+from kea2.run_identity import HANDOFF_ENV, prepare_handoff
 
 
 def run_option_args(params):
@@ -80,7 +82,9 @@ async def launch_kea2_subprocess(params, stamp):
                                    params.get("driver_name", "d"))
     output_parent = pathlib.Path(params.get("output_dir") or "output").expanduser().resolve()
     output_dir = output_parent / f"res_{stamp}"
-    output_dir.mkdir(parents=True, exist_ok=True)
+    if params.get("_reserved_output_dir") != str(output_dir):
+        output_dir.mkdir(parents=True, exist_ok=False)
+    handoff = prepare_handoff(output_dir)
 
     # Fastbot owns fastbot_<stamp>.log and LogWatcher tails it. Appending
     # subprocess output there races with Fastbot's writes and can invalidate
@@ -115,6 +119,7 @@ async def launch_kea2_subprocess(params, stamp):
         stdout=asyncio.subprocess.PIPE,
         stderr=asyncio.subprocess.STDOUT,
         cwd=str(getProjectRoot() or pathlib.Path.cwd()),
+        env={**os.environ, HANDOFF_ENV: handoff},
     )
     asyncio.create_task(_stream_to_file(proc.stdout, log_file))
     return proc, output_dir, log_file, result_file

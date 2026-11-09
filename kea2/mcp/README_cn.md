@@ -183,6 +183,7 @@ macOS/Linux 下，将 `command` 改为虚拟环境的 `.venv/bin/python` 绝对�
 | `take_screenshots` | 否 | CLI 默认值 | `true` 时开启每步截图。 |
 | `profile_period` | 否 | CLI 默认值 | 覆盖率和截图采集周期，单位为步，正整数。 |
 | `restart_app_period` | 否 | CLI 默认值 | 重启应用的步数周期，非负整数；`0` 关闭定期重启。 |
+| `clear_app_data` | 否 | `false` | 启动前清空指定设备上 `packages` 中所有应用的数据，包括登录状态、设置和本地数据，不可恢复。使用 `"clear_app_data": true` 开启；清理失败不启动测试，并报告已经清理的包。 |
 | `act_whitelist_file` | 否 | 未设置 | `configs/awl.strings` 上传到设备的目标路径，与黑名单互斥。 |
 | `act_blacklist_file` | 否 | 未设置 | `configs/abl.strings` 上传到设备的目标路径，与白名单互斥。 |
 

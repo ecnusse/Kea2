@@ -42,6 +42,7 @@ Kea2 MCP 让 agent 可以在 Android 设备上启动测试，也可以读取已�
 | `max_step`、`throttle_ms` | 最大探索步数和事件间隔（毫秒） |
 | `take_screenshots`、`profile_period` | 每步截图开关，以及覆盖率和截图采集周期（步数） |
 | `restart_app_period` | 按步数设置应用重启周期，0 表示不定期重启 |
+| `clear_app_data` | 默认 false；设为 true 时，启动前清空指定设备上所有目标应用的数据（含登录状态、设置和本地数据，不可恢复）。清理失败不启动测试，并报告已清理的包 |
 | `act_whitelist_file`、`act_blacklist_file` | 互斥的 Activity 名单选项。参数是设备端目标路径，内容来自项目配置 |
 
 测试在后台运行。指定性质脚本后仍由 Fastbot 探索界面，满足条件时执行性质。服务会检查脚本参数、项目配置和设备连接。子进程输出与 Fastbot 日志分别保存。Windows 的进度查询使用进程句柄检查存活状态。

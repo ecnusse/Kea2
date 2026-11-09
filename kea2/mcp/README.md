@@ -197,6 +197,7 @@ property selection.
 | `take_screenshots` | No | CLI default | Enable screenshots at every step when `true`. |
 | `profile_period` | No | CLI default | Coverage and screenshot collection period in steps; positive integer. |
 | `restart_app_period` | No | CLI default | App restart period in steps; `0` disables periodic restarts. |
+| `clear_app_data` | No | `false` | Clear data for every app in `packages` on the selected device before starting. This irreversibly removes login state, settings and local data. Enable with `"clear_app_data": true`. A clearing failure prevents launch and reports packages already cleared. |
 | `act_whitelist_file` | No | Not set | Device destination for `configs/awl.strings`; mutually exclusive with blacklist. |
 | `act_blacklist_file` | No | Not set | Device destination for `configs/abl.strings`; mutually exclusive with whitelist. |
 

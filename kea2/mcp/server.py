@@ -5,6 +5,7 @@ import os
 import signal
 import shutil
 import base64
+import re
 from pathlib import Path
 from typing import Any
 
@@ -52,6 +53,23 @@ def _precheck_run_test(serial: str, packages: list[str]) -> str | None:
     except Exception as e:
         return f"设备检查失败: {e}"
     return None
+
+
+def _clear_app_data(serial: str, packages: list[str]) -> None:
+    """Use the same Android operation as app_clear, checking its result."""
+    cleared = []
+    try:
+        device = adb.device(serial=serial)
+        for package in dict.fromkeys(packages):
+            result = device.shell(["pm", "clear", package], timeout=30)
+            if result.strip() != "Success":
+                raise ValueError(f"{package}: {result.strip() or 'empty response'}")
+            cleared.append(package)
+    except Exception as exc:
+        raise ValueError(
+            f"App data clearing failed: {exc}; already cleared: {cleared}. "
+            "Testing was not started; cleared data cannot be restored."
+        ) from exc
 
 
 @mcp.tool()
@@ -124,6 +142,7 @@ async def kea2_run_test(
     restart_app_period: int | None = None,
     act_whitelist_file: str | None = None,
     act_blacklist_file: str | None = None,
+    clear_app_data: bool = False,
 ) -> dict:
     """在指定 Android 设备上启动 Kea2 测试。参数：
     serial(设备序列号), packages(目标应用包名列表),
@@ -131,6 +150,8 @@ async def kea2_run_test(
     property_path(可选性质 .py 文件或目录，相对服务工作目录；省略保持原有模糊测试用法),
     property_pattern(目录中的文件名匹配模式，默认 test*.py；指定文件时忽略),
     driver_name(脚本的设备属性名，默认 d，即 self.d)。
+    clear_app_data(默认 False；True 时启动前清空 packages 中所有目标应用的数据，
+    包括登录状态、设置及本地数据，不可恢复；清理失败不启动测试)。
     可选运行参数（省略沿用 CLI 默认值）：max_step(最大探索步数，正整数),
     throttle_ms(事件间隔毫秒，非负整数), take_screenshots(每步截图),
     profile_period(覆盖率和截图采集周期，正整数步数),
@@ -149,6 +170,12 @@ async def kea2_run_test(
         "act_blacklist_file": act_blacklist_file,
     }
     try:
+        if not isinstance(clear_app_data, bool):
+            raise ValueError("clear_app_data must be a boolean")
+        if clear_app_data and (not packages or any(
+                not isinstance(package, str) or not re.fullmatch(r"[A-Za-z0-9_]+(?:\.[A-Za-z0-9_]+)*", package)
+                for package in packages)):
+            raise ValueError("clear_app_data requires valid target package names")
         runner.run_option_args(run_options)
         runner.property_args(property_path, property_pattern, driver_name)
     except (ValueError, OSError) as exc:
@@ -168,6 +195,7 @@ async def kea2_run_test(
         "property_path": str(Path(property_path).expanduser().resolve()) if property_path is not None else None,
         "property_pattern": property_pattern,
         "driver_name": driver_name,
+        "clear_app_data": clear_app_data,
         **run_options,
     }
 
@@ -194,6 +222,8 @@ async def kea2_run_test(
     })
 
     try:
+        if clear_app_data:
+            await asyncio.to_thread(_clear_app_data, serial, packages)
         proc, out_dir, log_file, result_file = await runner.launch_kea2_subprocess(params, stamp)
     except (ValueError, OSError) as exc:
         task_store.update_task_status(task_id, "failed", exit_code=4, finished_at=task_registry.now())

@@ -42,6 +42,7 @@ Running tests requires an accessible Android device. Reading saved results can b
 | `max_step`, `throttle_ms` | Maximum exploration steps and event interval in milliseconds |
 | `take_screenshots`, `profile_period` | Per-step screenshots and periodic coverage/screenshot collection in steps |
 | `restart_app_period` | Restart interval in steps; zero disables periodic restart |
+| `clear_app_data` | Defaults to false. When true, irreversibly clears all target apps' data on the selected device before launch, including login state, settings and local data. Failure prevents launch and reports apps already cleared |
 | `act_whitelist_file`, `act_blacklist_file` | Mutually exclusive device-side Activity list paths with content from project configuration |
 
 Fastbot explores the app and runs eligible properties when scripts are supplied. Startup checks validate script settings, project configuration and device connectivity. Subprocess output and Fastbot logs are captured separately. Windows process checks use a process handle to inspect liveness.

@@ -5,7 +5,7 @@ import os
 import signal
 import shutil
 import base64
-import re
+import inspect
 from pathlib import Path
 from typing import Any
 
@@ -127,6 +127,66 @@ async def kea2_check_device() -> dict:
 
 
 @mcp.tool()
+async def kea2_list_apps(serial: str, keyword: str | None = None,
+                         limit: int = 50, offset: int = 0) -> dict:
+    """只读列出设备上的已安装包（含系统应用）。keyword 按包名子串筛选；
+    不提供应用显示名称，不要猜测名称与包名的对应关系。limit 1..100，offset >= 0。"""
+    if not isinstance(serial, str) or not serial.strip():
+        return {"error": "serial must identify a device"}
+    if (type(limit) is not int or not 1 <= limit <= 100 or
+            type(offset) is not int or offset < 0):
+        return {"error": "limit must be 1..100 and offset must be >= 0"}
+    try:
+        packages = await asyncio.to_thread(lambda: adb.device(serial=serial).list_packages())
+        packages = sorted(set(p for p in packages if keyword is None or keyword in p))
+        end = offset + limit
+        return {"serial": serial, "packages": packages[offset:end], "total": len(packages),
+                "next_offset": end if end < len(packages) else None,
+                "names_available": False}
+    except Exception as exc:
+        return {"error": str(exc), "serial": serial}
+
+
+@mcp.tool()
+async def kea2_check_test_setup(serial: str | None = None, packages: list[str] | None = None,
+                                options: dict | None = None) -> dict:
+    """只读检查启动条件，不初始化、不登记、不清理应用、不启动测试。
+    options 接收 kea2_run_test 除 serial/packages 外的参数。可先不提供设备和应用，
+    获取工作目录及工具默认参数；ready 仅表示已检查的条件通过，不表示用户已确认参数。
+    未指定设备/应用会返回相应问题；不执行或导入用户脚本。"""
+    defaults = {name: p.default for name, p in inspect.signature(kea2_run_test).parameters.items()
+                if p.default is not inspect.Parameter.empty}
+    issues = []
+    cwd = Path.cwd()
+    config_dir = cwd / "configs"
+    if not config_dir.is_dir():
+        issues.append({"code": "PROJECT_NOT_INITIALIZED", "message": "Call kea2_init after confirmation"})
+    if options is not None and (not isinstance(options, dict) or set(options) - set(defaults)):
+        issues.append({"code": "INVALID_OPTIONS", "message": "Use only optional kea2_run_test parameters"})
+        options = {}
+    params = dict(defaults, **(options or {}), serial=serial, packages=packages)
+    try:
+        runner.validate_parameters(params)
+    except (ValueError, OSError) as exc:
+        issues.append({"code": "INVALID_PARAMETERS", "message": str(exc)})
+    for key, filename in (("act_whitelist_file", "awl.strings"), ("act_blacklist_file", "abl.strings")):
+        if params.get(key) is not None and not (config_dir / filename).is_file():
+            issues.append({"code": "MISSING_ACTIVITY_LIST", "message": str(config_dir / filename)})
+    if serial:
+        try:
+            installed = await asyncio.to_thread(lambda: adb.device(serial=serial).list_packages())
+            missing = [p for p in (packages or []) if p not in installed]
+            if missing:
+                issues.append({"code": "APP_NOT_INSTALLED", "packages": missing})
+        except Exception as exc:
+            issues.append({"code": "DEVICE_UNAVAILABLE", "message": str(exc)})
+    return {"ready": not issues, "working_directory": str(cwd),
+            "configs_dir": str(config_dir), "initialized": config_dir.is_dir(),
+            "tool_defaults": defaults, "issues": issues,
+            "limitations": ["Does not run scripts or verify device permissions, APK behavior or Fastbot startup."]}
+
+
+@mcp.tool()
 async def kea2_run_test(
     serial: str,
     packages: list[str],
@@ -170,14 +230,9 @@ async def kea2_run_test(
         "act_blacklist_file": act_blacklist_file,
     }
     try:
-        if not isinstance(clear_app_data, bool):
-            raise ValueError("clear_app_data must be a boolean")
-        if clear_app_data and (not packages or any(
-                not isinstance(package, str) or not re.fullmatch(r"[A-Za-z0-9_]+(?:\.[A-Za-z0-9_]+)*", package)
-                for package in packages)):
-            raise ValueError("clear_app_data requires valid target package names")
-        runner.run_option_args(run_options)
-        runner.property_args(property_path, property_pattern, driver_name)
+        runner.validate_parameters(dict(run_options, serial=serial, packages=packages,
+            running_minutes=running_minutes, clear_app_data=clear_app_data, output_dir=output_dir,
+            property_path=property_path, property_pattern=property_pattern, driver_name=driver_name))
     except (ValueError, OSError) as exc:
         return {"error": str(exc), "hint": "检查运行参数、性质路径、文件匹配模式和 driver_name"}
     task_store.init_db()
@@ -515,6 +570,9 @@ async def kea2_get_artifact(
     if image_bytes is not None:
         content.append(ImageContent(type="image", data=base64.b64encode(image_bytes).decode("ascii"),
                                     mime_type=metadata["artifact"]["mime_type"]))
+        # Some clients prefer structuredContent and drop image blocks when both
+        # are present. Keep metadata in the text block for image responses.
+        return CallToolResult(content=content)
     return CallToolResult(content=content, structured_content=metadata)
 
 

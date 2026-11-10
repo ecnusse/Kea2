@@ -120,6 +120,56 @@ class TestStructuredResults(unittest.TestCase):
         self.assertEqual(report["summary"]["checks"]["property"]["count"], 0)
         self.assertEqual(report["summary"]["observed_crash_occurrences"], 0)
 
+    def test_optional_crash_log_absence_uses_completed_run_outcome(self):
+        (self.root / "output_run/crash-dump.log").unlink()
+        for code in (0, 1):
+            with self.subTest(code=code):
+                self.task.update(status="finished", exit_code=code)
+                snapshot = self.snapshot()
+                report = snapshot.report()
+                self.assertEqual(report["availability"]["crashes"], "missing")
+                for kind in ("crash", "anr"):
+                    self.assertEqual(report["summary"]["observed_" + kind + "_occurrences"], 0)
+                    self.assertEqual(snapshot.query("findings", {"type": kind})["total"], 0)
+                # Isolate the completeness check: this optional log alone is not a gap.
+                snapshot.availability.update({k: "available" for k in snapshot.availability if k != "crashes"})
+                self.assertEqual(snapshot.report()["data_completeness"], "available_sources")
+        for status, code in (("finished", 2), ("finished", 3), ("failed", 4),
+                             ("running", None), ("finished", None), ("cancelled", 0)):
+            with self.subTest(status=status, code=code):
+                self.task.update(status=status, exit_code=code)
+                report = self.snapshot().report()
+                self.assertIsNone(report["summary"]["observed_crash_occurrences"])
+                self.assertIsNone(report["summary"]["observed_anr_occurrences"])
+
+    def test_crash_read_failure_is_not_an_absent_optional_log(self):
+        self.task.update(status="finished", exit_code=0)
+        original_open = Path.open
+
+        def read(path, *args, **kwargs):
+            if path.name == "crash-dump.log":
+                raise PermissionError("denied")
+            return original_open(path, *args, **kwargs)
+
+        with patch.object(Path, "open", read):
+            report = self.snapshot().report()
+        self.assertEqual(report["availability"]["crashes"], "unreadable")
+        self.assertIsNone(report["summary"]["observed_crash_occurrences"])
+
+    def test_malformed_crash_log_is_not_zero(self):
+        self.task.update(status="finished", exit_code=0)
+        self.write("output_run/crash-dump.log", "20261110123456\ncrash:\nincomplete")
+        report = self.snapshot().report()
+        self.assertEqual(report["availability"]["crashes"], "partial")
+        self.assertIsNone(report["summary"]["observed_crash_occurrences"])
+        self.assertIsNone(report["summary"]["observed_anr_occurrences"])
+
+    def test_crash_records_override_negative_exit_flag(self):
+        self.task.update(status="finished", exit_code=0)
+        report = self.snapshot().report()
+        self.assertEqual(report["summary"]["observed_crash_occurrences"], 1)
+        self.assertEqual(report["summary"]["observed_anr_occurrences"], 1)
+
     def test_partial_json_and_jsonl_preserve_valid_records(self):
         self.write("result_run.json", '{"test.a":')
         with (self.root / "property_exec_info_run.json").open("a", encoding="utf-8") as f:

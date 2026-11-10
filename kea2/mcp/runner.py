@@ -6,7 +6,30 @@ from kea2.utils import getProjectRoot
 import fnmatch
 import keyword
 import os
+import re
 from kea2.run_identity import HANDOFF_ENV, prepare_handoff
+
+
+def validate_parameters(params):
+    """Shared, non-mutating validation for preparation and launch."""
+    if not isinstance(params.get("serial"), str) or not params["serial"].strip():
+        raise ValueError("serial must identify a device")
+    packages = params.get("packages")
+    if not isinstance(packages, list) or not packages or any(
+            not isinstance(p, str) or not re.fullmatch(r"[A-Za-z0-9_]+(?:\.[A-Za-z0-9_]+)*", p)
+            for p in packages):
+        raise ValueError("packages must be a non-empty list of package names")
+    if type(params.get("running_minutes")) is not int or params["running_minutes"] <= 0:
+        raise ValueError("running_minutes must be a positive integer")
+    if type(params.get("clear_app_data")) is not bool:
+        raise ValueError("clear_app_data must be a boolean")
+    for key in ("output_dir", "property_path"):
+        if params.get(key) is not None and (not isinstance(params[key], str) or not params[key].strip()):
+            raise ValueError(key + " must be a non-empty path")
+    if not isinstance(params.get("property_pattern"), str) or not isinstance(params.get("driver_name"), str):
+        raise ValueError("property_pattern and driver_name must be strings")
+    run_option_args(params)
+    property_args(params.get("property_path"), params["property_pattern"], params["driver_name"])
 
 
 def run_option_args(params):

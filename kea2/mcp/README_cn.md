@@ -151,7 +151,7 @@ macOS/Linux 下，将 `command` 改为虚拟环境的 `.venv/bin/python` 绝对�
 
 ## 已实现的工具
 
-服务器提供 13 个工具，覆盖测试启动、任务管理、历史结果登记和结构化证据查询。下文 JSON 示例中的尖括号表示需要替换的实际 ID。
+服务器提供 15 个工具，覆盖测试启动、任务管理、历史结果登记和结构化证据查询。下文 JSON 示例中的尖括号表示需要替换的实际 ID。
 
 ### `kea2_init`
 
@@ -161,6 +161,26 @@ macOS/Linux 下，将 `command` 改为虚拟环境的 `.venv/bin/python` 绝对�
 ### `kea2_check_device`
 
 列出本机 ADB 可见的设备。
+
+### `kea2_list_apps`
+
+只读查询指定设备的已安装包，含系统应用。`serial` 必填；`keyword` 按包名子串筛选；
+`limit` 默认 50（1–100），`offset` 默认 0。返回 packages、total、next_offset，
+next_offset 为 null 时结束。不提供显示名称，不要猜测名称与包名的对应关系。
+
+### `kea2_check_test_setup`
+
+只读检查准备情况。可省略 `serial`、`packages` 先获取环境；`options` 接收 run_test
+除设备和包名外的可选参数。返回 working_directory、initialized、tool_defaults、issues、ready。
+检查配置、设备、已安装包、脚本路径与名单文件，不导入脚本、不初始化、登记、清理或启动。
+ready 不表示用户确认，也不保证真实执行成功。
+
+```json
+{"serial":"<device_serial>","packages":["com.example.app"],"options":{"running_minutes":10,"clear_app_data":false}}
+```
+
+安装 `kea2-test` 与 `kea2-result-analysis` 可交互式确认参数后自动测试并分析，
+详见[全流程手册](../../docs/mcp_extension_cn.md)。
 
 ### `kea2_run_test`
 
@@ -323,6 +343,8 @@ Property 的通过次数按 `max(executed - fail - error, 0)` 派生。Invariant
 ### `kea2_get_artifact`
 
 传入 task_id 以及查询或异常详情返回的 artifact_id、snapshot_id，读取实际内容。文本按字符分页，offset 默认 0，limit 默认 8000（1–32000）。截图要求 offset=0，以 MCP 原生图片和元数据返回（上限 8 MiB）；需客户端支持才能查看。超过 64 MiB 的相关文本来源会标为 too_large。遇到 STALE_SNAPSHOT 时重新获取概览和相应列表。
+
+图片响应在 `content` 中返回元数据文本块和原生 image 块，不附带 `structuredContent`，以避免部分客户端优先读取结构化字段而忽略图片。文本证据仍提供结构化返回。若更新后仍仅看到元数据，请确认 MCP 使用新版 wheel 并重启客户端会话。
 
 ```json
 {"task_id":"<task_id>","artifact_id":"<artifact_id>","snapshot_id":"<snapshot_id>"}

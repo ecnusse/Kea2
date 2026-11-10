@@ -40,6 +40,18 @@ while other codes may indicate execution_error. Legacy status tools can label no
 Check code, status and evidence together; finding defects does not itself mean the MCP call failed.
 Report metadata is task-store information, not a new process-liveness probe.
 
+MCP returns zero Crash/ANR occurrences when the optional crash log is absent and execution
+confirms a completed run with exit code 0 or 1. Physical availability remains missing, but this
+expected absence alone does not make data_completeness partial. Display "0 (none detected)";
+do not describe this as a collection failure. Unknown/imported runs without a known exit code,
+cancelled runs and positive crash/ANR outcomes do not qualify. Read errors remain unknown;
+a malformed log without any valid crash/ANR records also returns null. Valid records in a partial
+log remain observed partial counts. The template's fallback supports older servers.
+Likewise, an explicitly uncovered inventory
+Activity may be presented as "0 (not covered)"; null visits for a covered Activity remain unknown.
+Apply all conditions in the template. Do not expose internal status fields by default; explain
+material uncertainty in everyday language. Keep provenance internally for requested diagnostics.
+
 ## Evidence and source quality
 
 source.artifact is result-relative, line is one-based, and key locates a JSON field. Preserve them.

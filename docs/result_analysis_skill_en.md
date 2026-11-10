@@ -57,14 +57,18 @@ Replace the placeholder with your experiment ID. You can narrow the scope:
 
 > Investigate unexecuted properties in task <actual task_id>. Check configuration and coverage, and explain possible causes with evidence.
 
-You must supply a concrete `task_id` for each new analysis. If it is missing, the agent must ask and wait, without automatically selecting the latest completed, just-run or only available task. An ID previously returned by a tool is not your selection. An explicit request to continue the same analysis may reuse the ID you supplied for it. An unknown ID requires your correction, not an automatic switch to another task.
+For independent analysis requests, supply a concrete task_id; never select the latest or only task automatically. In a user-confirmed kea2-test workflow, the agent may reuse the exact ID returned by its own launch and continue analysis without asking you to repeat it. Lost or ambiguous bindings require explicit selection. See [interactive testing](mcp_extension_en.md).
 
 Analysis uses experiment facts and evidence exclusively from Kea2 MCP responses. It does not inspect application or test source code, directly read or independently parse raw result files, HTML or task databases. Information unavailable through MCP remains a stated gap. Analysis does not launch tests, edit scripts or regenerate HTML. Reports follow your language.
 
 ## Read the report
 
 Reports cover context, data quality, execution/coverage, major findings, hypotheses and next steps.
-Separate property and invariant tables are provided. Properties include precondition satisfaction, executions, derived passes, fail and error; invariants include only fail/error and exception details or evidence. Partial tables disclose displayed and total records.
+Separate property and invariant tables are provided. Properties include precondition satisfaction, executions, passes, fail and error; invariants include only name, fail and error, with exception details described separately. Tables omit basis, evidence and source columns; Activity tables contain only name, coverage and visits. Partial tables disclose displayed and total records.
+
+The first eight sections present results without adding formulas, count comparisons or trend interpretations below tables. Useful interpretations and advice appear together in the final analysis section; routine metric explanations without analytical value are omitted by default.
+
+Exit codes, internal flags, snapshots and raw source states are hidden by default. Material gaps receive brief explanations. Actual problems retain relevant descriptions, stack excerpts and screenshots. A completed run explicitly reporting no detected Crash/ANR, without contradictory findings, may show "0 (none detected)"; null must not universally become zero. Pass counts follow the HTML convention: `max(executed - fail - error, 0)`.
 Major claims cite record IDs or sources. Unexamined data and unresolved conclusions are stated.
 Invariants report fail/error only; execution, precondition satisfaction and pass counts are N/A.
 
@@ -113,7 +117,7 @@ Copy the template below and replace its placeholders with reviewed knowledge bef
 
 Existing entries `KEA-PROP-001` and `KEA-INV-001` provide worked examples. Knowledge guides interpretation; reported observations must still cite the selected task's MCP records. App-specific entries should identify their package/version scope. Resolve contradictory interpretations before publishing updates.
 
-Copy the updated file to the installed skill's `kea2-result-analysis/references/domain-knowledge.md`, start a new session and analyze an explicit task ID. Knowledge-only updates require no wheel rebuild. Check the report's entry IDs and evidence to assess whether the knowledge was applied correctly. Entries requiring data that MCP cannot supply need a separate interface extension.
+Copy the updated file to the installed skill's `kea2-result-analysis/references/domain-knowledge.md`, start a new session and analyze an explicit task ID. Knowledge-only updates require no wheel rebuild. Ask the agent to include entry IDs and evidence to assess whether the knowledge was applied correctly. Entries requiring data that MCP cannot supply need a separate interface extension.
 
 ## Troubleshooting
 

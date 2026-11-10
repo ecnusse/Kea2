@@ -162,8 +162,8 @@ class Summary:
     checks: Optional[CheckSummary]
     activity_coverage_percent: Optional[float] = field(metadata={"minimum": 0, "maximum": 100})
     unique_triggered_widget_count: Optional[int] = count("Null means unknown, not zero.")
-    observed_crash_occurrences: Optional[int] = count("Valid parsed occurrences, not unique bugs.")
-    observed_anr_occurrences: Optional[int] = count("Valid parsed occurrences, not unique bugs.")
+    observed_crash_occurrences: Optional[int] = count("Valid parsed occurrences, not unique bugs. An absent optional log is zero for a completed run with exit code 0 or 1; otherwise unavailable sources are null.")
+    observed_anr_occurrences: Optional[int] = count("Valid parsed occurrences, not unique bugs. An absent optional log is zero for a completed run with exit code 0 or 1; otherwise unavailable sources are null.")
 
 
 @dataclass
@@ -567,7 +567,11 @@ def _invariants(value, path):
     if isinstance(value, Page) and len(value.items) > value.total:
         raise ContractError(path + ": page exceeds total record count")
     if isinstance(value, ReportResponse):
-        complete = all(v == "available" for v in to_dict(value.availability).values())
+        optional_crashes_absent = (value.availability.crashes == "missing"
+                                   and value.execution.status == "completed"
+                                   and value.execution.finding_flags.crash_or_anr is False)
+        complete = all(v == "available" or (k == "crashes" and optional_crashes_absent)
+                       for k, v in to_dict(value.availability).items())
         if value.data_completeness != ("available_sources" if complete else "partial"):
             raise ContractError(path + ": inconsistent source completeness")
         if value.is_live != (value.execution.status in ("queued", "running", "cancelling")):

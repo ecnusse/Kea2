@@ -361,7 +361,8 @@ class ResultSnapshot(EvidenceMixin, CoverageMixin, ConfigurationMixin):
                     "error_occurrences": sum(c["error"] for c in subset),
                 }
         execution = _execution(self.task)
-        available = all(v == "available" for v in self.availability.values())
+        available = all(v == "available" or (k == "crashes" and self._absent_crash_log_is_empty())
+                        for k, v in self.availability.items())
         return validated(ReportResponse, {
             "schema_version": SCHEMA_VERSION, "task_id": self.task["task_id"],
             "snapshot_id": self.snapshot_id, "execution": execution,
@@ -380,7 +381,7 @@ class ResultSnapshot(EvidenceMixin, CoverageMixin, ConfigurationMixin):
             "warning_count": self.warning_count,
             "warnings_truncated": self.warning_count > len(self.warnings),
             "limitations": [
-                "Counts describe readable records; missing sources are not evidence of zero findings.",
+                "Counts describe readable records. An absent optional crash log counts as zero for a completed run with exit code 0 or 1; other missing sources remain unknown.",
                 "Source files are read independently; this is not an atomic writer snapshot.",
                 "Execution metadata reflects the task store, not a fresh process liveness probe.",
                 "Grouping, diagnostics and cross-run analysis are not implemented yet.",
@@ -404,8 +405,24 @@ class ResultSnapshot(EvidenceMixin, CoverageMixin, ConfigurationMixin):
             data["configuration"] = None
         return decode(ExperimentData, data)
 
+    def _absent_crash_log_is_empty(self):
+        """A successful detector outcome permits the optional crash log to be absent.
+
+        Keep physical availability truthful. Unknown/imported or interrupted runs
+        must not acquire a negative verdict merely because their log is absent.
+        """
+        execution = _execution(self.task)
+        return (self.availability["crashes"] == "missing"
+                and execution["status"] == "completed"
+                and execution["finding_flags"]["crash_or_anr"] is False)
+
     def _event_count(self, kind):
+        if self._absent_crash_log_is_empty():
+            return 0
         if self.availability["crashes"] not in ("available", "partial"):
+            return None
+        if self.availability["crashes"] == "partial" and not any(
+                f["type"] in ("crash", "anr") for f in self.records["findings"]):
             return None
         return sum(f["type"] == kind for f in self.records["findings"])
 

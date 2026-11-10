@@ -1,25 +1,111 @@
-# How to use an agent with the Kea2 MCP extension to launch tests, retrieve results, and analyze them
+# Use an agent and MCP to complete the Kea2 testing workflow
 
 [简体中文](mcp_extension_cn.md)
 
-Kea2 MCP lets an agent start Android tests, find existing experiments and retrieve structured results and evidence. Tests started by MCP, new command-line tests and explicitly registered historical results all use a task ID for lookup. The service runs tests and supplies evidence. The model in the agent client interprets that evidence and writes the analysis. The HTML report remains available for human readers.
+After configuring the client and installing the skills, say “I want to test with Kea2.” The agent guides parameter selection, checks readiness, launches and monitors the test, then retrieves evidence and writes a report. Answer the questions and confirm the configuration; you do not need to know tool names or issue separate launch, status and analysis commands.
 
-## From setup to a report
+Automatic execution starts after configuration confirmation. The agent explains and asks about every unspecified applicable startup parameter instead of silently choosing defaults. Kea2 supplies test data and evidence; the model in the client performs the analysis. HTML reports remain available for human readers.
 
-1. Install Kea2 with MCP dependencies in a Python 3.10+ environment, for example with `python -m pip install "kea2-python[mcp]"`. Configure the client to run that environment's `python -m kea2.cli mcp` from the test project. The server communicates over local standard input and output. Restart it after updating the wheel.
-2. To start a test, initialize a new project with `kea2_init` and obtain a connected device serial with `kea2_check_device`. For existing experiments, list registered tasks or register a specific historical directory instead.
-3. A sample request is “Test com.example.app on emulator-5554 for ten minutes using quicktest.py.” Use your actual device, package and script. Keep the returned task ID and use it to check progress.
-4. Explicitly select a task for analysis, for example “Use kea2-result-analysis to analyze task <actual task_id>. List unexecuted properties and inspect failure evidence.”
-5. The agent reads the overview, queries relevant details and inspects traces or screenshots as needed. Its report identifies sources, gaps and the portion examined.
+## 1. Prepare the client and test environment
 
-Running tests requires an accessible Android device. Reading saved results can be done offline. See [MCP deployment](../kea2/mcp/README.md) and [skill installation](result_analysis_skill_en.md).
+1. Connect an Android device or emulator through ADB and install the target app.
+2. Install Kea2 with MCP dependencies in Python 3.10+, for example `python -m pip install "kea2-python[mcp]"`. For development builds, install the wheel containing this feature.
+3. Configure the client. See the [MCP deployment guide](../kea2/mcp/README.md).
+4. Copy both complete folders, `skills/kea2-test` and `skills/kea2-result-analysis`, including all references, into the same client skill root. For Codex use project `.codex/skills/` or user `~/.codex/skills/`. See the [skill installation guide](result_analysis_skill_en.md) for other clients.
+5. Restart MCP after installing or updating the wheel. Start a new conversation after updating skills. Wheels do not install skills automatically.
 
-## The 13 tools
+Ask the agent to check connected devices to verify the connection. Saved results can be read offline; launching requires a device. You may start the conversation before initializing the project: initialization happens after confirmation of the preparation steps.
+
+## 2. Start with one request
+
+> I want to test with Kea2.
+
+You can explicitly invoke `kea2-test` or provide some settings upfront:
+
+> Test com.example.app on emulator-5554 for 20 minutes using quicktest.py. Keep the app's data.
+
+The agent first checks devices, the server working directory and readiness without making changes. It retains supplied parameters and asks only about the remaining ones. The client configuration determines the server working directory; changing the output directory does not change it.
+
+## 3. Answer the parameter questions
+
+The agent explains each parameter's purpose, units or choices, default behavior and effects, then waits for your response. Questions are grouped by topic. This workflow covers all parameters exposed by `kea2_run_test`, not every CLI option.
+
+| Topic | Parameters | Your choice |
+| --- | --- | --- |
+| Device and apps | `serial`, `packages` | Confirm the device and one or more target package IDs, even when only one device exists |
+| Testing mode | `property_path` | Pure fuzzing or an existing Property file/directory |
+| Script settings | `property_pattern`, `driver_name` | Directory filename pattern and device attribute, e.g. d for self.d |
+| Execution controls | `running_minutes`, `max_step`, `throttle_ms`, `restart_app_period` | Duration, event limit, event interval and restart interval |
+| Screenshots and coverage | `take_screenshots`, `profile_period` | Per-step screenshots and periodic collection interval |
+| Activity scope | `act_whitelist_file`, `act_blacklist_file` | No restriction, whitelist or blacklist; lists are mutually exclusive |
+| Output and data | `output_dir`, `clear_app_data` | Output parent and whether to clear all target apps before launch |
+
+For example:
+
+> running_minutes sets the planned duration in minutes, default 10. Use that value or specify another?
+>
+> clear_app_data clears target apps before launch, irreversibly deleting login state, settings and local data. It defaults to off. Enable or disable it?
+
+You may answer several fields at once or explicitly accept “remaining defaults.” Required device and app identity must still be resolved. Silence does not accept a default.
+
+Pure fuzzing needs no script settings. A single script file needs no filename glob. No Activity restriction needs no list path. The final configuration explains these non-applicable fields. Changing the testing mode prompts review of dependent settings.
+
+If you do not know the package ID, ask for installed packages and choose one. This includes system apps and does not provide display names; the agent must not guess name/package mappings. Activity-list parameters are device destination paths; contents come from project `configs/awl.strings` or `configs/abl.strings`, not arbitrary local paths.
+
+## 4. Check and confirm the complete configuration
+
+The agent checks device access, installed apps, configuration, script selection and Activity-list files. These checks are read-only: they do not import or execute user scripts, initialize, register, clear data or launch tests. Readiness means the checked conditions passed, not guaranteed device execution.
+
+Resolve only affected settings when problems occur. The agent then presents every applicable value, explicitly accepted default and non-applicable field, including:
+
+- Device, apps, testing mode and execution settings.
+- Output parent directory.
+- Whether initialization will write configuration, version information and quicktest.py.
+- Whether clearing is enabled and every affected package.
+
+Preparation and launch begin only after you confirm. Existing configuration is not automatically force-overwritten. Changed settings require a revised confirmation, and readiness is checked again after initialization.
+
+## 5. Automatically launch and monitor
+
+The agent calls `kea2_run_test`, records its returned task_id and result directory, and monitors that exact task. You do not need to copy the ID or request status updates manually.
+
+Ask to cancel if needed. A clearing failure prevents launch and identifies apps already cleared; the agent does not automatically retry clearing or rerun tests. A lost launch response or unclear status requires resolving task identity before another launch, preventing duplicate runs.
+
+When execution ends, the agent uses exit information and result availability to proceed. Property failures, crashes and ANRs do not necessarily mean the launch tool failed. Reports for cancelled or incomplete runs identify the available scope and limitations.
+
+The client must support continuing tool calls and waiting. Closing it does not guarantee automatic recovery. Retain the task ID and explicitly resume when needed. Lost or ambiguous task bindings require selection, never guessing the latest run.
+
+## 6. Automatically retrieve and analyze results
+
+The workflow passes this launch's task ID directly to `kea2-result-analysis`; you need not repeat it or request analysis again. The agent reads the overview and availability, queries configuration, checks, coverage trends and findings, then retrieves traces, event context and images as needed.
+
+The report includes experiment context, Property and Invariant tables, execution and coverage, evidence-backed findings, hypotheses and next steps. Missing data is not zero, and finding occurrences are not unique bugs. Conclusions use MCP records as evidence and distinguish observations from hypotheses; internal source identifiers are hidden by default.
+
+Experiment facts come exclusively from Kea2 MCP tools, without independently inspecting source, HTML, raw logs or the database. Analysis reads applicable rules from the [professional knowledge file](../skills/kea2-result-analysis/references/domain-knowledge.md); see the [analysis skill guide](result_analysis_skill_en.md) for maintenance and the [report template](../skills/kea2-result-analysis/references/report-template.md) for output structure.
+
+Independent analysis of CLI or historical experiments still requires explicit task selection. This differs from carrying the current workflow's launch ID into analysis.
+
+## Common situations
+
+| Situation | Action |
+| --- | --- |
+| The agent does not select the workflow | Explicitly invoke kea2-test; check both complete skills are installed and start a new conversation |
+| New tools are absent | Check MCP uses the Python environment containing the updated wheel, then restart it |
+| Device or app unavailable | Connect the device or install the app, then ask for another check |
+| Missing script or Activity list | Correct the relevant paths/configuration in the server project and recheck |
+| Change a parameter | Tell the agent; before launch it updates the configuration and asks for confirmation again |
+| Incomplete results | Analyze available evidence with explicit gaps instead of automatically rerunning |
+
+The following reference sections explain the tools, parameters and data used by the agent. You do not need to call them manually.
+
+## The 15 tools
 
 | Tool | Inputs and purpose | Result or effect |
 | --- | --- | --- |
 | `kea2_init` | Initialize the working directory; optional force defaults to false | Writes configuration, version information and quicktest.py. Existing configuration is protected by default |
 | `kea2_check_device` | List ADB devices; no arguments | Device serial, state and model |
+| `kea2_list_apps` | Requires serial; optional keyword, limit, offset | Paginated installed package IDs, without display names |
+| `kea2_check_test_setup` | Optional serial, packages, options | Read-only environment, defaults, issues and readiness; no initialization or launch |
 | `kea2_run_test` | Start a background test on a device for specified packages | Returns task_id, stamp, actual result directory and status on launch |
 | `kea2_get_status` | Check a task by ID | State, phase, PID, coarse executed/fail/error progress and result-file availability |
 | `kea2_cancel_test` | Cancel a running task | Stops the process, attempts device-side cleanup and records cancellation |
@@ -92,7 +178,7 @@ Properties have precondition satisfaction, executions, fails and errors; passes 
 
 Configuration records keep the key, value, encoding and source. Duplicate keys invalidate the affected document. Conflicting values are retained and flagged. Nonfinite values such as Infinity use tagged encodings.
 
-## Investigate a finding
+## How the agent investigates a finding
 
 1. Call `kea2_get_report(task_id)`, inspect availability and record the snapshot.
 2. Call `kea2_query_report` with `{"task_id":"<task_id>","section":"findings","filters":{"type":"property","check_name":"<property name>"}}`. Replace placeholders with actual values. Retain the finding ID and snapshot from the returned page.
@@ -103,6 +189,8 @@ An execution interval can contain interleaved events. Missing boundaries remain 
 
 ## Data quality and snapshots
 
+The Crash/ANR log is optional and produced for exceptions. For a completed run with exit code 0 or 1, an absent log returns zero Crash and ANR occurrences and does not alone make results incomplete. Physical availability remains `missing`; reports show "0 (none detected)". Existing logs count valid event blocks without deduplication. Read failures, wholly malformed logs or insufficient execution metadata can still produce null counts. Historical registration without a known exit code does not establish zero exceptions from log absence.
+
 Source availability is available, missing, partial, invalid, unreadable or too_large. Missing statistics are null. A readable empty crash log can support zero observed occurrences; an absent file cannot. Damaged line records can be skipped with source warnings. Up to 50 warning examples are returned alongside the count and truncation flag.
 
 Relevant text sources have a 64 MiB limit; screenshots have an 8 MiB limit. Artifact reads check paths, image decoding and changes during reads. Snapshots incorporate task metadata and source state; cursors and evidence references are snapshot-bound. On STALE_SNAPSHOT, refresh the overview and affected queries. Files are read independently, so live runs may yield provisional observations.
@@ -111,16 +199,12 @@ Other common errors include TASK_NOT_FOUND (check ID and user environment), INVA
 
 ## Analysis skill and report
 
-`kea2-result-analysis` version **1.4.0** packages the instructions, data semantics, query examples and report template. The skill reads a [separate knowledge file](../skills/kea2-result-analysis/references/domain-knowledge.md). Install the whole skill directory, including references, separately from the wheel. The guide uses project-level `.codex/skills/` or user-level `~/.codex/skills/` for Codex. Instructions for other clients are in the [skill user guide](result_analysis_skill_en.md).
+`kea2-result-analysis` version **1.7.0** packages the instructions, data semantics, query examples and report template. The skill reads a [separate knowledge file](../skills/kea2-result-analysis/references/domain-knowledge.md). Install the whole skill directory, including references, separately from the wheel. The guide uses project-level `.codex/skills/` or user-level `~/.codex/skills/` for Codex. Instructions for other clients are in the [skill user guide](result_analysis_skill_en.md).
 
-- **Selection.** Ask and wait for an explicit task ID before starting a new analysis, including when a task was just run or registered or only one exists. An explicit continuation can reuse the ID already supplied for that analysis.
+- **Task binding.** Reuse this confirmed workflow's launch ID. Independent analysis requires explicit user selection. Lost or ambiguous bindings require clarification, never choosing a latest or only task.
 - **Evidence.** Obtain experiment facts exclusively through Kea2 MCP report, query, finding and artifact responses. Treat gaps as gaps. Do not inspect source, HTML, databases or raw files independently.
 - **Scope.** Start with 25 rows per page. Default to 20 result/evidence calls after the overview, at most five investigated findings, three images and two snapshot recovery cycles. The user can request deeper inspection. Report unread pages.
-- **Statistics.** Separate property and invariant tables. The property table contains the name, precondition satisfaction, executions, derived passes, fails, errors and evidence. The invariant table contains the name, fails, errors and exception details or evidence. Include all relevant checks and disclose displayed versus total records.
-- **Conclusions.** Report context, data quality, execution and coverage, findings, hypotheses, limits and next checks. Cite tasks, snapshots, record IDs or source locations and distinguish observations from hypotheses.
+- **Statistics.** Separate property and invariant tables. The property table contains the name, precondition satisfaction, executions, passes, fails and errors. The invariant table contains the name, fails and errors, with exception details described separately. Tables omit basis and evidence columns. Include all relevant checks and disclose displayed versus total records.
+- **Conclusions.** Report context, data quality, execution and coverage, findings, hypotheses, limits and next checks. Distinguish observations from hypotheses. Hide exit codes, internal flags, snapshots and raw source states by default; explain material limitations briefly. Actual problems retain descriptions, relevant stack excerpts and screenshots. Record IDs and sources can be supplied on request.
 
 These instructions guide the client agent. Actual adherence depends on the client and model. See the [report template](../skills/kea2-result-analysis/references/report-template.md).
-
-## Current scope
-
-Users can analyze experiments launched through the CLI or MCP, or register a historical result directory for analysis. Each analysis uses one user-selected `task_id`. The agent can review execution and coverage statistics, page through findings, and cite available traces, event logs and screenshots in its report. For hybrid tests, users can list child tasks and select one child experiment to analyze.

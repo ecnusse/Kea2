@@ -226,12 +226,22 @@ class TestResultEvidence(unittest.TestCase):
             with patch.object(task_store, "get_task", return_value=self.task):
                 result = await server.mcp.call_tool("kea2_get_artifact", {
                     "task_id": "task", "artifact_id": artifact["id"], "snapshot_id": snapshot.snapshot_id})
-            wire = result.model_dump(by_alias=True)
+            wire = result.model_dump(by_alias=True, exclude_none=True)
             self.assertFalse(wire["isError"])
-            Draft7Validator(json_schema("artifact")).validate(wire["structuredContent"])
+            self.assertNotIn("structuredContent", wire)
+            metadata = json.loads(next(c["text"] for c in wire["content"] if c["type"] == "text"))
+            Draft7Validator(json_schema("artifact")).validate(metadata)
+            self.assertEqual(metadata["artifact"]["id"], artifact["id"])
             image = next(c for c in wire["content"] if c["type"] == "image")
             self.assertEqual(base64.b64decode(image["data"]), (self.images / "after.png").read_bytes())
             self.assertEqual(image["mimeType"], "image/png")
+            log = next(a for a in snapshot.records["artifacts"] if a["relative_path"].endswith("steps.log"))
+            with patch.object(task_store, "get_task", return_value=self.task):
+                text_result = await server.mcp.call_tool("kea2_get_artifact", {
+                    "task_id": "task", "artifact_id": log["id"], "snapshot_id": snapshot.snapshot_id})
+            text_wire = text_result.model_dump(by_alias=True, exclude_none=True)
+            Draft7Validator(json_schema("artifact")).validate(text_wire["structuredContent"])
+            self.assertTrue(all(c["type"] == "text" for c in text_wire["content"]))
             for section in snapshot.records:
                 Draft7Validator(json_schema("query")).validate(snapshot.query(section))
         asyncio.run(check())

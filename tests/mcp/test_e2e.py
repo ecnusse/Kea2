@@ -1,11 +1,53 @@
 import asyncio
 import sys
 import re
+import base64
+import json
 from pathlib import Path
 
 import pytest
 
 from kea2.mcp import server, task_store
+
+
+@pytest.mark.asyncio
+async def test_image_content_survives_stdio(tmp_path):
+    """Check the real SDK transport, beyond an in-process call_tool response."""
+    from mcp import ClientSession, StdioServerParameters
+    from mcp.client.stdio import stdio_client
+
+    tests_dir = Path(__file__).resolve().parents[1]
+    script = tmp_path / "image_server.py"
+    script.write_text(
+        "import sys\n"
+        "sys.path.insert(0, " + repr(str(tests_dir)) + ")\n"
+        "from test_result_evidence import TestResultEvidence\n"
+        "from kea2.mcp import server, task_store\n"
+        "fixture = TestResultEvidence()\n"
+        "fixture.setUp()\n"
+        "task_store.get_task = lambda task_id: fixture.task\n"
+        "try:\n"
+        "    server.mcp.run(transport='stdio')\n"
+        "finally:\n"
+        "    fixture.doCleanups()\n", encoding="utf-8")
+    async with stdio_client(StdioServerParameters(command=sys.executable, args=[str(script)])) as streams:
+        async with ClientSession(*streams) as session:
+            await session.initialize()
+            listing = await session.call_tool("kea2_query_report", {"task_id": "task", "section": "artifacts"})
+            page = listing.structured_content
+            artifact = next(a for a in page["items"] if a["relative_path"].endswith("after.png"))
+            result = await session.call_tool("kea2_get_artifact", {
+                "task_id": "task", "artifact_id": artifact["id"], "snapshot_id": page["snapshot_id"]})
+            wire = result.model_dump(by_alias=True, exclude_none=True)
+            assert not wire["isError"]
+            assert "structuredContent" not in wire
+            assert [c["type"] for c in wire["content"]] == ["text", "image"]
+            metadata = json.loads(wire["content"][0]["text"])
+            image = wire["content"][1]
+            assert metadata["artifact"]["id"] == artifact["id"]
+            assert image["mimeType"] == "image/png"
+            import hashlib
+            assert hashlib.sha256(base64.b64decode(image["data"])).hexdigest() == metadata["sha256"]
 
 
 @pytest.fixture(autouse=True)

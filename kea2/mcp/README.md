@@ -164,7 +164,7 @@ no devices. See [Quick verification](#quick-verification).
 
 ## Implemented tools
 
-The server exposes 13 tools for test execution, task management, historical registration and structured evidence retrieval. Replace angle-bracketed IDs in the examples with actual values.
+The server exposes 15 tools for test execution, task management, historical registration and structured evidence retrieval. Replace angle-bracketed IDs in the examples with actual values.
 
 ### `kea2_init`
 
@@ -174,6 +174,27 @@ Initializes a Kea2 project in the current working directory by creating
 ### `kea2_check_device`
 
 Lists local ADB-visible devices.
+
+### `kea2_list_apps`
+
+Read installed package IDs, including system apps. Requires serial; keyword filters package
+substrings, limit defaults to 50 (1–100), offset to 0. Returns packages, total and next_offset
+(null at the end). Display names are unavailable; do not guess name/package mappings.
+
+### `kea2_check_test_setup`
+
+Read-only preparation checks. Omit serial/packages to discover the environment; options accepts
+optional run_test parameters. Returns working_directory, initialized, tool_defaults, issues and ready.
+Checks configuration, device, installed packages, script selection and Activity-list files without
+importing scripts, initializing, registering, clearing or launching. Readiness is not confirmation
+or guaranteed device execution.
+
+```json
+{"serial":"<device_serial>","packages":["com.example.app"],"options":{"running_minutes":10,"clear_app_data":false}}
+```
+
+Install both kea2-test and kea2-result-analysis for interactive testing and automatic analysis.
+See the [workflow guide](../../docs/mcp_extension_en.md).
 
 ### `kea2_run_test`
 
@@ -343,6 +364,8 @@ Supply task_id plus finding_id and snapshot_id from a findings page. Returns tra
 ### `kea2_get_artifact`
 
 Supply task_id, artifact_id and snapshot_id from an artifact query or finding detail to retrieve content. Text is paged by character: offset defaults to 0 and limit to 8000 (1–32000). Images require offset=0 and return native MCP image content and metadata (8 MiB maximum); viewing requires client support. Relevant text sources over 64 MiB are marked too_large. On STALE_SNAPSHOT, refresh the overview and relevant list.
+
+Image responses contain a metadata text block and a native image block in `content`, without `structuredContent`, to avoid clients preferring structured metadata and dropping images. Text evidence retains structured output. If only metadata appears after updating, verify the MCP environment uses the new wheel and restart the client session.
 
 ```json
 {"task_id":"<task_id>","artifact_id":"<artifact_id>","snapshot_id":"<snapshot_id>"}

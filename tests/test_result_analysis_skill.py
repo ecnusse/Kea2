@@ -76,6 +76,9 @@ class TestAnalysisSkillExamples(unittest.TestCase):
                         data = result.model_dump(by_alias=True)
                         self.assertFalse(data.get("isError"), data)
                         content = data["structuredContent"]
+                        if name == "kea2_get_artifact":
+                            self.assertIsNone(content)
+                            content = json.loads(next(c["text"] for c in data["content"] if c["type"] == "text"))
                         self.assertNotIn("error", content)
                         if name == "kea2_query_report":
                             self.assertEqual(content["section"], args["section"])

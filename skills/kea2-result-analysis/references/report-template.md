@@ -181,8 +181,9 @@ This attempt count differs from P in section 1.
 
 Invariants provide no precondition, execution or pass counts; do not add those columns. Retrieve
 findings with type=invariant and check_name, and use get_finding/available artifacts to substantiate
-violations and errors in prose below the table as in section 7. Disclose uninvestigated records. Zero fail/error does not
-prove an invariant executed or passed.
+violations and errors in prose below the table as in section 7. Disclose uninvestigated records.
+Interpret zero fail/error according to KEA-INV-001 in the domain knowledge, including its
+applicability conditions. Do not infer execution/pass counts or conclusions about untested states.
 
 Follow pagination within budget and label partial tables with displayed/total rows. Explain only
 material source limitations in plain language. Distinguish readable empty inventories from missing sources;

@@ -79,45 +79,9 @@ once the test finishes. Single-experiment analysis is supported.
 
 ## Maintain domain knowledge
 
-Use **UTF-8 Markdown (.md)** in [domain-knowledge.md](../skills/kea2-result-analysis/references/domain-knowledge.md). Entries may be written in Chinese or English. The agent interprets the prose; the format below is a maintenance convention and requires no JSON or YAML validation.
+Maintain UTF-8 Markdown entries in [domain-knowledge.md](../skills/kea2-result-analysis/references/domain-knowledge.md). Each entry uses a stable ID and six sections: scope, domain knowledge, required data and conditions, analysis rules, report output requirements, and follow-up recommendations.
 
-Give each entry a second-level heading and a stable ID such as `KEA-PROP-003`. Keep the ID when revising the same entry and choose an unused ID for a new entry.
-
-| Content | What to specify |
-| --- | --- |
-| Scope | Check type, test mode, application/version limits and applicable contract |
-| Required evidence | MCP tool, section, fields and source availability requirements |
-| Conditions | Field values, units and thresholds; distinguish missing values from zero |
-| Supported interpretation | Conclusions justified when the conditions hold |
-| Limits | Causes still requiring evidence and conclusions the entry cannot support |
-| Further checks | Additional evidence obtainable through MCP |
-
-Copy the template below and replace its placeholders with reviewed knowledge before adding it to the knowledge file.
-
-```markdown
-## KEA-<CATEGORY>-<NUMBER> · <Title>
-
-### Scope
-<Applicable check types, modes, app versions or result contracts.>
-
-### Evidence and conditions
-- Retrieve <fields> through <MCP tool and section>.
-- Apply when <field conditions> and <source availability requirements> hold.
-- If data is missing or a condition cannot be verified, <state the uncertainty>.
-
-### Supported interpretation
-<Conclusion supported by the evidence; label possible causes as hypotheses.>
-
-### Limits
-<Matters requiring additional evidence.>
-
-### Further checks
-<MCP queries for further evidence, and what to report if it remains unavailable.>
-```
-
-Existing entries `KEA-PROP-001` and `KEA-INV-001` provide worked examples. Knowledge guides interpretation; reported observations must still cite the selected task's MCP records. App-specific entries should identify their package/version scope. Resolve contradictory interpretations before publishing updates.
-
-Copy the updated file to the installed skill's `kea2-result-analysis/references/domain-knowledge.md`, start a new session and analyze an explicit task ID. Knowledge-only updates require no wheel rebuild. Ask the agent to include entry IDs and evidence to assess whether the knowledge was applied correctly. Entries requiring data that MCP cannot supply need a separate interface extension.
+See the [domain knowledge maintenance guide](domain_knowledge_maintenance_en.md) for the template, authoring principles, Crash/ANR example, update workflow and validation. Sync changes to the active skill installation and open a new session; knowledge-only updates require no wheel rebuild.
 
 ## Troubleshooting
 

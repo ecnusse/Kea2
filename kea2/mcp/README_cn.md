@@ -37,25 +37,29 @@ python -m pip install "kea2-python[mcp]"
 
 ### 选择 Python 环境和测试项目
 
-以下示例以 Windows 上的 `C:/path/to/test_project` 为测试项目目录。
-请将所有占位路径替换为自己的绝对路径。测试项目是存放 `configs/`
-和测试输出的可写目录，不一定是 Kea2 源码仓库。
+先在测试项目中准备并激活 Python 3.10 或更高版本的虚拟环境，安装 MCP 依赖：
 
-- 使用已安装 `kea2-python[mcp]` 的 Python 解释器绝对路径。Windows
-  通常为 `.venv/Scripts/python.exe`；macOS/Linux 则使用
-  `/absolute/path/to/test_project/.venv/bin/python`。
-- 使用该解释器的 `-m pip` 安装依赖。在终端激活虚拟环境，不会使已经
-  运行的图形客户端自动使用该环境。
-- 将服务器工作目录设为测试项目。Kea2 当前按工作目录查找 `configs/`，
-  `kea2_init` 也在这里写入文件。支持 `cwd` 的客户端应在配置中明确填写。
-- 只有客户端能够找到正确的解释器、且工作目录正确时，才适合直接使用
-  `kea2 mcp` 或 `python -m kea2.cli mcp`。裸写 `python3` 不保证使用
-  目标虚拟环境。
-- STDIO 服务由客户端启动，无需先在终端另起服务，也无需配置 HTTP 地址或端口。
+```bash
+python -m pip install "kea2-python[mcp]"
+python -c "import sys; print(sys.executable)"
+```
 
-启动 MCP 前，确认客户端为 MCP 服务设置的工作目录是测试项目根目录；
-仅在客户端中打开项目不一定能保证这一点。
-若设备检查正常，但启动测试提示找不到 `configs/`，请检查 MCP 服务的工作目录。
+第二条命令用于确认当前 Python 解释器的位置。将输出的路径填入下方客户端
+配置的 `command`，即可让 MCP 服务使用同一个虚拟环境。
+
+如果从已激活虚拟环境的终端启动一个新的命令行客户端，且它继承该环境、配置中
+没有指定其他解释器，也可以使用 `python -m kea2.cli mcp`。已经运行的图形客户端
+不会因终端激活虚拟环境而自动切换，因此下面的示例统一使用解释器绝对路径。
+
+以下示例以 Windows 上的 `C:/path/to/test_project` 为测试项目目录，请替换为
+自己的路径。Windows 虚拟环境解释器通常为 `.venv/Scripts/python.exe`，
+macOS/Linux 通常为 `.venv/bin/python`。
+
+将 MCP 服务的工作目录设为测试项目根目录；支持 `cwd` 的客户端应明确填写。
+Kea2 在该目录查找 `configs/`，`kea2_init` 也在这里写入文件。若初始化后仍提示
+找不到配置，请检查服务工作目录，而不只是客户端打开的目录。
+
+STDIO 服务由客户端自动启动，无需另开终端启动服务，也无需配置 HTTP 地址或端口。
 
 ### Claude Desktop
 
@@ -87,26 +91,30 @@ python -m pip install "kea2-python[mcp]"
 
 ### Claude Code
 
-在测试项目目录中以 local 作用域注册 Kea2 MCP，避免将本机绝对路径写入
-团队共享的项目配置。
+在测试项目根目录创建 `.mcp.json`，使用项目级 MCP 配置。该文件与 `.claude/`
+目录同级；不要把 MCP 服务定义写入 `.claude/settings.json`。
 
-Windows（PowerShell）：
+Windows 示例（将 `command` 替换为安装了 Kea2 MCP 依赖的 Python 解释器路径）：
 
-```powershell
-Set-Location 'C:\path\to\test_project'
-claude mcp add --transport stdio --scope local kea2 -- "C:/path/to/test_project/.venv/Scripts/python.exe" -m kea2.cli mcp
+```json
+{
+  "mcpServers": {
+    "kea2": {
+      "type": "stdio",
+      "command": "C:/path/to/test_project/.venv/Scripts/python.exe",
+      "args": ["-m", "kea2.cli", "mcp"]
+    }
+  }
+}
 ```
 
-macOS/Linux：
+macOS/Linux 使用相同结构，将 `command` 改为
+`/absolute/path/to/test_project/.venv/bin/python`。
+已有 `.mcp.json` 时，只在 `mcpServers` 中添加 `kea2`，保留其他服务。
+本机绝对路径需要按各自环境调整，不要直接作为团队通用路径提交。
 
-```bash
-cd /absolute/path/to/test_project
-claude mcp add --transport stdio --scope local kea2 -- /absolute/path/to/test_project/.venv/bin/python -m kea2.cli mcp
-```
-
-使用 `claude mcp get kea2` 检查注册的命令，在 Claude Code 内使用
-`/mcp` 检查连接。参见
-[Claude Code MCP 指南](https://code.claude.com/docs/en/mcp)。
+从测试项目根目录启动 `claude`，按提示批准项目 MCP 服务，使用 `/mcp` 检查连接。
+也可以在该目录执行 `claude mcp get kea2` 查看配置。
 
 ### Codex
 
@@ -128,26 +136,20 @@ macOS/Linux 下，将 `command` 改为虚拟环境的 `.venv/bin/python` 绝对�
 
 ### 配置与安装更新后的生效步骤
 
-完成配置或更新 Kea2 后，重新启动客户端的 MCP 服务连接。
-如果客户端没有重启入口，完全退出并重新打开客户端。
-仅替换磁盘上的 wheel 或安装文件，不会重新加载现有 Python 进程中的代码。
+先激活 MCP 服务使用的虚拟环境，再安装或更新 Kea2。此时直接使用
+`python -m pip` 即可，无需填写解释器绝对路径。
 
-重新安装**相同版本**的本地 wheel 时，使用 `--force-reinstall`，
-并明确指定 MCP 配置中的同一个解释器。例如，已安装 MCP 依赖后，
-在测试项目目录运行：
-
-```powershell
-& '.\.venv\Scripts\python.exe' -m pip install --force-reinstall --no-deps '.\kea2_python-1.2.4-py3-none-any.whl'
-```
+例如，重新安装相同版本的本地 wheel：
 
 ```bash
-./.venv/bin/python -m pip install --force-reinstall --no-deps ./kea2_python-1.2.4-py3-none-any.whl
+python -m pip install --force-reinstall "./kea2_python-1.2.4-py3-none-any.whl[mcp]"
 ```
 
-按实际情况替换 wheel 文件名。`--no-deps` 仅适用于依赖已安装且兼容的环境；
-全新环境应安装带 MCP extra 的 wheel，例如
-`python -m pip install "./kea2_python-1.2.4-py3-none-any.whl[mcp]"`，
-并将 `python` 替换为配置中的解释器。安装后重启 MCP 连接，让客户端调用 `kea2_check_device`。成功返回 `devices` 表示此次 MCP 调用已完成；列表为空表示 ADB 当前未发现设备。参见[快速验证](#快速验证)。
+请替换为实际 wheel 文件名；`--force-reinstall` 用于确保相同版本也会重新安装。
+
+完成配置或安装更新后，重启客户端的 MCP 服务连接；没有重启入口时，退出并重新打开客户端。
+随后让 Agent 调用 `kea2_check_device` 验证连接。返回设备列表表示调用成功，
+空列表表示 ADB 当前没有发现设备。参见[快速验证](#快速验证)。
 
 ## 已实现的工具
 

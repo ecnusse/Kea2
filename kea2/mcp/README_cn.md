@@ -197,6 +197,7 @@ ready 不表示用户确认，也不保证真实执行成功。
 | `packages` | 是 | — | 目标应用包名列表。 |
 | `running_minutes` | 否 | `10` | 测试时长，单位为分钟。 |
 | `output_dir` | 否 | `output` | 测试输出的父目录。 |
+| `log_stamp` | 否 | 自动时间戳 | 自定义实验名称，例如 `login_test`；目录为 `<output_dir>/res_login_test/`，日志标识同名；task_id 独立使用自动时间戳。仅限英文字母、数字、下划线、连字符和点，不能为 `.`/`..` 或以点结尾。输出目录冲突时报错，不覆盖。 |
 | `property_path` | 否 | 未设置 | 性质 `.py` 文件或目录，支持绝对路径或相对 MCP 服务工作目录的路径。 |
 | `property_pattern` | 否 | `test*.py` | 目录发现时的文件名匹配模式；指定单个文件时忽略。 |
 | `driver_name` | 否 | `d` | 所选脚本中的设备属性名，例如 `self.d`。 |

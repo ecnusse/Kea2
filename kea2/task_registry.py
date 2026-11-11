@@ -65,6 +65,10 @@ def prepare_run(options, automatic_stamp):
     else:
         root.mkdir(parents=True, exist_ok=True)
     identity = stamp if valid_id(stamp) else uuid.uuid4().hex
+    if handoff:
+        identity = json.loads(handoff).get("task_id", identity)
+        if not valid_id(identity):
+            raise ValueError("Invalid MCP task identity")
     record = dict(task_id=identity, stamp=stamp, output_dir=str(root),
                   status="running", created_at=now(), started_at=now(), pid=os.getpid(),
                   device_serial=options.serial, packages=options.packageNames,
@@ -77,14 +81,14 @@ def prepare_run(options, automatic_stamp):
     try:
         task_store.init_db()
         if handoff:
-            previous = task_store.get_task(stamp)
+            previous = task_store.get_task(identity)
             if (not previous or previous["stamp"] != stamp or
                     Path(previous["output_dir"]).resolve() != root or
                     previous["status"] not in ("queued", "running")):
                 raise ValueError("MCP task identity does not match the reserved output directory")
             record["created_at"] = previous["created_at"]
             record["log_file"] = previous.get("log_file") or record["log_file"]
-            task_store.update_task_status(stamp, "running", started_at=record["started_at"],
+            task_store.update_task_status(identity, "running", started_at=record["started_at"],
                                          pid=os.getpid(), task_kind=record["task_kind"])
             registered = True
         else:

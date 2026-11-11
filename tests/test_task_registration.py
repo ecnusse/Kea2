@@ -72,6 +72,26 @@ class TestTaskRegistration(unittest.TestCase):
         self.assertEqual(len(task_store.list_tasks()), 1)
         self.assertEqual(task_store.get_task("mcp")["origin"], "mcp")
 
+    def test_mcp_handoff_keeps_timestamp_id_with_custom_stamp(self):
+        task_store.init_db()
+        identity = "2026111114_1234567890"
+        path = self.root / "res_login_test"
+        task_store.create_task(identity, "login_test", output_dir=str(path), origin="mcp", reserve_output=True)
+        with patch.dict(os.environ, {HANDOFF_ENV: prepare_handoff(path, task_id=identity)}):
+            self.assertEqual(self.run_cli("login_test"), 0)
+        self.assertEqual(len(task_store.list_tasks()), 1)
+        record = task_store.get_task(identity)
+        self.assertEqual(record["stamp"], "login_test")
+        self.assertEqual(record["status"], "finished")
+        self.assertIsNone(task_store.get_task("login_test"))
+        manifest = json.loads((path / "kea2_task.json").read_text(encoding="utf-8"))
+        self.assertEqual(manifest["task_id"], identity)
+        self.assertEqual(manifest["result_file"], "result_login_test.json")
+        (path / "result_login_test.json").write_text("{}", encoding="utf-8")
+        report = ResultSnapshot(record).report()
+        self.assertEqual(report["task_id"], identity)
+        self.assertEqual(report["availability"]["checks"], "available")
+
     def test_database_unavailable_leaves_manifest(self):
         with patch.object(task_store, "init_db", side_effect=sqlite3.OperationalError("read only")):
             self.assertEqual(self.run_cli("offline"), 0)

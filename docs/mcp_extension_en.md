@@ -38,7 +38,7 @@ The agent explains each parameter's purpose, units or choices, default behavior 
 | Execution controls | `running_minutes`, `max_step`, `throttle_ms`, `restart_app_period` | Duration, event limit, event interval and restart interval |
 | Screenshots and coverage | `take_screenshots`, `profile_period` | Per-step screenshots and periodic collection interval |
 | Activity scope | `act_whitelist_file`, `act_blacklist_file` | No restriction, whitelist or blacklist; lists are mutually exclusive |
-| Output and data | `output_dir`, `clear_app_data` | Output parent and whether to clear all target apps before launch |
+| Output and data | `output_dir`, `log_stamp`, `clear_app_data` | Output parent and whether to clear all target apps before launch |
 
 For example:
 
@@ -143,7 +143,7 @@ Progress is a preliminary observation. A persisted failed status can follow a no
 | CLI | Run kea2 run and obtain the ID from kea2_list_tasks or kea2_task.json | Registers automatically without optional MCP dependencies |
 | Historical | Call kea2_register_result or run `kea2 register-result -p <directory>` | Registers the selected directory without changing its files |
 
-New runs default to `task_id = stamp = log_stamp`, with results under `<output parent>/res_<stamp>/`. Generated stamps use local time with microseconds in `%Y%m%d%H_%M%S%f` format. CLI runs retain custom stamp rules and directory reuse. Unicode, spaces or ID collisions result in a separate registry task_id without changing file stamps or paths. MCP launches still allocate separate directories. Legacy UUID tasks remain addressable.
+New runs default to `task_id = stamp = log_stamp`, with results under `<output parent>/res_<stamp>/`. Generated stamps use local time with microseconds in `%Y%m%d%H_%M%S%f` format. CLI runs retain custom stamp rules and directory reuse. Unicode, spaces or ID collisions result in a separate registry task_id without changing file stamps or paths. MCP task IDs always use generated timestamps; a custom log_stamp only names result directories and files. Names may repeat under different output parents; existing result directories are rejected, and timestamp ID collisions are retried. Legacy UUID tasks remain addressable.
 
 The executing user's `~/.kea2/tasks.db` records task identity, origin, state and result location. Each result directory has a `kea2_task.json` manifest with identity and known lifecycle information for recovery or migration. Database initialization or write failures emit a warning without stopping CLI testing. Forced termination can leave stale lifecycle records.
 
@@ -208,3 +208,5 @@ Other common errors include TASK_NOT_FOUND (check ID and user environment), INVA
 - **Conclusions.** Report context, data quality, execution and coverage, findings, hypotheses, limits and next checks. Distinguish observations from hypotheses. Hide exit codes, internal flags, snapshots and raw source states by default; explain material limitations briefly. Actual problems retain descriptions, relevant stack excerpts and screenshots. Record IDs and sources can be supplied on request.
 
 These instructions guide the client agent. Actual adherence depends on the client and model. See the [report template](../skills/kea2-result-analysis/references/report-template.md).
+
+To customize an experiment directory, ask the agent to use output parent `output` and experiment name `login_test`. It passes `log_stamp="login_test"`, creating `output/res_login_test/` with matching log stamp and an independently generated timestamp task ID. Omission generates a timestamp; conflicts fail without overwriting. Names use ASCII letters, digits, underscores, hyphens and dots, excluding `.`/`..` and trailing dots.

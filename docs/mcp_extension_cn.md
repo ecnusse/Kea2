@@ -40,7 +40,7 @@ Agent 分批介绍参数用途、单位或取值、默认行为及影响，再�
 | 运行控制 | `running_minutes`、`max_step`、`throttle_ms`、`restart_app_period` | 时长、探索步数上限、事件间隔和重启周期 |
 | 截图与覆盖 | `take_screenshots`、`profile_period` | 是否每步截图，以及周期采集间隔 |
 | Activity 范围 | `act_whitelist_file`、`act_blacklist_file` | 不限制、白名单或黑名单；两种名单互斥 |
-| 输出和数据 | `output_dir`、`clear_app_data` | 结果输出父目录，以及是否在启动前清空所有目标 App 数据 |
+| 输出和数据 | `output_dir`、`log_stamp`、`clear_app_data` | 结果输出父目录，以及是否在启动前清空所有目标 App 数据 |
 
 例如，Agent 会询问：
 
@@ -145,7 +145,7 @@ Agent 调用 `kea2_run_test`，记录返回的 `task_id` 和结果目录，并�
 | CLI 新实验 | 运行 `kea2 run`，通过 `kea2_list_tasks` 或 `kea2_task.json` 获取 ID | 自动登记，CLI 本身无需安装 MCP 可选依赖 |
 | 历史实验 | 调用 `kea2_register_result` 或运行 `kea2 register-result -p <结果目录>` | 对指定目录补登记，原始文件保持原样 |
 
-新实验默认 `task_id = stamp = log_stamp`，结果位于 `<输出父目录>/res_<stamp>/`。默认标识是带六位微秒的本地时间戳，格式为 `%Y%m%d%H_%M%S%f`。CLI 支持原有自定义标识和目录复用；标识包含中文、空格或 ID 冲突时，登记层分配独立 task_id，不改变文件标识和目录。MCP 启动仍为新任务分配独立目录。旧 UUID 任务继续使用原 ID。
+新实验默认 `task_id = stamp = log_stamp`，结果位于 `<输出父目录>/res_<stamp>/`。默认标识是带六位微秒的本地时间戳，格式为 `%Y%m%d%H_%M%S%f`。CLI 支持原有自定义标识和目录复用；标识包含中文、空格或 ID 冲突时，登记层分配独立 task_id，不改变文件标识和目录。MCP 的 task_id 始终自动生成时间戳；自定义 log_stamp 仅决定结果目录和文件标识。同名可用于不同输出父目录，同一实际目录已存在时拒绝启动，时间戳 ID 冲突时自动重试。旧 UUID 任务继续使用原 ID。
 
 任务数据库位于运行用户的 `~/.kea2/tasks.db`，保存任务身份、来源、状态和结果位置。实验目录里的 `kea2_task.json` 保存身份和已知运行信息，便于搬迁或恢复。数据库初始化或写入失败时，CLI 会警告并继续测试。若进程被强制结束，最终状态可能尚未写入。
 
@@ -212,3 +212,5 @@ Agent 查看某个 Property 的失败证据时，按下面的顺序读取；调�
 - **给出可核对的判断。** 报告包含实验概况、数据质量、执行与覆盖、主要异常、原因假设和后续验证建议。区分观测事实和待验证假设。退出码、内部标志、快照和原始数据状态不默认展示；影响结论的限制用简短文字说明。实际异常保留必要描述、堆栈和截图，需要溯源时可要求附上记录 ID 和来源。
 
 这些是 Skill 对 agent 的操作指令，实际遵循程度还取决于客户端和模型。报告格式可查看[报告模板](../skills/kea2-result-analysis/references/report-template.md)。
+
+自定义实验目录名时，可以告诉 Agent：“输出父目录用 output，本次实验名称用 login_test”。Agent 将传入 `log_stamp="login_test"`，生成 `output/res_login_test/`，日志标识为 `login_test`，任务 ID 始终为自动生成的时间戳。省略时自动生成时间戳；输出目录冲突时报错，不覆盖。名称仅使用英文字母、数字、下划线、连字符和点，不能为 `.`/`..` 或以点结尾。

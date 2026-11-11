@@ -10,6 +10,7 @@ The null options below inherit CLI/engine behavior; do not send the word “defa
 | packages | Target installed package IDs; one or several; confirm all targets | Required |
 | running_minutes | Planned duration in minutes, positive integer | 10 |
 | output_dir | Output parent on the MCP server; an experiment subdirectory is created inside | null → output under server working directory |
+| log_stamp | Experiment name used for res_<name> directory and log filenames; task_id is always an automatic timestamp; ask automatic timestamp or custom name. Use ASCII letters, digits, underscores, hyphens and dots; not . or .., and no trailing dot; existing output directories cause an error, never overwrite | null → automatic timestamp |
 | property_path | Existing Python property file or directory, relative to server working directory or absolute | null → pure fuzzing; ask testing mode first |
 | property_pattern | Python discovery filename glob in a directory | test*.py; ignored for a single file, not applicable for pure fuzzing |
 | driver_name | Device attribute used by scripts, e.g. d means self.d | d; not applicable for pure fuzzing |

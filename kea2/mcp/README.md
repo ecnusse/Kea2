@@ -210,6 +210,7 @@ property selection.
 | `packages` | Yes | — | List of target app package names. |
 | `running_minutes` | No | `10` | Test duration in minutes. |
 | `output_dir` | No | `output` | Parent directory for test output. |
+| `log_stamp` | No | Automatic timestamp | Custom experiment name, e.g. `login_test`: directory `<output_dir>/res_login_test/`, matching log stamp and an independently generated timestamp task_id. ASCII letters, digits, underscores, hyphens and dots only; not `.`/`..` or a trailing dot. Conflicts fail without overwriting. |
 | `property_path` | No | Not set | Property `.py` file or directory, relative to the server working directory or absolute. |
 | `property_pattern` | No | `test*.py` | Filename glob for directory discovery; ignored for a single file. |
 | `driver_name` | No | `d` | Device attribute used by selected scripts, e.g. `self.d`. |

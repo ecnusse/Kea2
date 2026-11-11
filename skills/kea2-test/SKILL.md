@@ -65,6 +65,8 @@ If new issues require changed settings or destructive actions, obtain a new conf
 
 Call `kea2_run_test` once with confirmed settings. Record its exact task_id, stamp, output_dir,
 settings and returned state in conversation. This is the task binding for this authorized workflow.
+task_id is always an automatically generated timestamp; a custom log_stamp names the result
+directory and files only. Never substitute log_stamp for the returned task_id in status or result queries.
 Never choose a latest/only task to replace it. If a launch response is lost, do not blindly retry;
 list candidate tasks and require the user to resolve ambiguity before another launch.
 

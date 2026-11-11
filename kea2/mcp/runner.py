@@ -7,7 +7,8 @@ import fnmatch
 import keyword
 import os
 import re
-from kea2.run_identity import HANDOFF_ENV, prepare_handoff
+from kea2.run_identity import HANDOFF_ENV, prepare_handoff, valid_stamp
+from kea2.task_registry import valid_id
 
 
 def validate_parameters(params):
@@ -23,6 +24,10 @@ def validate_parameters(params):
         raise ValueError("running_minutes must be a positive integer")
     if type(params.get("clear_app_data")) is not bool:
         raise ValueError("clear_app_data must be a boolean")
+    stamp = params.get("log_stamp")
+    if stamp is not None and (not valid_id(stamp) or not valid_stamp(stamp) or not stamp.strip()
+                              or stamp.endswith((".", " "))):
+        raise ValueError("log_stamp must use letters, digits, underscores, hyphens or dots; cannot be '.'/'..' or end in a dot")
     for key in ("output_dir", "property_path"):
         if params.get(key) is not None and (not isinstance(params[key], str) or not params[key].strip()):
             raise ValueError(key + " must be a non-empty path")
@@ -107,7 +112,7 @@ async def launch_kea2_subprocess(params, stamp):
     output_dir = output_parent / f"res_{stamp}"
     if params.get("_reserved_output_dir") != str(output_dir):
         output_dir.mkdir(parents=True, exist_ok=False)
-    handoff = prepare_handoff(output_dir)
+    handoff = prepare_handoff(output_dir, task_id=params.get("_task_id"))
 
     # Fastbot owns fastbot_<stamp>.log and LogWatcher tails it. Appending
     # subprocess output there races with Fastbot's writes and can invalidate

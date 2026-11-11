@@ -203,10 +203,14 @@ async def kea2_run_test(
     act_whitelist_file: str | None = None,
     act_blacklist_file: str | None = None,
     clear_app_data: bool = False,
+    log_stamp: str | None = None,
 ) -> dict:
     """在指定 Android 设备上启动 Kea2 测试。参数：
     serial(设备序列号), packages(目标应用包名列表),
-    running_minutes(测试时长,默认10), output_dir(可选输出目录),
+    running_minutes(测试时长,默认10), output_dir(可选输出父目录),
+    log_stamp(可选实验名称，省略自动生成时间戳；结果目录为 output_dir/res_<log_stamp>，
+    用作日志文件标识，task_id 始终自动生成时间戳；仅限英文字母、数字、下划线、连字符和点，
+    不能为 . 或 .. 或以点结尾；名称或目录已存在则报错，不覆盖、不自动改名),
     property_path(可选性质 .py 文件或目录，相对服务工作目录；省略保持原有模糊测试用法),
     property_pattern(目录中的文件名匹配模式，默认 test*.py；指定文件时忽略),
     driver_name(脚本的设备属性名，默认 d，即 self.d)。
@@ -231,7 +235,7 @@ async def kea2_run_test(
     }
     try:
         runner.validate_parameters(dict(run_options, serial=serial, packages=packages,
-            running_minutes=running_minutes, clear_app_data=clear_app_data, output_dir=output_dir,
+            running_minutes=running_minutes, clear_app_data=clear_app_data, output_dir=output_dir, log_stamp=log_stamp,
             property_path=property_path, property_pattern=property_pattern, driver_name=driver_name))
     except (ValueError, OSError) as exc:
         return {"error": str(exc), "hint": "检查运行参数、性质路径、文件匹配模式和 driver_name"}
@@ -251,11 +255,13 @@ async def kea2_run_test(
         "property_pattern": property_pattern,
         "driver_name": driver_name,
         "clear_app_data": clear_app_data,
+        "log_stamp": log_stamp,
         **run_options,
     }
 
     for _ in range(100):
-        task_id = stamp = new_stamp()
+        task_id = new_stamp()
+        stamp = log_stamp if log_stamp is not None else task_id
         reserved_dir = (Path(output_dir or "output").expanduser().resolve() / f"res_{stamp}")
         try:
             task_store.create_task(
@@ -264,13 +270,19 @@ async def kea2_run_test(
                 created_at=task_registry.now(), reserve_output=True, origin="mcp",
             )
             break
-        except (sqlite3.IntegrityError, FileExistsError):
+        except sqlite3.IntegrityError:
+            continue
+        except FileExistsError:
+            if log_stamp is not None:
+                return {"error": "Custom output directory already exists",
+                        "hint": "请更换 log_stamp 或 output_dir；已有结果目录不会被覆盖"}
             continue
         except OSError as exc:
             return {"error": str(exc), "hint": "无法创建新的实验结果目录"}
     else:
         return {"error": "Cannot allocate a unique timestamp after 100 attempts"}
     params["_reserved_output_dir"] = str(reserved_dir)
+    params["_task_id"] = task_id
     task_registry.write_manifest({
         "task_id": task_id, "stamp": stamp, "output_dir": str(reserved_dir),
         "origin": "mcp", "status": "queued", "packages": packages, "device_serial": serial,

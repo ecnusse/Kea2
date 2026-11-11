@@ -14,12 +14,15 @@ def new_stamp():
     return datetime.now().strftime("%Y%m%d%H_%M%S%f")
 
 
-def prepare_handoff(directory):
+def prepare_handoff(directory, task_id=None):
     directory = Path(directory).resolve()
     token = secrets.token_hex(32)
     with (directory / MARKER).open("x", encoding="utf-8") as stream:
         stream.write(token)
-    return json.dumps({"directory": str(directory), "token": token})
+    payload = {"directory": str(directory), "token": token}
+    if task_id is not None:
+        payload["task_id"] = task_id
+    return json.dumps(payload)
 
 
 def claim_output(directory):

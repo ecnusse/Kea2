@@ -1,0 +1,1684 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Kea2 experiment 1.5",
+  "$ref": "#/definitions/ExperimentData",
+  "definitions": {
+    "ExperimentData": {
+      "type": "object",
+      "properties": {
+        "report": {
+          "$ref": "#/definitions/ReportResponse"
+        },
+        "checks": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/CheckRecord"
+          }
+        },
+        "findings": {
+          "type": "array",
+          "items": {
+            "anyOf": [
+              {
+                "$ref": "#/definitions/CheckFinding"
+              },
+              {
+                "$ref": "#/definitions/AppFinding"
+              }
+            ]
+          }
+        },
+        "activities": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/ActivityRecord"
+          }
+        },
+        "trends": {
+          "type": "array",
+          "items": {
+            "anyOf": [
+              {
+                "$ref": "#/definitions/ActivityTrend"
+              },
+              {
+                "$ref": "#/definitions/WidgetTrend"
+              }
+            ]
+          }
+        },
+        "traces": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/TraceRecord"
+          }
+        },
+        "observation": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/RunObservation"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "steps": {
+          "anyOf": [
+            {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/StepRecord"
+              }
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "artifacts": {
+          "anyOf": [
+            {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/ArtifactRecord"
+              }
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "executions": {
+          "anyOf": [
+            {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/ExecutionRecord"
+              }
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "configuration": {
+          "anyOf": [
+            {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/ConfigurationRecord"
+              }
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "widgets": {
+          "anyOf": [
+            {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/WidgetRecord"
+              }
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "diagnostics": {
+          "anyOf": [
+            {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/Diagnostic"
+              }
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "property_execution_trend": {
+          "anyOf": [
+            {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/PropertyExecutionPoint"
+              }
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "finding_groups": {
+          "anyOf": [
+            {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/FindingGroup"
+              }
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "report",
+        "checks",
+        "findings",
+        "activities",
+        "trends",
+        "traces"
+      ],
+      "additionalProperties": false
+    },
+    "ReportResponse": {
+      "type": "object",
+      "properties": {
+        "schema_version": {
+          "enum": [
+            "1.5"
+          ]
+        },
+        "task_id": {
+          "type": "string"
+        },
+        "snapshot_id": {
+          "type": "string"
+        },
+        "availability": {
+          "$ref": "#/definitions/SourceAvailability"
+        },
+        "warnings": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/WarningRecord"
+          }
+        },
+        "warning_count": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "All warnings, including omitted examples."
+        },
+        "warnings_truncated": {
+          "type": "boolean"
+        },
+        "execution": {
+          "$ref": "#/definitions/ExecutionMetadata"
+        },
+        "data_completeness": {
+          "enum": [
+            "available_sources",
+            "partial"
+          ]
+        },
+        "is_live": {
+          "type": "boolean"
+        },
+        "summary": {
+          "$ref": "#/definitions/Summary"
+        },
+        "sections": {
+          "$ref": "#/definitions/Sections"
+        },
+        "limitations": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "provenance": {
+          "$ref": "#/definitions/Provenance"
+        },
+        "observation": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/RunObservation"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "schema_version",
+        "task_id",
+        "snapshot_id",
+        "availability",
+        "warnings",
+        "warning_count",
+        "warnings_truncated",
+        "execution",
+        "data_completeness",
+        "is_live",
+        "summary",
+        "sections",
+        "limitations",
+        "provenance",
+        "observation"
+      ],
+      "additionalProperties": false
+    },
+    "SourceAvailability": {
+      "type": "object",
+      "properties": {
+        "checks": {
+          "enum": [
+            "available",
+            "missing",
+            "partial",
+            "invalid",
+            "unreadable",
+            "too_large"
+          ]
+        },
+        "property_executions": {
+          "enum": [
+            "available",
+            "missing",
+            "partial",
+            "invalid",
+            "unreadable",
+            "too_large"
+          ]
+        },
+        "activity_coverage": {
+          "enum": [
+            "available",
+            "missing",
+            "partial",
+            "invalid",
+            "unreadable",
+            "too_large"
+          ]
+        },
+        "run_options": {
+          "enum": [
+            "available",
+            "missing",
+            "partial",
+            "invalid",
+            "unreadable",
+            "too_large"
+          ]
+        },
+        "report_configuration": {
+          "enum": [
+            "available",
+            "missing",
+            "partial",
+            "invalid",
+            "unreadable",
+            "too_large"
+          ]
+        },
+        "widget_inventory": {
+          "enum": [
+            "available",
+            "missing",
+            "partial",
+            "invalid",
+            "unreadable",
+            "too_large"
+          ]
+        },
+        "widget_coverage": {
+          "enum": [
+            "available",
+            "missing",
+            "partial",
+            "invalid",
+            "unreadable",
+            "too_large"
+          ]
+        },
+        "crashes": {
+          "enum": [
+            "available",
+            "missing",
+            "partial",
+            "invalid",
+            "unreadable",
+            "too_large"
+          ]
+        },
+        "steps": {
+          "enum": [
+            "available",
+            "missing",
+            "partial",
+            "invalid",
+            "unreadable",
+            "too_large"
+          ]
+        }
+      },
+      "required": [
+        "checks",
+        "property_executions",
+        "activity_coverage",
+        "run_options",
+        "report_configuration",
+        "widget_inventory",
+        "widget_coverage",
+        "crashes",
+        "steps"
+      ],
+      "additionalProperties": false
+    },
+    "WarningRecord": {
+      "type": "object",
+      "properties": {
+        "source": {
+          "type": "string"
+        },
+        "code": {
+          "type": "string"
+        },
+        "line": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "minimum": 1
+        }
+      },
+      "required": [
+        "source",
+        "code"
+      ],
+      "additionalProperties": false
+    },
+    "ExecutionMetadata": {
+      "type": "object",
+      "properties": {
+        "status": {
+          "enum": [
+            "queued",
+            "running",
+            "cancelling",
+            "cancelled",
+            "completed",
+            "execution_error",
+            "unknown"
+          ]
+        },
+        "exit_code": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "finding_flags": {
+          "$ref": "#/definitions/FindingFlags"
+        },
+        "created_at": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "started_at": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "finished_at": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "packages": {
+          "anyOf": [
+            {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "device_serial": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "requested_parameters": {
+          "anyOf": [
+            {
+              "type": "object",
+              "additionalProperties": {}
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "status",
+        "exit_code",
+        "finding_flags",
+        "created_at",
+        "started_at",
+        "finished_at",
+        "packages",
+        "device_serial",
+        "requested_parameters"
+      ],
+      "additionalProperties": false
+    },
+    "FindingFlags": {
+      "type": "object",
+      "properties": {
+        "property_violation": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "crash_or_anr": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "property_violation",
+        "crash_or_anr"
+      ],
+      "additionalProperties": false
+    },
+    "Summary": {
+      "type": "object",
+      "properties": {
+        "checks": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/CheckSummary"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "activity_coverage_percent": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "minimum": 0,
+          "maximum": 100
+        },
+        "unique_triggered_widget_count": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "minimum": 0,
+          "description": "Null means unknown, not zero."
+        },
+        "observed_crash_occurrences": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "minimum": 0,
+          "description": "Valid parsed occurrences, not unique bugs. An absent optional log is zero for a completed run with exit code 0 or 1; otherwise unavailable sources are null."
+        },
+        "observed_anr_occurrences": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "minimum": 0,
+          "description": "Valid parsed occurrences, not unique bugs. An absent optional log is zero for a completed run with exit code 0 or 1; otherwise unavailable sources are null."
+        }
+      },
+      "required": [
+        "checks",
+        "activity_coverage_percent",
+        "unique_triggered_widget_count",
+        "observed_crash_occurrences",
+        "observed_anr_occurrences"
+      ],
+      "additionalProperties": false
+    },
+    "CheckSummary": {
+      "type": "object",
+      "properties": {
+        "property": {
+          "$ref": "#/definitions/CheckCounts"
+        },
+        "invariant": {
+          "$ref": "#/definitions/CheckCounts"
+        },
+        "unknown": {
+          "$ref": "#/definitions/CheckCounts"
+        }
+      },
+      "required": [
+        "property",
+        "invariant",
+        "unknown"
+      ],
+      "additionalProperties": false
+    },
+    "CheckCounts": {
+      "type": "object",
+      "properties": {
+        "count": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Distinct checks of this kind."
+        },
+        "executed_check_count": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "minimum": 0
+        },
+        "violated_check_count": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Distinct checks with fail/error; not unique root causes."
+        },
+        "execution_count": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "minimum": 0
+        },
+        "fail_occurrences": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "error_occurrences": {
+          "type": "integer",
+          "minimum": 0
+        }
+      },
+      "required": [
+        "count",
+        "executed_check_count",
+        "violated_check_count",
+        "execution_count",
+        "fail_occurrences",
+        "error_occurrences"
+      ],
+      "additionalProperties": false
+    },
+    "Sections": {
+      "type": "object",
+      "properties": {
+        "checks": {
+          "$ref": "#/definitions/SectionCount"
+        },
+        "findings": {
+          "$ref": "#/definitions/SectionCount"
+        },
+        "activities": {
+          "$ref": "#/definitions/SectionCount"
+        },
+        "trends": {
+          "$ref": "#/definitions/SectionCount"
+        },
+        "steps": {
+          "$ref": "#/definitions/SectionCount"
+        },
+        "executions": {
+          "$ref": "#/definitions/SectionCount"
+        },
+        "artifacts": {
+          "$ref": "#/definitions/SectionCount"
+        },
+        "configuration": {
+          "$ref": "#/definitions/SectionCount"
+        },
+        "widgets": {
+          "$ref": "#/definitions/SectionCount"
+        },
+        "property_execution_trend": {
+          "$ref": "#/definitions/SectionCount"
+        }
+      },
+      "required": [
+        "checks",
+        "findings",
+        "activities",
+        "trends",
+        "steps",
+        "executions",
+        "artifacts",
+        "configuration",
+        "widgets",
+        "property_execution_trend"
+      ],
+      "additionalProperties": false
+    },
+    "SectionCount": {
+      "type": "object",
+      "properties": {
+        "record_count": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Number of parsed records currently queryable."
+        }
+      },
+      "required": [
+        "record_count"
+      ],
+      "additionalProperties": false
+    },
+    "Provenance": {
+      "type": "object",
+      "properties": {
+        "parser_version": {
+          "type": "string"
+        },
+        "sources": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          }
+        }
+      },
+      "required": [
+        "parser_version",
+        "sources"
+      ],
+      "additionalProperties": false
+    },
+    "RunObservation": {
+      "type": "object",
+      "properties": {
+        "first_event_time_raw": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "last_event_time_raw": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "log_duration_seconds": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "minimum": 0
+        },
+        "max_monkey_step": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "minimum": 0,
+          "description": "Maximum recorded Monkey counter, not total log records."
+        },
+        "log_record_count": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "minimum": 0,
+          "description": "Observed event records, including script actions."
+        },
+        "source": {
+          "$ref": "#/definitions/SourceReference"
+        }
+      },
+      "required": [
+        "first_event_time_raw",
+        "last_event_time_raw",
+        "log_duration_seconds",
+        "max_monkey_step",
+        "log_record_count",
+        "source"
+      ],
+      "additionalProperties": false
+    },
+    "SourceReference": {
+      "type": "object",
+      "properties": {
+        "artifact": {
+          "type": "string"
+        },
+        "line": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "minimum": 1
+        },
+        "key": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "artifact"
+      ],
+      "additionalProperties": false
+    },
+    "CheckRecord": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "kind": {
+          "enum": [
+            "property",
+            "invariant",
+            "unknown"
+          ]
+        },
+        "precond_satisfied": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "minimum": 0,
+          "description": "Recorded precondition satisfaction count."
+        },
+        "executed": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "minimum": 0,
+          "description": "Recorded execution count, not distinct checks."
+        },
+        "fail": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Assertion failure occurrences."
+        },
+        "error": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Execution error occurrences; not confirmed application defects."
+        },
+        "pass_count": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "minimum": 0,
+          "description": "Derived max(executed - fail - error, 0); not invariant success history."
+        },
+        "pass_count_basis": {
+          "enum": [
+            "derived_max_executed_minus_fail_minus_error",
+            "not_applicable"
+          ]
+        },
+        "source": {
+          "$ref": "#/definitions/SourceReference"
+        },
+        "raw": {
+          "type": "object",
+          "additionalProperties": {}
+        }
+      },
+      "required": [
+        "name",
+        "kind",
+        "precond_satisfied",
+        "executed",
+        "fail",
+        "error",
+        "pass_count",
+        "pass_count_basis",
+        "source",
+        "raw"
+      ],
+      "additionalProperties": false
+    },
+    "CheckFinding": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "type": {
+          "enum": [
+            "property",
+            "invariant",
+            "unknown"
+          ]
+        },
+        "state": {
+          "enum": [
+            "fail",
+            "error"
+          ]
+        },
+        "check_name": {
+          "type": "string"
+        },
+        "monkey_step": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Monkey step counter; multiple events can share it."
+        },
+        "description": {
+          "type": "string"
+        },
+        "source": {
+          "$ref": "#/definitions/SourceReference"
+        },
+        "trace_characters": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Full trace length in Unicode characters."
+        },
+        "evidence": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/EvidenceLink"
+          }
+        }
+      },
+      "required": [
+        "id",
+        "type",
+        "state",
+        "check_name",
+        "monkey_step",
+        "description",
+        "source",
+        "trace_characters"
+      ],
+      "additionalProperties": false
+    },
+    "EvidenceLink": {
+      "type": "object",
+      "properties": {
+        "relation": {
+          "enum": [
+            "step",
+            "screenshot",
+            "execution",
+            "artifact"
+          ]
+        },
+        "status": {
+          "enum": [
+            "resolved",
+            "unavailable",
+            "ambiguous"
+          ]
+        },
+        "target_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "candidates": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "reason": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "relation",
+        "status",
+        "target_id",
+        "candidates",
+        "reason"
+      ],
+      "additionalProperties": false
+    },
+    "AppFinding": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "type": {
+          "enum": [
+            "crash",
+            "anr"
+          ]
+        },
+        "time_raw": {
+          "type": "string"
+        },
+        "monkey_step": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "minimum": 0,
+          "description": "Recorded Monkey step, or null when unknown."
+        },
+        "process_name": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "pid": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "minimum": 0,
+          "description": "Process ID, separate from process name."
+        },
+        "description": {
+          "type": "string"
+        },
+        "screenshot_reference": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "source": {
+          "$ref": "#/definitions/SourceReference"
+        },
+        "trace_characters": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Full trace length in Unicode characters."
+        },
+        "evidence": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/EvidenceLink"
+          }
+        }
+      },
+      "required": [
+        "id",
+        "type",
+        "time_raw",
+        "monkey_step",
+        "process_name",
+        "pid",
+        "description",
+        "screenshot_reference",
+        "source",
+        "trace_characters"
+      ],
+      "additionalProperties": false
+    },
+    "ActivityRecord": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "covered": {
+          "type": "boolean"
+        },
+        "in_inventory": {
+          "type": "boolean"
+        },
+        "visit_count": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "minimum": 0,
+          "description": "Null means no traversal count was recorded."
+        },
+        "source": {
+          "$ref": "#/definitions/SourceReference"
+        }
+      },
+      "required": [
+        "name",
+        "covered",
+        "in_inventory",
+        "visit_count",
+        "source"
+      ],
+      "additionalProperties": false
+    },
+    "ActivityTrend": {
+      "type": "object",
+      "properties": {
+        "metric": {
+          "enum": [
+            "activity_coverage_percent"
+          ]
+        },
+        "monkey_step": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Monkey step counter, not elapsed time."
+        },
+        "value": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 100,
+          "description": "Percent, 0..100."
+        },
+        "raw": {
+          "type": "object",
+          "additionalProperties": {}
+        },
+        "source": {
+          "$ref": "#/definitions/SourceReference"
+        }
+      },
+      "required": [
+        "metric",
+        "monkey_step",
+        "value",
+        "raw",
+        "source"
+      ],
+      "additionalProperties": false
+    },
+    "WidgetTrend": {
+      "type": "object",
+      "properties": {
+        "metric": {
+          "enum": [
+            "unique_triggered_widget_count"
+          ]
+        },
+        "monkey_step": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Monkey step counter, not elapsed time."
+        },
+        "value": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Unique triggered widgets; not a percentage."
+        },
+        "raw": {
+          "type": "object",
+          "additionalProperties": {}
+        },
+        "source": {
+          "$ref": "#/definitions/SourceReference"
+        }
+      },
+      "required": [
+        "metric",
+        "monkey_step",
+        "value",
+        "raw",
+        "source"
+      ],
+      "additionalProperties": false
+    },
+    "TraceRecord": {
+      "type": "object",
+      "properties": {
+        "finding_id": {
+          "type": "string"
+        },
+        "text": {
+          "type": "string"
+        },
+        "source": {
+          "$ref": "#/definitions/SourceReference"
+        }
+      },
+      "required": [
+        "finding_id",
+        "text",
+        "source"
+      ],
+      "additionalProperties": false
+    },
+    "StepRecord": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "monkey_step": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "minimum": 0,
+          "description": "Monkey counter; id identifies the individual event."
+        },
+        "time_raw": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "type": {
+          "type": "string"
+        },
+        "activity": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "action": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "parameters": {},
+        "source": {
+          "$ref": "#/definitions/SourceReference"
+        },
+        "evidence": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/EvidenceLink"
+          }
+        },
+        "raw": {
+          "type": "object",
+          "additionalProperties": {}
+        }
+      },
+      "required": [
+        "id",
+        "monkey_step",
+        "time_raw",
+        "type",
+        "activity",
+        "action",
+        "parameters",
+        "source",
+        "evidence",
+        "raw"
+      ],
+      "additionalProperties": false
+    },
+    "ArtifactRecord": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "kind": {
+          "enum": [
+            "screenshot",
+            "log",
+            "trace",
+            "other"
+          ]
+        },
+        "relative_path": {
+          "type": "string"
+        },
+        "mime_type": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "size_bytes": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "minimum": 0,
+          "description": "Bytes, or null if unavailable."
+        },
+        "availability": {
+          "enum": [
+            "available",
+            "missing",
+            "partial",
+            "invalid",
+            "unreadable",
+            "too_large"
+          ]
+        }
+      },
+      "required": [
+        "id",
+        "kind",
+        "relative_path",
+        "mime_type",
+        "size_bytes",
+        "availability"
+      ],
+      "additionalProperties": false
+    },
+    "ExecutionRecord": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "check_name": {
+          "type": "string"
+        },
+        "kind": {
+          "enum": [
+            "property",
+            "invariant",
+            "unknown"
+          ]
+        },
+        "state": {
+          "enum": [
+            "start",
+            "pass",
+            "fail",
+            "error",
+            "incomplete",
+            "unknown"
+          ]
+        },
+        "start_step_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "end_step_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "evidence": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/EvidenceLink"
+          }
+        },
+        "source": {
+          "$ref": "#/definitions/SourceReference"
+        }
+      },
+      "required": [
+        "id",
+        "check_name",
+        "kind",
+        "state",
+        "start_step_id",
+        "end_step_id",
+        "evidence",
+        "source"
+      ],
+      "additionalProperties": false
+    },
+    "ConfigurationRecord": {
+      "type": "object",
+      "properties": {
+        "document": {
+          "enum": [
+            "run_options",
+            "report_configuration"
+          ]
+        },
+        "key": {
+          "type": "string"
+        },
+        "value": {},
+        "encoding": {
+          "enum": [
+            "json",
+            "tagged_nonfinite"
+          ]
+        },
+        "source": {
+          "$ref": "#/definitions/SourceReference"
+        }
+      },
+      "required": [
+        "document",
+        "key",
+        "value",
+        "encoding",
+        "source"
+      ],
+      "additionalProperties": false
+    },
+    "WidgetRecord": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "activity": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "class_name": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "resource_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "content_description": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "source": {
+          "$ref": "#/definitions/SourceReference"
+        },
+        "raw": {
+          "type": "string"
+        },
+        "parse_status": {
+          "enum": [
+            "parsed",
+            "ambiguous",
+            "invalid"
+          ]
+        }
+      },
+      "required": [
+        "id",
+        "activity",
+        "class_name",
+        "resource_id",
+        "content_description",
+        "source",
+        "raw",
+        "parse_status"
+      ],
+      "additionalProperties": false
+    },
+    "Diagnostic": {
+      "type": "object",
+      "properties": {
+        "code": {
+          "type": "string"
+        },
+        "observation": {
+          "type": "string"
+        },
+        "rule": {
+          "type": "string"
+        },
+        "evidence": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/EvidenceLink"
+          }
+        },
+        "limitations": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "required": [
+        "code",
+        "observation",
+        "rule",
+        "evidence",
+        "limitations"
+      ],
+      "additionalProperties": false
+    },
+    "PropertyExecutionPoint": {
+      "type": "object",
+      "properties": {
+        "monkey_step": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Monkey step counter."
+        },
+        "executed_property_count": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Distinct properties started up to this point, not execution attempts."
+        },
+        "source": {
+          "$ref": "#/definitions/SourceReference"
+        }
+      },
+      "required": [
+        "monkey_step",
+        "executed_property_count",
+        "source"
+      ],
+      "additionalProperties": false
+    },
+    "FindingGroup": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "occurrence_ids": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "algorithm_version": {
+          "type": "string"
+        },
+        "grouping_basis": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "occurrence_ids",
+        "algorithm_version",
+        "grouping_basis"
+      ],
+      "additionalProperties": false
+    }
+  }
+}

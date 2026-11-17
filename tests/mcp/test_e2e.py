@@ -48,6 +48,16 @@ async def test_image_content_survives_stdio(tmp_path):
             assert image["mimeType"] == "image/png"
             import hashlib
             assert hashlib.sha256(base64.b64decode(image["data"])).hexdigest() == metadata["sha256"]
+            chart = await session.call_tool("kea2_get_trend_chart", {
+                "task_id": "task", "metric": "activity_coverage_percent", "snapshot_id": page["snapshot_id"]})
+            wire = chart.model_dump(by_alias=True, exclude_none=True)
+            assert not wire["isError"]
+            assert "structuredContent" not in wire
+            assert [c["type"] for c in wire["content"]] == ["text", "image"]
+            metadata = json.loads(wire["content"][0]["text"])
+            data = base64.b64decode(wire["content"][1]["data"])
+            assert hashlib.sha256(data).hexdigest() == metadata["sha256"]
+            assert Path(metadata["image_path"]).read_bytes() == data
 
 
 @pytest.fixture(autouse=True)

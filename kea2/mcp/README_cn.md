@@ -153,7 +153,7 @@ python -m pip install --force-reinstall "./kea2_python-1.2.4-py3-none-any.whl[mc
 
 ## 已实现的工具
 
-服务器提供 15 个工具，覆盖测试启动、任务管理、历史结果登记和结构化证据查询。下文 JSON 示例中的尖括号表示需要替换的实际 ID。
+服务器提供 16 个工具，覆盖测试启动、任务管理、历史结果登记和结构化证据查询。下文 JSON 示例中的尖括号表示需要替换的实际 ID。
 
 ### `kea2_init`
 
@@ -342,6 +342,27 @@ Property 的通过次数按 `max(executed - fail - error, 0)` 派生。Invariant
 ```json
 {"task_id":"<task_id>","finding_id":"<finding_id>","snapshot_id":"<snapshot_id>","context_before":3,"context_after":3}
 ```
+
+### `kea2_get_trend_chart`
+
+
+报告的 Activity 覆盖率、已触发 Widget 数量和性质执行趋势优先展示 PNG 曲线。Agent 调用 `kea2_get_trend_chart`，传入本次 `task_id`、概览返回的 `snapshot_id`，以及以下 `metric` 之一：
+
+- `activity_coverage_percent`：蓝色 Activity 覆盖率（左轴，%）和绿色 Tested Activities 数量（右轴，整数），横向紧凑布局；双轴按各自实际最大值自适应。
+- `unique_triggered_widget_count`：已触发不同控件的数量，不是百分比。
+- `property_execution_trend`：已开始执行的不同性质数量，不是执行次数或通过次数。
+
+```json
+{"task_id":"<task_id>","metric":"activity_coverage_percent","snapshot_id":"<snapshot_id>"}
+```
+
+工具返回原生 MCP 图片内容和文本元数据。图片另存于结果目录的 `mcp_charts/`，按指标、绘图版本和快照命名；不会修改 HTML 或原始日志。元数据包含 `image_path` 和已存在的 `html_report_path`，不存在的入口为 null。生成图片是结果展示产物，不属于原始截图证据。
+
+客户端支持时，Agent 将图片嵌入报告；不支持时提供返回的图片或 HTML 路径。路径位于 MCP 服务所在电脑，客户端能否打开链接取决于其能力；不能打开时可复制路径手动查看。目录不可写时仍返回内嵌图片，`image_path` 为 null，并说明无法导出。
+
+无可读采样点返回 `unavailable`，无性质时性质图返回 `not_applicable`，不伪造零曲线。部分来源绘制已读有效点并标记限制；全部有效采样点参与绘图，不平滑、不抽样。横轴为 Monkey 步数，计数回退时断开曲线。英文坐标标签便于跨平台显示，报告标题和说明仍使用用户语言。
+
+使用此功能需更新包含 MCP 依赖的安装并重启 MCP 服务，同时同步两个 Skill。MCP extra 包含 Matplotlib，CLI 基础依赖不增加。已有历史结果可直接查询，无需重跑；每个新快照会保留独立图片，需要时可手动清理 `mcp_charts/`。首次部署建议在目标客户端验证图片展示和查看入口。
 
 ### `kea2_get_artifact`
 

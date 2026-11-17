@@ -588,6 +588,28 @@ async def kea2_get_artifact(
     return CallToolResult(content=content, structured_content=metadata)
 
 
+@mcp.tool()
+async def kea2_get_trend_chart(task_id: str, metric: str, snapshot_id: str) -> CallToolResult:
+    """将本次实验的结构化趋势绘制为 PNG，并返回 MCP 原生 image 内容。
+    metric: activity_coverage_percent、unique_triggered_widget_count、property_execution_trend。
+    snapshot_id 来自 get_report/query_report；变化时刷新后重试。无数据不伪造零曲线，
+    无性质时返回 not_applicable。图片另存结果目录的 mcp_charts/，不修改 HTML/原始数据。
+    文本元数据包含 image_path、已存在的 html_report_path（无则 null）、采样数量和来源状态。
+    优先内嵌图像；客户端不支持时展示返回的本地查看入口，不能保证客户端能打开本地路径。
+    不接受任意文件路径；图表仅是已有 MCP 数据的呈现，不提供额外分析结论。"""
+    result = await _query_result(task_id, "trend_chart", metric, snapshot_id)
+    if isinstance(result, dict):
+        return CallToolResult(content=[TextContent(type="text", text=json.dumps(result, ensure_ascii=False))],
+                              structured_content=result, is_error=True)
+    metadata, image_bytes = result
+    content = [TextContent(type="text", text=json.dumps(metadata, ensure_ascii=False))]
+    if image_bytes is not None:
+        content.append(ImageContent(type="image", data=base64.b64encode(image_bytes).decode("ascii"),
+                                    mime_type="image/png"))
+        return CallToolResult(content=content)
+    return CallToolResult(content=content, structured_content=metadata)
+
+
 async def _query_result(task_id, operation, *args):
     rec = task_store.get_task(task_id)
     if rec is None:

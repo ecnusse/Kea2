@@ -3,8 +3,14 @@
 User: 我想用 Kea2 进行测试。
 
 After read-only discovery:
-“检测到设备 Pixel 6（序列号 …）。serial 用于选择执行测试的设备，是否使用它？
+“这次要使用单台手机还是多台手机测试？serial 是设备序列号，用于确定执行测试的手机。
+检测到 Pixel 6（序列号 …）和 Pixel 7（序列号 …）。单机请选择一个序列号，多机请选择需要测试的序列号。
 packages 用于指定目标应用。请提供包名；如果不清楚，我可以列出设备上的包名供你确认。”
+
+If the request already specifies one or several serials, retain that mode/selection without asking again.
+For multiple devices ask: “这些手机是否使用同一套测试配置？可以统一设置包名、时长和脚本，
+也可以指定某台手机的不同配置。全部任务结束后，我会给出一份合并报告。”
+Follow multi-device.md for per-device checks, one batch confirmation, launches and monitoring.
 
 Then ask testing mode and applicable script fields, duration/control, screenshots/profiling,
 Activity restriction and output/data clearing. Explain each field before asking; do not dump

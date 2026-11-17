@@ -146,6 +146,26 @@ kea2 init
 > 如果是首次运行Kea2，此步骤必需。升级后也建议重新执行此步骤，以确保新配置生效。
 
 
+### 使用 Agent 测试（MCP + Skills）
+
+在 Python 3.10+ 的虚拟环境中安装 MCP 依赖，并按 [MCP 配置说明](kea2/mcp/README_cn.md)连接客户端：
+
+```bash
+python -m pip install "kea2-python[mcp]"
+```
+
+两个 Skill 统一维护在仓库根目录的 [skills/](skills/) 下：`kea2-test` 负责交互式启动和跟踪单机/多机测试，`kea2-result-analysis` 负责结果分析与合并报告。
+
+在 Agent 客户端中发送下面这句话即可请求安装，无需手动复制文件：
+
+```text
+请从 https://github.com/ecnusse/Kea2 下载 skills/kea2-test 和 skills/kea2-result-analysis 两个完整目录（包含 references），安装到当前 Agent 客户端的用户级技能目录。
+```
+
+安装来源应选择包含这些 Skill 的分支或发布标签；合入主分支前，请在请求中明确指定 `mcp_dev` 分支。安装后按客户端提示刷新技能或开启新会话。Skill 安装与 MCP 连接配置分别进行。
+
+配置完成后输入“我想用 Kea2 进行测试”，Agent 会询问设备和参数，确认后启动测试并分析结果。详见[全流程使用手册](docs/mcp_extension_cn.md)。
+
 ## 快速测试
 
 Kea2连接并运行于Android设备。建议先做快速测试以确保Kea2与你的设备兼容。

@@ -1,8 +1,8 @@
 ---
 name: kea2-result-analysis
-description: Analyze a Kea2 test experiment through MCP, inspect coverage and failure evidence, and produce a sourced report. Use for Kea2 result analysis or investigation of a specified test task, not for launching tests or writing property scripts.
+description: Analyze one or multiple explicitly selected Kea2 experiments through MCP, inspect coverage and failures, and produce a single-run or merged report. Use for result analysis, not for launching tests or writing property scripts.
 metadata:
-  version: "1.7.0"
+  version: "1.9.0"
   result-contract: "1.5"
 ---
 
@@ -15,7 +15,7 @@ tests, changing scripts, regenerating HTML, or modifying original artifacts.
 ## MCP-only evidence boundary
 
 Obtain all experiment facts exclusively from Kea2 MCP result tools: kea2_get_report,
-kea2_query_report, kea2_get_finding and kea2_get_artifact. Use kea2_get_result_schema
+kea2_query_report, kea2_get_finding, kea2_get_artifact and kea2_get_trend_chart. Use kea2_get_result_schema
 for contract discovery. Do not inspect application, property-script or Kea2 source code,
 read result directories or HTML directly, run shell/Python parsers, query the task database,
 or use browser/filesystem/other connectors to obtain additional experiment evidence.
@@ -25,11 +25,20 @@ tools may be interpreted as evidence. Source paths are citations, not permission
 The report template explicitly permits counting distinct passed properties from complete structured
 check records and deriving labeled process elapsed time from returned timestamps. Follow its
 metric definitions and presentation rules; this does not authorize reconstructing statistics from raw logs.
+For multiple explicitly selected or workflow-bound tasks, read [multi-run report](references/multi-run-report.md).
+Its specified set unions and sums over MCP records are also permitted, including exact equality of
+returned WidgetRecord.raw strings as opaque identities. This does not permit parsing those strings,
+opening source files, or inventing a server-side aggregation tool.
 Reading this skill and its packaged references is allowed; they define procedure, not experiment facts.
 If MCP cannot supply the information, report the gap or blocker without falling back to source
 or raw-data analysis. Suggestions for external checks remain proposals, not actions in this workflow.
 
 ## Establish scope
+
+For multiple tasks, require an explicit list supplied by the user or retained from the confirmed
+kea2-test launches. Apply the rules below to every member. Never expand the list using latest tasks.
+Follow the multi-run reference for per-task snapshots, retrieval budgets and merged delivery;
+the singular wording below applies independently to each selected task.
 
 A concrete task_id is required. For independent analysis requests, require a task_id explicitly
 supplied by the user. Exception: in a user-confirmed kea2-test workflow that includes launch and
@@ -87,7 +96,17 @@ For a full report, retrieve both activity_coverage_percent and unique_triggered_
 trends, the property-start trend, and activities including uncovered entries and visit counts.
 Inspect crash, ANR and property-failure findings separately; do not let an early page of one type
 hide other types. Include property errors and invariant exceptions as specified in the template.
-Use chart or table representations of returned trend points; widget coverage is a count, not percent.
+For report sections 2–4, request kea2_get_trend_chart(task_id, metric, snapshot_id) with the current
+overview/query snapshot. Metrics are activity_coverage_percent, unique_triggered_widget_count,
+and property_execution_trend. Skip the last for confirmed pure fuzzing/no properties. Prefer the
+native PNG and embed the returned image_path when the client supports local image rendering.
+If inline rendering is unsupported, use the template's friendly viewing prompt and a descriptive
+link label, never a bare path as the entire section. Include a copyable full path and instructions
+for clients that cannot open local links. Only use
+non-null returned paths; do not invent URLs, read HTML or render charts independently. Report
+not_applicable/unavailable briefly. On old servers without this tool, use a structured-data table
+and explain that chart support requires a server update. Source gaps remain gaps in images too.
+Widget coverage is a count, not percent. Chart images do not replace numerical queries for analysis.
 For the property and invariant tables, query checks without has_findings filtering so successful
 and unexecuted properties are included. Follow pagination within the agreed budget and label
 partial tables explicitly. Use returned kind values; keep unknown checks separate.
@@ -102,7 +121,8 @@ call sequence and must not be sent with literal placeholders.
 
 Follow next_cursor without changing section or filters. Record returned totals and inspected counts.
 Default investigation budget: **20 result/evidence tool calls after the initial overview**, at most
-**5 individual finding investigations** and **3 images**. These are context-management defaults,
+**5 individual finding investigations** and **3 evidence screenshots**. Up to three trend charts
+are additional to the screenshot allowance but count toward the tool-call budget. These are context-management defaults,
 not proof of adequate coverage; honor a user-requested deeper scope or explicit budget instead.
 Prioritize the user's focus, then examples spanning observed types and check names. Sampling is not
 deduplication or severity ranking. Do not claim to have inspected the full experiment if pages remain.
@@ -155,7 +175,7 @@ or interpretations below tables. Put useful analysis and advice only in section 
 metric explanations unless explicitly requested or essential to a meaningful conclusion.
 No findings in readable records does not prove an absence of bugs. The server currently has no
 grouping or diagnostic query sections: do not invent these tools or describe inferred groups as
-server-produced results. Cross-run comparison is outside this version.
+server-produced results. Multi-run aggregation follows the explicit rules in the multi-run reference.
 
 Completion means either a sourced report for the requested scope, with explicit unread/unsupported
 portions, or a concrete blocker identifying the missing task, connection or incompatible contract.

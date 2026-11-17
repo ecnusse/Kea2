@@ -4,6 +4,12 @@
 
 `kea2-result-analysis` helps an agent retrieve Kea2 experiment data, inspect evidence and produce a sourced analysis report.
 
+You can explicitly provide multiple task IDs and request one merged report. When kea2-test launches
+multiple phones, it retains their task IDs and passes them to the analysis skill after all tasks end;
+you do not need to enter the IDs again. See [single-device and multi-device testing](mcp_extension_en.md#single-device-and-multi-device-testing)
+for the workflow and aggregation rules. Only MCP-returned data is used, with source experiments
+preserved for findings.
+
 ## Before you start
 
 - Connect a Kea2 MCP service supporting result contract 1.5.
@@ -12,12 +18,19 @@
 
 ## Install the skill
 
-Installing the wheel does not install the skill.
+Installing the wheel does not install the skills. Send this request to your agent client:
 
-1. Find `skills/kea2-result-analysis` in the Kea2 repository.
-2. Select a directory below: project scope applies to that project; personal scope serves multiple projects.
-3. Copy the complete folder, including SKILL.md and references.
-4. Open your test project and start a new session. Select the skill as shown below; restart if it is absent.
+```text
+Download the complete skills/kea2-test and skills/kea2-result-analysis directories, including references, from https://github.com/ecnusse/Kea2 and install both into this agent client's user-level skills directory.
+```
+
+Before the skills are merged into the main branch, explicitly request the `mcp_dev` branch.
+You can also specify a release tag containing the skills. Replace “user-level” with “project-level”
+to install for the current project only. Follow the client's instructions to refresh skills or
+start a new session after installation.
+
+The table below documents installation locations and invocation; the agent normally performs
+installation without manual copying:
 
 | Client | Project skill root | Personal skill root | Discover/invoke |
 | --- | --- | --- | --- |
@@ -76,6 +89,8 @@ Default analysis limits retrieval, investigating up to 5 findings and 3 images i
 Ask to continue through remaining findings or inspect more images when needed.
 Running experiments or changing files may produce provisional observations; request final analysis
 once the test finishes. Single-experiment analysis is supported.
+
+The three report trends prefer PNG images returned by `kea2_get_trend_chart`. If inline display is unsupported, the report provides returned image or existing HTML viewing paths on the MCP host. Pure fuzzing omits the property trend. Trend charts are separate from the three evidence-screenshot allowance but count toward the tool-call budget. Update MCP dependencies (including Matplotlib) and both skills to enable this behavior.
 
 ## Maintain domain knowledge
 

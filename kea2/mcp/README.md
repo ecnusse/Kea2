@@ -164,7 +164,7 @@ no devices. See [Quick verification](#quick-verification).
 
 ## Implemented tools
 
-The server exposes 15 tools for test execution, task management, historical registration and structured evidence retrieval. Replace angle-bracketed IDs in the examples with actual values.
+The server exposes 16 tools for test execution, task management, historical registration and structured evidence retrieval. Replace angle-bracketed IDs in the examples with actual values.
 
 ### `kea2_init`
 
@@ -361,6 +361,27 @@ Supply task_id plus finding_id and snapshot_id from a findings page. Returns tra
 ```json
 {"task_id":"<task_id>","finding_id":"<finding_id>","snapshot_id":"<snapshot_id>","context_before":3,"context_after":3}
 ```
+
+### `kea2_get_trend_chart`
+
+
+Reports prefer PNG charts for Activity coverage, unique triggered widgets and property execution. Call `kea2_get_trend_chart` with the selected `task_id`, the overview's `snapshot_id` and one of these metrics:
+
+- `activity_coverage_percent`: blue Activity coverage (left axis, %) and green Tested Activities (right axis, integer count), in a compact horizontal layout with independently adaptive axes.
+- `unique_triggered_widget_count`: distinct triggered widgets, not a percentage.
+- `property_execution_trend`: distinct properties started, not execution attempts or passes.
+
+```json
+{"task_id":"<task_id>","metric":"activity_coverage_percent","snapshot_id":"<snapshot_id>"}
+```
+
+The response contains native MCP image content and text metadata. Images are exported under the experiment's `mcp_charts/`, named by metric, renderer version and snapshot; HTML and original logs remain unchanged. Metadata includes `image_path` and an existing `html_report_path`, or null for unavailable paths. Charts are generated presentations, not original screenshot evidence.
+
+Agents embed the chart where supported, otherwise provide the returned image or HTML path. Paths refer to the MCP host; local-link support depends on the client. Users can copy paths to open them manually. If export fails, the inline image still returns with a null image_path and an export warning.
+
+No readable samples produces `unavailable`; no properties produces `not_applicable` for the property chart. Missing data never creates a fabricated zero curve. Partial sources plot valid records with limitations noted. All valid samples are plotted without smoothing or downsampling. The x-axis is Monkey steps; counter resets disconnect segments. Axes use English labels for portable rendering; report headings and captions follow the user's language.
+
+Update the installation including MCP dependencies, restart MCP and sync both skills. The MCP extra includes Matplotlib; base CLI dependencies are unchanged. Existing experiments can be queried without rerunning. Separate snapshot images are retained and `mcp_charts/` can be cleaned manually when no longer needed. Verify image display and viewing paths in the target client on first deployment.
 
 ### `kea2_get_artifact`
 

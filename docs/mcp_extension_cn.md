@@ -11,7 +11,7 @@
 1. 准备可通过 ADB 连接的 Android 设备或模拟器，并安装目标应用。
 2. 在 Python 3.10 或更高版本环境安装含 MCP 依赖的 Kea2，例如 `python -m pip install "kea2-python[mcp]"`。使用开发版本时，安装包含本功能的新 wheel。
 3. 配置 Agent 客户端。具体配置见 [MCP 部署手册](../kea2/mcp/README_cn.md)。
-4. 将仓库中的 `skills/kea2-test` 和 `skills/kea2-result-analysis` 两个完整目录复制到客户端技能目录，保留全部 references 文件。Codex 项目级目录使用 `.codex/skills/`，用户级使用 `~/.codex/skills/`；其他客户端位置见[技能安装手册](result_analysis_skill_cn.md)。两个 Skill 应安装在同一技能根目录下。
+4. 按[技能安装手册](result_analysis_skill_cn.md#安装-skill)向 Agent 发送一句话安装请求，从 Kea2 GitHub 仓库安装 `skills/kea2-test` 和 `skills/kea2-result-analysis`，包括全部 references 文件。两个 Skill 安装在同一技能根目录下，无需手动复制。
 5. 安装或更新 wheel 后重启 MCP 服务，更新 Skill 后开启新会话。Skill 不会随 wheel 自动安装。
 
 可以先让 Agent 检查设备连接，验证 MCP 可调用。没有设备时仍可以读取已保存结果，但启动新测试需要设备。项目尚未初始化也可以开始对话，Agent 会在确认准备操作后调用初始化工具。
@@ -29,6 +29,24 @@
 Agent 首先只读检查设备、服务工作目录及项目准备情况。已经提供的参数不重复询问；尚未明确的参数进入后续交互。工作目录由 MCP 客户端配置决定，修改结果输出目录不会改变服务工作目录。
 
 ## 3. 回答参数问题
+
+### 单机与多机测试
+
+Agent 会询问使用单台还是多台手机，并列出已连接设备的型号和序列号。单机选择一个序列号；多机选择需要测试的序列号，不会默认选择全部设备。也可以直接说：
+
+> 用手机 PHONE_A 和 PHONE_B 测试 com.example.app，两台都运行 10 分钟，使用相同配置，结束后给我一份合并报告。
+
+多机时，共用参数只需回答一次，也可以指定设备差异。Agent 逐台检查准备状态，统一展示配置并等待确认，然后依次启动各台手机，不等待上一台结束，因此测试会并行运行。每台手机保留独立 task_id 和结果目录。自定义目录名称时，需要确认不同的名称或输出父目录，避免冲突。
+
+Agent 跟踪全部任务，全部结束后输出一份合并分析报告；某台启动失败也会列出，不会影响其他已启动任务。报告保留每台设备的摘要、趋势图和问题来源，并按以下规则汇总：
+
+- Activity 覆盖率：已覆盖 Activity 并集数量除以全部 Activity 并集数量。
+- Activity 访问次数：按 Activity 名称相加。
+- Widget 覆盖数量：按 MCP 返回的完整控件记录字符串去重后计数。
+- 性质统计：相同性质名称的计数合并；不变量仅统计 Fail/Error。
+- Crash/ANR：保留来源实验，汇总各任务的发生记录数量，不将不同实验的相似异常压成一次。
+
+合并统计需要完整读取相关 MCP 分页数据；缺少数据时会说明受影响的统计，不能用已读取的一页代替全部结果。趋势图按设备展示。最终报告在对话中生成，各实验原有 HTML 保留；这一步不会另行生成合并 HTML。不同目标应用分别汇总。更新时请同时替换两个 Skill 的完整目录。
 
 Agent 分批介绍参数用途、单位或取值、默认行为及影响，再等待你的回答。当前流程覆盖 `kea2_run_test` 暴露的全部参数，并不等同于 CLI 的所有选项。
 
@@ -100,7 +118,7 @@ Agent 调用 `kea2_run_test`，记录返回的 `task_id` 和结果目录，并�
 
 以下内容说明 Agent 使用的工具、参数和数据，可在需要了解细节时查阅，无需手动逐个调用。
 
-## 15 个 MCP 工具
+## 16 个 MCP 工具
 
 | 工具 | 输入和作用 | 返回结果或影响 |
 | --- | --- | --- |
@@ -119,6 +137,7 @@ Agent 调用 `kea2_run_test`，记录返回的 `task_id` 和结果目录，并�
 | `kea2_query_report` | 按 task_id、section 和可选 filters 查询明细 | 当前页记录、匹配总数、快照和下一页游标 |
 | `kea2_get_finding` | 传入 task_id、finding_id 和 snapshot_id | 某次异常的详情、堆栈片段、关联执行记录、日志上下文及证据引用 |
 | `kea2_get_artifact` | 传入 task_id、artifact_id 和 snapshot_id | 实际截图或文本片段，以及证据元数据 |
+| `kea2_get_trend_chart` | 传入 task_id、metric 和 snapshot_id | PNG 趋势图、图片保存路径和已有 HTML 查看入口 |
 
 ## 启动和控制测试
 
@@ -203,7 +222,7 @@ Agent 查看某个 Property 的失败证据时，按下面的顺序读取；调�
 
 ## Agent 分析 Skill 与报告
 
-`kea2-result-analysis` 将分析过程组织为可版本管理的指令，当前 Skill 版本为 **1.7.0**。分析时读取[独立知识文件](../skills/kea2-result-analysis/references/domain-knowledge.md)。安装 wheel 后，需要单独将整个技能目录连同 references 复制到客户端技能目录。Codex 在本手册中采用项目级 `.codex/skills/` 或用户级 `~/.codex/skills/`。其他客户端的目录和调用方式见[分析 Skill 使用手册](result_analysis_skill_cn.md)。
+`kea2-result-analysis` 将分析过程组织为可版本管理的指令，当前 Skill 版本为 **1.8.0**。分析时读取[独立知识文件](../skills/kea2-result-analysis/references/domain-knowledge.md)。安装 wheel 后，需要单独将整个技能目录连同 references 复制到客户端技能目录。Codex 在本手册中采用项目级 `.codex/skills/` 或用户级 `~/.codex/skills/`。其他客户端的目录和调用方式见[分析 Skill 使用手册](result_analysis_skill_cn.md)。
 
 - **绑定分析任务。** 全流程沿用用户确认启动的本次任务 ID；独立分析已有实验时由用户明确选择。关联丢失或有歧义时询问，不自动选择最近或唯一任务。
 - **只使用 MCP 实验事实。** Agent 从报告、查询、异常和证据工具取得信息。源码、HTML、数据库和原始文件均不作为 agent 自行补查的渠道。来源不足时在报告中注明。
@@ -214,3 +233,24 @@ Agent 查看某个 Property 的失败证据时，按下面的顺序读取；调�
 这些是 Skill 对 agent 的操作指令，实际遵循程度还取决于客户端和模型。报告格式可查看[报告模板](../skills/kea2-result-analysis/references/report-template.md)。
 
 自定义实验目录名时，可以告诉 Agent：“输出父目录用 output，本次实验名称用 login_test”。Agent 将传入 `log_stamp="login_test"`，生成 `output/res_login_test/`，日志标识为 `login_test`，任务 ID 始终为自动生成的时间戳。省略时自动生成时间戳；输出目录冲突时报错，不覆盖。名称仅使用英文字母、数字、下划线、连字符和点，不能为 `.`/`..` 或以点结尾。
+
+
+### 趋势图图片与查看入口
+
+报告的 Activity 覆盖率、已触发 Widget 数量和性质执行趋势优先展示 PNG 曲线。Agent 调用 `kea2_get_trend_chart`，传入本次 `task_id`、概览返回的 `snapshot_id`，以及以下 `metric` 之一：
+
+- `activity_coverage_percent`：蓝色 Activity 覆盖率（左轴，%）和绿色 Tested Activities 数量（右轴，整数），横向紧凑布局；双轴按各自实际最大值自适应。
+- `unique_triggered_widget_count`：已触发不同控件的数量，不是百分比。
+- `property_execution_trend`：已开始执行的不同性质数量，不是执行次数或通过次数。
+
+```json
+{"task_id":"<task_id>","metric":"activity_coverage_percent","snapshot_id":"<snapshot_id>"}
+```
+
+工具返回原生 MCP 图片内容和文本元数据。图片另存于结果目录的 `mcp_charts/`，按指标、绘图版本和快照命名；不会修改 HTML 或原始日志。元数据包含 `image_path` 和已存在的 `html_report_path`，不存在的入口为 null。生成图片是结果展示产物，不属于原始截图证据。
+
+客户端支持时，Agent 将图片嵌入报告；不支持时提供返回的图片或 HTML 路径。路径位于 MCP 服务所在电脑，客户端能否打开链接取决于其能力；不能打开时可复制路径手动查看。目录不可写时仍返回内嵌图片，`image_path` 为 null，并说明无法导出。
+
+无可读采样点返回 `unavailable`，无性质时性质图返回 `not_applicable`，不伪造零曲线。部分来源绘制已读有效点并标记限制；全部有效采样点参与绘图，不平滑、不抽样。横轴为 Monkey 步数，计数回退时断开曲线。英文坐标标签便于跨平台显示，报告标题和说明仍使用用户语言。
+
+使用此功能需更新包含 MCP 依赖的安装并重启 MCP 服务，同时同步两个 Skill。MCP extra 包含 Matplotlib，CLI 基础依赖不增加。已有历史结果可直接查询，无需重跑；每个新快照会保留独立图片，需要时可手动清理 `mcp_charts/`。首次部署建议在目标客户端验证图片展示和查看入口。

@@ -11,7 +11,7 @@ Automatic execution starts after configuration confirmation. The agent explains 
 1. Connect an Android device or emulator through ADB and install the target app.
 2. Install Kea2 with MCP dependencies in Python 3.10+, for example `python -m pip install "kea2-python[mcp]"`. For development builds, install the wheel containing this feature.
 3. Configure the client. See the [MCP deployment guide](../kea2/mcp/README.md).
-4. Copy both complete folders, `skills/kea2-test` and `skills/kea2-result-analysis`, including all references, into the same client skill root. For Codex use project `.codex/skills/` or user `~/.codex/skills/`. See the [skill installation guide](result_analysis_skill_en.md) for other clients.
+4. Send the one-sentence installation request in the [skill installation guide](result_analysis_skill_en.md#install-the-skill). Ask the agent to install `skills/kea2-test` and `skills/kea2-result-analysis`, including all references, from the Kea2 GitHub repository into the same client skill root. No manual copying is needed.
 5. Restart MCP after installing or updating the wheel. Start a new conversation after updating skills. Wheels do not install skills automatically.
 
 Ask the agent to check connected devices to verify the connection. Saved results can be read offline; launching requires a device. You may start the conversation before initializing the project: initialization happens after confirmation of the preparation steps.
@@ -27,6 +27,35 @@ You can explicitly invoke `kea2-test` or provide some settings upfront:
 The agent first checks devices, the server working directory and readiness without making changes. It retains supplied parameters and asks only about the remaining ones. The client configuration determines the server working directory; changing the output directory does not change it.
 
 ## 3. Answer the parameter questions
+
+### Single-device and multi-device testing
+
+The agent asks whether to use one phone or several and lists connected device models and serials.
+Select one serial for single-device testing or the explicit serials for multi-device testing;
+devices are never all selected implicitly. You can also say:
+
+> Test com.example.app on PHONE_A and PHONE_B for 10 minutes each with shared settings, then give me one merged report.
+
+Answer shared parameter questions once and specify per-device overrides if needed. The agent checks
+each phone, shows the complete configuration for one confirmation, and launches phones in sequence
+without waiting for earlier tests to finish. Tests therefore run concurrently with separate task IDs
+and output directories. Custom directory names require distinct confirmed names or output parents.
+
+The agent tracks all tasks and delivers one report after all finish. Start failures remain visible
+and do not stop already running tasks. The report retains per-device summaries, charts and sources:
+
+- Activity coverage: size of the covered-Activity union divided by the full inventory union.
+- Activity visits: sum by Activity name.
+- Widget count: deduplicate complete widget record strings returned by MCP.
+- Check statistics: combine counters by exact name; invariants retain only Fail/Error counts.
+- Crash/ANR: retain source experiments and sum per-task occurrence counts; similar exceptions from
+  different experiments are not collapsed into one occurrence.
+
+Exact aggregates require complete relevant MCP pages. Missing data limits the affected totals;
+one retrieved page cannot stand for the entire dataset. Trend charts remain per device. The merged
+report is delivered in conversation and original HTML reports remain available; this step does not
+generate a new merged HTML file. Different target apps use separate report groups. Update both
+complete skill folders together.
 
 The agent explains each parameter's purpose, units or choices, default behavior and effects, then waits for your response. Questions are grouped by topic. This workflow covers all parameters exposed by `kea2_run_test`, not every CLI option.
 
@@ -98,7 +127,7 @@ Independent analysis of CLI or historical experiments still requires explicit ta
 
 The following reference sections explain the tools, parameters and data used by the agent. You do not need to call them manually.
 
-## The 15 tools
+## The 16 tools
 
 | Tool | Inputs and purpose | Result or effect |
 | --- | --- | --- |
@@ -117,6 +146,7 @@ The following reference sections explain the tools, parameters and data used by 
 | `kea2_query_report` | Query task_id and section, with optional filters, cursor and limit | A page of records, matching total, snapshot and next cursor |
 | `kea2_get_finding` | Supply task_id, finding_id and snapshot_id | Trace excerpt, associated execution, event context and evidence references |
 | `kea2_get_artifact` | Supply task_id, artifact_id and snapshot_id | Actual image or text content and artifact metadata |
+| `kea2_get_trend_chart` | Supply task_id, metric and snapshot_id | PNG trend chart, exported image path and existing HTML viewing path |
 
 ## Run and control tests
 
@@ -199,7 +229,7 @@ Other common errors include TASK_NOT_FOUND (check ID and user environment), INVA
 
 ## Analysis skill and report
 
-`kea2-result-analysis` version **1.7.0** packages the instructions, data semantics, query examples and report template. The skill reads a [separate knowledge file](../skills/kea2-result-analysis/references/domain-knowledge.md). Install the whole skill directory, including references, separately from the wheel. The guide uses project-level `.codex/skills/` or user-level `~/.codex/skills/` for Codex. Instructions for other clients are in the [skill user guide](result_analysis_skill_en.md).
+`kea2-result-analysis` version **1.8.0** packages the instructions, data semantics, query examples and report template. The skill reads a [separate knowledge file](../skills/kea2-result-analysis/references/domain-knowledge.md). Install the whole skill directory, including references, separately from the wheel. The guide uses project-level `.codex/skills/` or user-level `~/.codex/skills/` for Codex. Instructions for other clients are in the [skill user guide](result_analysis_skill_en.md).
 
 - **Task binding.** Reuse this confirmed workflow's launch ID. Independent analysis requires explicit user selection. Lost or ambiguous bindings require clarification, never choosing a latest or only task.
 - **Evidence.** Obtain experiment facts exclusively through Kea2 MCP report, query, finding and artifact responses. Treat gaps as gaps. Do not inspect source, HTML, databases or raw files independently.
@@ -210,3 +240,24 @@ Other common errors include TASK_NOT_FOUND (check ID and user environment), INVA
 These instructions guide the client agent. Actual adherence depends on the client and model. See the [report template](../skills/kea2-result-analysis/references/report-template.md).
 
 To customize an experiment directory, ask the agent to use output parent `output` and experiment name `login_test`. It passes `log_stamp="login_test"`, creating `output/res_login_test/` with matching log stamp and an independently generated timestamp task ID. Omission generates a timestamp; conflicts fail without overwriting. Names use ASCII letters, digits, underscores, hyphens and dots, excluding `.`/`..` and trailing dots.
+
+
+### Trend chart images and viewing paths
+
+Reports prefer PNG charts for Activity coverage, unique triggered widgets and property execution. Call `kea2_get_trend_chart` with the selected `task_id`, the overview's `snapshot_id` and one of these metrics:
+
+- `activity_coverage_percent`: blue Activity coverage (left axis, %) and green Tested Activities (right axis, integer count), in a compact horizontal layout with independently adaptive axes.
+- `unique_triggered_widget_count`: distinct triggered widgets, not a percentage.
+- `property_execution_trend`: distinct properties started, not execution attempts or passes.
+
+```json
+{"task_id":"<task_id>","metric":"activity_coverage_percent","snapshot_id":"<snapshot_id>"}
+```
+
+The response contains native MCP image content and text metadata. Images are exported under the experiment's `mcp_charts/`, named by metric, renderer version and snapshot; HTML and original logs remain unchanged. Metadata includes `image_path` and an existing `html_report_path`, or null for unavailable paths. Charts are generated presentations, not original screenshot evidence.
+
+Agents embed the chart where supported, otherwise provide the returned image or HTML path. Paths refer to the MCP host; local-link support depends on the client. Users can copy paths to open them manually. If export fails, the inline image still returns with a null image_path and an export warning.
+
+No readable samples produces `unavailable`; no properties produces `not_applicable` for the property chart. Missing data never creates a fabricated zero curve. Partial sources plot valid records with limitations noted. All valid samples are plotted without smoothing or downsampling. The x-axis is Monkey steps; counter resets disconnect segments. Axes use English labels for portable rendering; report headings and captions follow the user's language.
+
+Update the installation including MCP dependencies, restart MCP and sync both skills. The MCP extra includes Matplotlib; base CLI dependencies are unchanged. Existing experiments can be queried without rerunning. Separate snapshot images are retained and `mcp_charts/` can be cleaned manually when no longer needed. Verify image display and viewing paths in the target client on first deployment.

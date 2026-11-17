@@ -1,5 +1,9 @@
 # Test report template
 
+For multiple explicitly selected/workflow-bound tasks, use [multi-run report](multi-run-report.md)
+to adapt these nine sections and aggregate MCP records. Its device/task source labels are permitted
+for merged findings and comparisons; the no-evidence-column rule below still applies.
+
 Write the final report in the user's language, translating all headings and column labels.
 Use a concrete task_id explicitly selected by the user or bound to the launch in the confirmed
 kea2-test workflow. The workflow binding needs no repeated ID confirmation. Otherwise ask and
@@ -78,8 +82,36 @@ counts from partial sources must be labeled observed partial counts.
 
 ## 2. Test coverage trend
 
+For sections 2–4, prefer PNG images from kea2_get_trend_chart using the matching metric and
+current snapshot_id. Embed the image in its section when supported. Otherwise provide the
+returned image_path or html_report_path as a viewing link (or a copyable MCP-host path if the
+client cannot open local links). Never invent a link or claim the image is visible when only
+metadata arrived. If chart export is unavailable, show a table of queried points and a brief
+explanation. Do not independently parse files or generate replacement images. Charts use English
+axis labels; translate section headings and captions to the user's language.
+
+When an image cannot be embedded, do not leave a section containing only a long filename.
+Use this presentation in the user's language:
+
+- A short sentence: "The chart is ready. Open the link below to view it."
+- A descriptive link label: "View Activity coverage chart", "View widget coverage chart",
+  or "View property execution chart", targeting the exact returned image_path.
+- A fallback instruction: "If the link does not open, copy the full path below and open it
+  in your file manager on the computer running Kea2."
+- The full returned path in a fenced text block, on one logical line. Never insert manual
+  line breaks, spaces or ellipses into the path; terminal visual wrapping is acceptable.
+
+For Chinese reports use labels such as "查看 Activity 覆盖率曲线", "查看控件覆盖趋势图"
+and "查看性质执行趋势图", with the prompt "曲线已生成，可通过下方链接查看。若链接无法打开，
+请复制完整路径到运行 Kea2 的电脑上的文件管理器中打开。" Do not promise that clicking
+works in every terminal. Use the client's supported local-link syntax; normalize path separators
+or encode spaces only as needed for a link target, retaining the exact original in the text block.
+If only html_report_path is available, label the link "Open HTML report" instead of claiming a
+PNG exists. An additional HTML link, when useful, need only appear once for the whole report.
+These are viewing instructions, not analysis; keep trend interpretation in section 9.
+
 Query trends with metric=activity_coverage_percent. Show Activity coverage over Monkey steps
-as a chart when supported, otherwise a table. Put interpretations of increases or plateaus in
+using the returned trend chart, otherwise a table. Put interpretations of increases or plateaus in
 section 9. Do not invent intermediate samples, extrapolate unread pages or convert steps
 to elapsed time without evidence.
 

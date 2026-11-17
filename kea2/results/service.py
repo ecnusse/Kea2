@@ -416,6 +416,10 @@ class ResultSnapshot(EvidenceMixin, CoverageMixin, ConfigurationMixin):
                 and execution["status"] == "completed"
                 and execution["finding_flags"]["crash_or_anr"] is False)
 
+    def trend_chart(self, metric, snapshot_id):
+        from .charts import render_trend
+        return render_trend(self, metric, snapshot_id)
+
     def _event_count(self, kind):
         if self._absent_crash_log_is_empty():
             return 0

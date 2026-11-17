@@ -1,8 +1,8 @@
 ---
 name: kea2-test
-description: Guide a user interactively through Kea2 Android testing, explain and confirm every applicable startup parameter, start and monitor the test through MCP, then produce an evidence-based report. Use when the user wants to run Kea2, including “我想用kea2进行测试”.
+description: Guide interactive Kea2 Android testing on one or multiple selected devices, confirm startup parameters, launch and monitor tasks through MCP, then deliver a single-device or merged results report. Use when the user wants to run Kea2, including “我想用kea2进行测试”.
 metadata:
-  version: "1.2.0"
+  version: "1.4.0"
 ---
 
 # Interactive Kea2 testing
@@ -15,6 +15,12 @@ through analysis in the same workflow. Do not end with “测试已结束，要�
 exit code, file path or get_status counters.
 This workflow covers every parameter exposed by `kea2_run_test`, not every CLI option.
 Requires Kea2 MCP and the installed sibling `kea2-result-analysis` skill including references.
+First establish single-device or multi-device mode. Single-device mode selects exactly one serial;
+multi-device mode selects an explicit, non-duplicated list of serials from discovery, never all devices
+implicitly. If the user's initial request already selects devices, retain that selection.
+For multiple devices, read [multi-device workflow](references/multi-device.md) before collecting
+parameters. It adapts the singular launch/monitor/analysis instructions below to one bound task per
+device and one final merged report. All other confirmation and MCP-only evidence rules still apply.
 Before launching, locate and read that skill by client discovery or sibling `../kea2-result-analysis/SKILL.md`;
 if missing, explain how to install both skills and resolve the missing analysis instructions first.
 Do not install packages, write properties or change client configuration without user authorization.
@@ -119,7 +125,10 @@ intermediate message, not the final deliverable. A failed status is not by itsel
    within the analysis budget, and explicitly disclose incomplete tables or sampled findings.
 5. For selected findings retrieve details and available evidence according to the analysis skill.
    Describe images only when image content actually reaches the model; metadata alone is not viewing.
-6. Produce the report in the conversation using the report template. Keep all relevant report
+6. Produce the report in the conversation using the report template. Keep report
+   sections 2–4 visual where possible, using the analysis skill's MCP trend chart tool and returned
+   image/HTML viewing paths when inline images are unsupported. Do not open or parse HTML yourself.
+   Keep all relevant report
    sections, marking unavailable or inapplicable data with reasons instead of dropping the analysis.
    Pure fuzzing still needs execution, coverage, crash/ANR evidence and limitations; explain the
    absence of property/invariant records rather than inventing rows or skipping the entire report.

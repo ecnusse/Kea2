@@ -119,6 +119,26 @@ def cmd_run(args):
     return run(args)
 
 
+def cmd_mcp(args):
+    """启动 MCP Server (STDIO 模式)"""
+    try:
+        from kea2.mcp.server import mcp
+    except ImportError as e:
+        print(f"MCP 功能需要额外依赖: {e}", file=sys.stderr)
+        print("请安装: pip install 'kea2-python[mcp]'", file=sys.stderr)
+        return 1
+    mcp.run(transport="stdio")
+    return 0
+
+
+def cmd_register_result(args):
+    import json
+    from .task_registry import register_result
+    result = register_result(args.path, args.stamp, args.task_id)
+    print(json.dumps(result, ensure_ascii=False, indent=2))
+    return 0 if result["status"] in ("registered", "already_registered") else 1
+
+
 _commands = [
     dict(action=cmd_version, command="version", help="show version"),
     dict(
@@ -202,6 +222,16 @@ def main():
     from .kea_launcher import _set_runner_parser
     _set_runner_parser(subparser)
     actions["run"] = cmd_run
+    register_parser = subparser.add_parser("register-result", help="Register an existing experiment directory")
+    register_parser.add_argument("-p", "--path", required=True)
+    register_parser.add_argument("--stamp")
+    register_parser.add_argument("--task-id", help="Explicit alias for an ID conflict; does not rename files")
+    actions["register-result"] = cmd_register_result
+
+    actions["mcp"] = cmd_mcp
+    mcp_parser = subparser.add_parser("mcp", help="Start MCP server (STDIO mode)")
+    mcp_parser.set_defaults(func=cmd_mcp)
+
     if sys.argv[1:] == ["run"]:
         sys.argv.append("-h")
     args = parser.parse_args()
@@ -214,7 +244,8 @@ def main():
         logger.debug("args: %s", args)
 
     if args.subparser:
-        ret = actions[args.subparser](args)
+        action = getattr(args, "func", None) or actions[args.subparser]
+        ret = action(args)
         sys.exit(0 if ret is None else int(ret))
 
     parser.print_help()

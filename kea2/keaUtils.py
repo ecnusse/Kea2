@@ -31,6 +31,7 @@ from .fastbotManager import FastbotManager
 from .adbUtils import ADBDevice
 from .state import invariant, INVARIANT_MARKER
 from .result import KeaJsonResult, KeaTextTestResult
+from .run_identity import claim_output, new_stamp
 from .fbm_plugin import merge_fbm
 
 logger = getLogger(__name__)
@@ -167,7 +168,8 @@ class Options:
 
         self._set_driver()
 
-        self.log_stamp = self.log_stamp if self.log_stamp else TimeStamp().getTimeStamp()
+        automatic_stamp = not self.log_stamp
+        self.log_stamp = self.log_stamp if self.log_stamp else new_stamp()
         self._sanitize_stamp(self.log_stamp)
 
         self.output_dir = Path(self.output_dir).absolute() / f"res_{self.log_stamp}"
@@ -177,6 +179,12 @@ class Options:
         self._sanitize_args()
 
         _check_package_installation(self.packageNames)
+        from .task_registry import prepare_run
+        registered_run = prepare_run(self, automatic_stamp)
+        if not registered_run:
+            from .run_identity import HANDOFF_ENV
+            if os.environ.get(HANDOFF_ENV):
+                claim_output(self.output_dir)
         _save_bug_report_configs(self)
         _save_options_configs(self)
 
@@ -255,7 +263,7 @@ class Options:
         
         opts = deepcopy(self)
         
-        time_stamp = TimeStamp().getTimeStamp()
+        time_stamp = self.log_stamp
         hybrid_test_stamp = f"{time_stamp}_hybrid_{hybrid_test_count}"
         
         opts.output_dir = self.output_dir / f"res_{hybrid_test_stamp}"
@@ -869,7 +877,28 @@ class HybridTestRunner(TextTestRunner, KeaOptionSetter):
 
                         argv = ["python3 -m unittest"] + hybrid_test_options.propertytest_args
                         KeaTestRunner.setOptions(hybrid_test_options)
-                        unittest_main(module=None, argv=argv, testRunner=KeaTestRunner, testLoader=keaTestLoader, exit=False)
+                        from .task_registry import SESSION, prepare_run, finish_session
+                        parent = SESSION.get() or {}
+                        child = {"parent_task_id": parent.get("record", {}).get("task_id"),
+                                 "origin": parent.get("record", {}).get("origin", "cli")}
+                        token = SESSION.set(child)
+                        code = 4
+                        cancelled = False
+                        try:
+                            prepare_run(hybrid_test_options, False)
+                            child_program = unittest_main(module=None, argv=argv, testRunner=KeaTestRunner,
+                                                          testLoader=keaTestLoader, exit=False)
+                            child_result = getattr(child_program, "result", None)
+                            if child_result is not None:
+                                code = (0 if child_result.wasSuccessful() else 1) | (2 if getattr(child_result, "has_crash_or_anr", False) else 0)
+                        except KeyboardInterrupt:
+                            code, cancelled = 130, True
+                            raise
+                        finally:
+                            try:
+                                finish_session(child, code, cancelled)
+                            finally:
+                                SESSION.reset(token)
                 finally:
                     test._common_tearDown()
                     result.printErrors()

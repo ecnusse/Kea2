@@ -1,0 +1,945 @@
+{
+  "report": {
+    "schema_version": "1.5",
+    "task_id": "task",
+    "snapshot_id": "0000000000000000000000000000000000000000000000000000000000000000",
+    "availability": {
+      "checks": "available",
+      "property_executions": "available",
+      "activity_coverage": "available",
+      "run_options": "available",
+      "report_configuration": "available",
+      "widget_inventory": "available",
+      "widget_coverage": "available",
+      "crashes": "available",
+      "steps": "available"
+    },
+    "warnings": [
+      {
+        "source": "run_options",
+        "code": "NONFINITE_CONFIGURATION_VALUE"
+      },
+      {
+        "source": "checks",
+        "code": "FAILURES_EXCEED_EXECUTED"
+      },
+      {
+        "source": "widget_inventory",
+        "code": "WIDGET_COUNTS_DISAGREE"
+      },
+      {
+        "source": "property_executions",
+        "code": "OUTCOME_COUNTS_DISAGREE"
+      }
+    ],
+    "warning_count": 4,
+    "warnings_truncated": false,
+    "execution": {
+      "status": "completed",
+      "exit_code": 3,
+      "finding_flags": {
+        "property_violation": true,
+        "crash_or_anr": true
+      },
+      "created_at": null,
+      "started_at": null,
+      "finished_at": null,
+      "packages": null,
+      "device_serial": null,
+      "requested_parameters": null
+    },
+    "data_completeness": "available_sources",
+    "is_live": false,
+    "summary": {
+      "checks": {
+        "property": {
+          "count": 2,
+          "executed_check_count": 1,
+          "violated_check_count": 1,
+          "execution_count": 5,
+          "fail_occurrences": 2,
+          "error_occurrences": 1
+        },
+        "invariant": {
+          "count": 1,
+          "executed_check_count": null,
+          "violated_check_count": 1,
+          "execution_count": null,
+          "fail_occurrences": 1,
+          "error_occurrences": 0
+        },
+        "unknown": {
+          "count": 1,
+          "executed_check_count": 1,
+          "violated_check_count": 1,
+          "execution_count": 1,
+          "fail_occurrences": 0,
+          "error_occurrences": 1
+        }
+      },
+      "activity_coverage_percent": 50.0,
+      "unique_triggered_widget_count": 12,
+      "observed_crash_occurrences": 1,
+      "observed_anr_occurrences": 1
+    },
+    "sections": {
+      "checks": {
+        "record_count": 4
+      },
+      "findings": {
+        "record_count": 4
+      },
+      "activities": {
+        "record_count": 2
+      },
+      "trends": {
+        "record_count": 2
+      },
+      "steps": {
+        "record_count": 6
+      },
+      "executions": {
+        "record_count": 2
+      },
+      "artifacts": {
+        "record_count": 15
+      },
+      "configuration": {
+        "record_count": 7
+      },
+      "widgets": {
+        "record_count": 1
+      },
+      "property_execution_trend": {
+        "record_count": 1
+      }
+    },
+    "limitations": [
+      "Counts describe readable records; missing sources are not evidence of zero findings.",
+      "Source files are read independently; this is not an atomic writer snapshot.",
+      "Execution metadata reflects the task store, not a fresh process liveness probe.",
+      "Grouping, diagnostics and cross-run analysis are not implemented yet.",
+      "Screenshot inventory covers explicit log references, not unreferenced files."
+    ],
+    "provenance": {
+      "parser_version": "1.5",
+      "sources": {
+        "run_options": "options.json",
+        "report_configuration": "bug_report_config.json",
+        "checks": "result_run.json",
+        "property_executions": "property_exec_info_run.json",
+        "activity_coverage": "output_run/coverage.log",
+        "widget_coverage": "output_run/widget_coverage.log",
+        "widget_inventory": "output_run/widget_coverage_report.txt",
+        "crashes": "output_run/crash-dump.log",
+        "steps": "output_run/steps.log"
+      }
+    },
+    "observation": {
+      "first_event_time_raw": "2026-10-20T09:00:00",
+      "last_event_time_raw": "2026-10-20T09:00:13",
+      "log_duration_seconds": 13.0,
+      "max_monkey_step": 13,
+      "log_record_count": 6,
+      "source": {
+        "artifact": "output_run/steps.log"
+      }
+    }
+  },
+  "checks": [
+    {
+      "name": "test.a",
+      "kind": "property",
+      "precond_satisfied": 0,
+      "executed": 5,
+      "fail": 2,
+      "error": 1,
+      "pass_count": 2,
+      "pass_count_basis": "derived_max_executed_minus_fail_minus_error",
+      "source": {
+        "artifact": "result_run.json",
+        "key": "test.a"
+      },
+      "raw": {
+        "kind": "property",
+        "executed": 5,
+        "fail": 2,
+        "error": 1
+      }
+    },
+    {
+      "name": "test.b",
+      "kind": "property",
+      "precond_satisfied": 0,
+      "executed": 0,
+      "fail": 0,
+      "error": 0,
+      "pass_count": 0,
+      "pass_count_basis": "derived_max_executed_minus_fail_minus_error",
+      "source": {
+        "artifact": "result_run.json",
+        "key": "test.b"
+      },
+      "raw": {
+        "kind": "property",
+        "executed": 0
+      }
+    },
+    {
+      "name": "test.invariant",
+      "kind": "invariant",
+      "precond_satisfied": null,
+      "executed": null,
+      "fail": 1,
+      "error": 0,
+      "pass_count": null,
+      "pass_count_basis": "not_applicable",
+      "source": {
+        "artifact": "result_run.json",
+        "key": "test.invariant"
+      },
+      "raw": {
+        "kind": "invariant",
+        "executed": 0,
+        "fail": 1
+      }
+    },
+    {
+      "name": "legacy",
+      "kind": "unknown",
+      "precond_satisfied": 0,
+      "executed": 1,
+      "fail": 0,
+      "error": 1,
+      "pass_count": 0,
+      "pass_count_basis": "derived_max_executed_minus_fail_minus_error",
+      "source": {
+        "artifact": "result_run.json",
+        "key": "legacy"
+      },
+      "raw": {
+        "executed": 1,
+        "error": 1
+      }
+    }
+  ],
+  "findings": [
+    {
+      "id": "execution:1",
+      "type": "property",
+      "state": "fail",
+      "check_name": "test.a",
+      "monkey_step": 10,
+      "description": "AssertionError",
+      "source": {
+        "artifact": "property_exec_info_run.json",
+        "line": 1
+      },
+      "trace_characters": 14,
+      "evidence": [
+        {
+          "relation": "execution",
+          "status": "resolved",
+          "target_id": "segment:step:2",
+          "candidates": [],
+          "reason": "Exact check name, kind, start counter and outcome"
+        },
+        {
+          "relation": "step",
+          "status": "resolved",
+          "target_id": "step:5",
+          "candidates": [],
+          "reason": "Matched execution terminal marker"
+        },
+        {
+          "relation": "screenshot",
+          "status": "resolved",
+          "target_id": "artifact:367228db840f92799c77a941",
+          "candidates": [],
+          "reason": "Explicit log reference; file available"
+        }
+      ]
+    },
+    {
+      "id": "execution:2",
+      "type": "invariant",
+      "state": "fail",
+      "check_name": "test.invariant",
+      "monkey_step": 10,
+      "description": "Invariant failed",
+      "source": {
+        "artifact": "property_exec_info_run.json",
+        "line": 2
+      },
+      "trace_characters": 16,
+      "evidence": [
+        {
+          "relation": "execution",
+          "status": "resolved",
+          "target_id": "segment:step:4",
+          "candidates": [],
+          "reason": "Exact check name, kind, start counter and outcome"
+        },
+        {
+          "relation": "step",
+          "status": "resolved",
+          "target_id": "step:4",
+          "candidates": [],
+          "reason": "Matched execution terminal marker"
+        },
+        {
+          "relation": "screenshot",
+          "status": "unavailable",
+          "target_id": null,
+          "candidates": [],
+          "reason": "No explicit screenshot reference"
+        }
+      ]
+    },
+    {
+      "id": "crash:1",
+      "type": "crash",
+      "time_raw": "20261020090000",
+      "monkey_step": 8,
+      "process_name": "com.example",
+      "pid": 123,
+      "description": "java.lang.Exception: broken",
+      "screenshot_reference": "screenshot.png",
+      "source": {
+        "artifact": "output_run/crash-dump.log",
+        "line": 1
+      },
+      "trace_characters": 83,
+      "evidence": [
+        {
+          "relation": "step",
+          "status": "unavailable",
+          "target_id": null,
+          "candidates": [],
+          "reason": "Matching Monkey counter only; does not establish causality"
+        },
+        {
+          "relation": "screenshot",
+          "status": "resolved",
+          "target_id": "artifact:35a5b21e3b731177eb5eb9c4",
+          "candidates": [],
+          "reason": "Explicit log reference; file available"
+        }
+      ]
+    },
+    {
+      "id": "anr:9",
+      "type": "anr",
+      "time_raw": "20261020090100",
+      "monkey_step": null,
+      "process_name": "com.example",
+      "pid": 456,
+      "description": "Input dispatching timed out (details)",
+      "screenshot_reference": null,
+      "source": {
+        "artifact": "output_run/crash-dump.log",
+        "line": 9
+      },
+      "trace_characters": 76,
+      "evidence": [
+        {
+          "relation": "step",
+          "status": "unavailable",
+          "target_id": null,
+          "candidates": [],
+          "reason": "Matching Monkey counter only; does not establish causality"
+        },
+        {
+          "relation": "screenshot",
+          "status": "unavailable",
+          "target_id": null,
+          "candidates": [],
+          "reason": "No explicit screenshot reference"
+        }
+      ]
+    }
+  ],
+  "activities": [
+    {
+      "name": "Home",
+      "covered": true,
+      "in_inventory": true,
+      "visit_count": 7,
+      "source": {
+        "artifact": "output_run/coverage.log",
+        "line": 1
+      }
+    },
+    {
+      "name": "Settings",
+      "covered": false,
+      "in_inventory": true,
+      "visit_count": null,
+      "source": {
+        "artifact": "output_run/coverage.log",
+        "line": 1
+      }
+    }
+  ],
+  "trends": [
+    {
+      "metric": "activity_coverage_percent",
+      "monkey_step": 20,
+      "value": 50.0,
+      "raw": {
+        "stepsCount": 20,
+        "coverage": 50.0,
+        "totalActivities": [
+          "Home",
+          "Settings"
+        ],
+        "testedActivities": [
+          "Home"
+        ],
+        "totalActivitiesCount": 2,
+        "testedActivitiesCount": 1,
+        "activityCountHistory": {
+          "Home": 7
+        }
+      },
+      "source": {
+        "artifact": "output_run/coverage.log",
+        "line": 1
+      }
+    },
+    {
+      "metric": "unique_triggered_widget_count",
+      "monkey_step": 20,
+      "value": 12,
+      "raw": {
+        "stepsCount": 20,
+        "coverage": 12
+      },
+      "source": {
+        "artifact": "output_run/widget_coverage.log",
+        "line": 1
+      }
+    }
+  ],
+  "traces": [
+    {
+      "finding_id": "execution:1",
+      "text": "AssertionError",
+      "source": {
+        "artifact": "property_exec_info_run.json",
+        "line": 1
+      }
+    },
+    {
+      "finding_id": "execution:2",
+      "text": "Invariant failed",
+      "source": {
+        "artifact": "property_exec_info_run.json",
+        "line": 2
+      }
+    },
+    {
+      "finding_id": "crash:1",
+      "text": "// CRASH: com.example (pid 123)\r\n// Long Msg: java.lang.Exception: broken\r\n// frame",
+      "source": {
+        "artifact": "output_run/crash-dump.log",
+        "line": 1
+      }
+    },
+    {
+      "finding_id": "anr:9",
+      "text": "// ANR: com.example (pid 456)\r\nReason: Input dispatching timed out (details)",
+      "source": {
+        "artifact": "output_run/crash-dump.log",
+        "line": 9
+      }
+    }
+  ],
+  "observation": {
+    "first_event_time_raw": "2026-10-20T09:00:00",
+    "last_event_time_raw": "2026-10-20T09:00:13",
+    "log_duration_seconds": 13.0,
+    "max_monkey_step": 13,
+    "log_record_count": 6,
+    "source": {
+      "artifact": "output_run/steps.log"
+    }
+  },
+  "steps": [
+    {
+      "id": "step:1",
+      "monkey_step": 0,
+      "time_raw": "2026-10-20T09:00:00",
+      "type": "Monkey",
+      "activity": "Home",
+      "action": "BACK",
+      "parameters": null,
+      "source": {
+        "artifact": "output_run/steps.log",
+        "line": 1
+      },
+      "evidence": [
+        {
+          "relation": "screenshot",
+          "status": "unavailable",
+          "target_id": null,
+          "candidates": [],
+          "reason": "No explicit screenshot reference"
+        }
+      ],
+      "raw": {
+        "Type": "Monkey",
+        "MonkeyStepsCount": 0,
+        "Info": {
+          "act": "BACK"
+        },
+        "Screenshot": "",
+        "Time": "2026-10-20T09:00:00",
+        "Activity": "Home"
+      }
+    },
+    {
+      "id": "step:2",
+      "monkey_step": 10,
+      "time_raw": "2026-10-20T09:00:10",
+      "type": "ScriptInfo",
+      "activity": "Home",
+      "action": null,
+      "parameters": null,
+      "source": {
+        "artifact": "output_run/steps.log",
+        "line": 2
+      },
+      "evidence": [
+        {
+          "relation": "screenshot",
+          "status": "resolved",
+          "target_id": "artifact:65c92f237a2439aa9f2e4436",
+          "candidates": [],
+          "reason": "Explicit log reference; file available"
+        }
+      ],
+      "raw": {
+        "Type": "ScriptInfo",
+        "MonkeyStepsCount": 10,
+        "Info": {
+          "propName": "test.a",
+          "kind": "property",
+          "state": "start",
+          "startStepsCount": 10
+        },
+        "Screenshot": "before.png",
+        "Time": "2026-10-20T09:00:10",
+        "Activity": "Home"
+      }
+    },
+    {
+      "id": "step:3",
+      "monkey_step": 10,
+      "time_raw": "2026-10-20T09:00:10",
+      "type": "Script",
+      "activity": "Home",
+      "action": "click",
+      "parameters": [
+        20,
+        30
+      ],
+      "source": {
+        "artifact": "output_run/steps.log",
+        "line": 3
+      },
+      "evidence": [
+        {
+          "relation": "screenshot",
+          "status": "resolved",
+          "target_id": "artifact:f3b0ad97d57f320d557ef01c",
+          "candidates": [],
+          "reason": "Explicit log reference; file available"
+        }
+      ],
+      "raw": {
+        "Type": "Script",
+        "MonkeyStepsCount": 10,
+        "Info": "{\"method\": \"click\", \"params\": [20, 30]}",
+        "Screenshot": "middle.png",
+        "Time": "2026-10-20T09:00:10",
+        "Activity": "Home"
+      }
+    },
+    {
+      "id": "step:4",
+      "monkey_step": 10,
+      "time_raw": "2026-10-20T09:00:10",
+      "type": "ScriptInfo",
+      "activity": "Home",
+      "action": null,
+      "parameters": null,
+      "source": {
+        "artifact": "output_run/steps.log",
+        "line": 4
+      },
+      "evidence": [
+        {
+          "relation": "screenshot",
+          "status": "unavailable",
+          "target_id": null,
+          "candidates": [],
+          "reason": "No explicit screenshot reference"
+        }
+      ],
+      "raw": {
+        "Type": "ScriptInfo",
+        "MonkeyStepsCount": 10,
+        "Info": {
+          "propName": "test.invariant",
+          "kind": "invariant",
+          "state": "fail",
+          "startStepsCount": 10
+        },
+        "Screenshot": "",
+        "Time": "2026-10-20T09:00:10",
+        "Activity": "Home"
+      }
+    },
+    {
+      "id": "step:5",
+      "monkey_step": 12,
+      "time_raw": "2026-10-20T09:00:12",
+      "type": "ScriptInfo",
+      "activity": "Home",
+      "action": null,
+      "parameters": null,
+      "source": {
+        "artifact": "output_run/steps.log",
+        "line": 5
+      },
+      "evidence": [
+        {
+          "relation": "screenshot",
+          "status": "resolved",
+          "target_id": "artifact:367228db840f92799c77a941",
+          "candidates": [],
+          "reason": "Explicit log reference; file available"
+        }
+      ],
+      "raw": {
+        "Type": "ScriptInfo",
+        "MonkeyStepsCount": 12,
+        "Info": {
+          "propName": "test.a",
+          "kind": "property",
+          "state": "fail",
+          "startStepsCount": 10
+        },
+        "Screenshot": "after.png",
+        "Time": "2026-10-20T09:00:12",
+        "Activity": "Home"
+      }
+    },
+    {
+      "id": "step:6",
+      "monkey_step": 13,
+      "time_raw": "2026-10-20T09:00:13",
+      "type": "Monkey",
+      "activity": "Home",
+      "action": "kill_apps",
+      "parameters": null,
+      "source": {
+        "artifact": "output_run/steps.log",
+        "line": 6
+      },
+      "evidence": [
+        {
+          "relation": "screenshot",
+          "status": "unavailable",
+          "target_id": null,
+          "candidates": [],
+          "reason": "No explicit screenshot reference"
+        }
+      ],
+      "raw": {
+        "Type": "Monkey",
+        "MonkeyStepsCount": 13,
+        "Info": "kill_apps",
+        "Screenshot": "",
+        "Time": "2026-10-20T09:00:13",
+        "Activity": "Home"
+      }
+    }
+  ],
+  "artifacts": [
+    {
+      "id": "artifact:c2a49e11dbae2e9dffd24db4",
+      "kind": "log",
+      "relative_path": "options.json",
+      "mime_type": "text/plain",
+      "size_bytes": 94,
+      "availability": "available"
+    },
+    {
+      "id": "artifact:f54af80177beedfadb06a0f6",
+      "kind": "log",
+      "relative_path": "bug_report_config.json",
+      "mime_type": "text/plain",
+      "size_bytes": 82,
+      "availability": "available"
+    },
+    {
+      "id": "artifact:5bd906843c39c07f575bfd3a",
+      "kind": "log",
+      "relative_path": "result_run.json",
+      "mime_type": "text/plain",
+      "size_bytes": 223,
+      "availability": "available"
+    },
+    {
+      "id": "artifact:d8d7fec1b9d8259863b7caec",
+      "kind": "log",
+      "relative_path": "property_exec_info_run.json",
+      "mime_type": "text/plain",
+      "size_bytes": 227,
+      "availability": "available"
+    },
+    {
+      "id": "artifact:325b5c007edd06acaad48931",
+      "kind": "log",
+      "relative_path": "output_run/coverage.log",
+      "mime_type": "text/plain",
+      "size_bytes": 201,
+      "availability": "available"
+    },
+    {
+      "id": "artifact:1a6b263ed8ef3c956fe6bce6",
+      "kind": "log",
+      "relative_path": "output_run/widget_coverage.log",
+      "mime_type": "text/plain",
+      "size_bytes": 36,
+      "availability": "available"
+    },
+    {
+      "id": "artifact:b2df46e19a12218bdcf3e3fa",
+      "kind": "log",
+      "relative_path": "output_run/widget_coverage_report.txt",
+      "mime_type": "text/plain",
+      "size_bytes": 73,
+      "availability": "available"
+    },
+    {
+      "id": "artifact:93b3c61880a42d01aa24c0ae",
+      "kind": "log",
+      "relative_path": "output_run/crash-dump.log",
+      "mime_type": "text/plain",
+      "size_bytes": 276,
+      "availability": "available"
+    },
+    {
+      "id": "artifact:34f33abbc67a56176a5cbe1c",
+      "kind": "log",
+      "relative_path": "output_run/steps.log",
+      "mime_type": "text/plain",
+      "size_bytes": 1107,
+      "availability": "available"
+    },
+    {
+      "id": "artifact:5da6a333ac1e33c3968f6eab",
+      "kind": "log",
+      "relative_path": "kea2_run.log",
+      "mime_type": "text/plain",
+      "size_bytes": null,
+      "availability": "missing"
+    },
+    {
+      "id": "artifact:47957c6868d6980839c24be2",
+      "kind": "log",
+      "relative_path": "fastbot_run.log",
+      "mime_type": "text/plain",
+      "size_bytes": null,
+      "availability": "missing"
+    },
+    {
+      "id": "artifact:65c92f237a2439aa9f2e4436",
+      "kind": "screenshot",
+      "relative_path": "output_run/screenshots/before.png",
+      "mime_type": "image/png",
+      "size_bytes": 73,
+      "availability": "available"
+    },
+    {
+      "id": "artifact:f3b0ad97d57f320d557ef01c",
+      "kind": "screenshot",
+      "relative_path": "output_run/screenshots/middle.png",
+      "mime_type": "image/png",
+      "size_bytes": 73,
+      "availability": "available"
+    },
+    {
+      "id": "artifact:367228db840f92799c77a941",
+      "kind": "screenshot",
+      "relative_path": "output_run/screenshots/after.png",
+      "mime_type": "image/png",
+      "size_bytes": 73,
+      "availability": "available"
+    },
+    {
+      "id": "artifact:35a5b21e3b731177eb5eb9c4",
+      "kind": "screenshot",
+      "relative_path": "output_run/screenshots/screenshot.png",
+      "mime_type": "image/png",
+      "size_bytes": 73,
+      "availability": "available"
+    }
+  ],
+  "executions": [
+    {
+      "id": "segment:step:2",
+      "check_name": "test.a",
+      "kind": "property",
+      "state": "fail",
+      "start_step_id": "step:2",
+      "end_step_id": "step:5",
+      "evidence": [
+        {
+          "relation": "step",
+          "status": "resolved",
+          "target_id": "step:2",
+          "candidates": [],
+          "reason": "Explicit ScriptInfo marker"
+        },
+        {
+          "relation": "step",
+          "status": "resolved",
+          "target_id": "step:5",
+          "candidates": [],
+          "reason": "Explicit terminal marker"
+        }
+      ],
+      "source": {
+        "artifact": "output_run/steps.log",
+        "line": 2
+      }
+    },
+    {
+      "id": "segment:step:4",
+      "check_name": "test.invariant",
+      "kind": "invariant",
+      "state": "fail",
+      "start_step_id": null,
+      "end_step_id": "step:4",
+      "evidence": [
+        {
+          "relation": "step",
+          "status": "resolved",
+          "target_id": "step:4",
+          "candidates": [],
+          "reason": "Explicit ScriptInfo marker"
+        }
+      ],
+      "source": {
+        "artifact": "output_run/steps.log",
+        "line": 4
+      }
+    }
+  ],
+  "configuration": [
+    {
+      "document": "run_options",
+      "key": "running_mins",
+      "value": 10,
+      "encoding": "json",
+      "source": {
+        "artifact": "options.json",
+        "key": "running_mins"
+      }
+    },
+    {
+      "document": "run_options",
+      "key": "maxStep",
+      "value": {
+        "$nonfinite": "Infinity"
+      },
+      "encoding": "tagged_nonfinite",
+      "source": {
+        "artifact": "options.json",
+        "key": "maxStep"
+      }
+    },
+    {
+      "document": "run_options",
+      "key": "packageNames",
+      "value": [
+        "com.example"
+      ],
+      "encoding": "json",
+      "source": {
+        "artifact": "options.json",
+        "key": "packageNames"
+      }
+    },
+    {
+      "document": "run_options",
+      "key": "log_stamp",
+      "value": "run",
+      "encoding": "json",
+      "source": {
+        "artifact": "options.json",
+        "key": "log_stamp"
+      }
+    },
+    {
+      "document": "report_configuration",
+      "key": "log_stamp",
+      "value": "run",
+      "encoding": "json",
+      "source": {
+        "artifact": "bug_report_config.json",
+        "key": "log_stamp"
+      }
+    },
+    {
+      "document": "report_configuration",
+      "key": "test_time",
+      "value": "2026-10-20 09:00:00",
+      "encoding": "json",
+      "source": {
+        "artifact": "bug_report_config.json",
+        "key": "test_time"
+      }
+    },
+    {
+      "document": "report_configuration",
+      "key": "take_screenshots",
+      "value": true,
+      "encoding": "json",
+      "source": {
+        "artifact": "bug_report_config.json",
+        "key": "take_screenshots"
+      }
+    }
+  ],
+  "widgets": [
+    {
+      "id": "widget:1",
+      "activity": "Home",
+      "class_name": "KEY_BACK",
+      "resource_id": "KEY_BACK",
+      "content_description": "KEY_BACK",
+      "source": {
+        "artifact": "output_run/widget_coverage_report.txt",
+        "line": 1
+      },
+      "raw": "activity:Home|class:KEY_BACK|resourceId:KEY_BACK|content-desc:KEY_BACK|",
+      "parse_status": "parsed"
+    }
+  ],
+  "diagnostics": null,
+  "property_execution_trend": [
+    {
+      "monkey_step": 20,
+      "executed_property_count": 1,
+      "source": {
+        "artifact": "output_run/steps.log"
+      }
+    }
+  ],
+  "finding_groups": null
+}

@@ -17,10 +17,10 @@
 安装 wheel 不会自动安装 Skill。在 Agent 客户端中发送以下安装请求即可：
 
 ```text
-请从 https://github.com/ecnusse/Kea2 下载 skills/kea2-test 和 skills/kea2-result-analysis 两个完整目录（包含 references），安装到当前 Agent 客户端的用户级技能目录。
+请从 https://github.com/ecnusse/Kea2 下载 skills/kea2-test 和 skills/kea2-result-analysis 两个完整目录（包含 references），安装到当前测试项目的 .claude/skills/ 目录下，分别保存为 .claude/skills/kea2-test/ 和 .claude/skills/kea2-result-analysis/。
 ```
 
-合入主分支前，在请求中明确指定 `mcp_dev` 分支。也可以指定包含这些 Skill 的发布标签。若只希望当前项目使用，将“用户级”改成“项目级”。安装完成后按客户端提示刷新技能或开启新会话。
+以上为 Claude Code 的项目级安装示例。使用其他客户端时，将目标目录替换为下表中的项目级目录，例如 Codex 使用 `.codex/skills/`。合入主分支前，在请求中明确指定 `mcp_dev` 分支；也可以指定包含这些 Skill 的发布标签。安装完成后按客户端提示刷新技能或开启新会话。
 
 下表说明安装位置与调用方法，通常由 Agent 完成安装，无需手动复制：
 

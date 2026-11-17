@@ -155,10 +155,10 @@ python -m pip install "kea2-python[mcp]"
 
 Both skills live in the repository's [skills/](skills/) directory: `kea2-test` guides and monitors single-device or multi-device tests; `kea2-result-analysis` analyzes results and produces merged reports.
 
-Send this installation request to your agent client instead of copying files manually:
+For Claude Code, send this request to install into the current test project instead of copying files manually. For other clients, use the project-level directory in the [installation guide](docs/result_analysis_skill_en.md), such as `.codex/skills/` for Codex:
 
 ```text
-Download the complete skills/kea2-test and skills/kea2-result-analysis directories, including references, from https://github.com/ecnusse/Kea2 and install both into this agent client's user-level skills directory.
+Download the complete skills/kea2-test and skills/kea2-result-analysis directories, including references, from https://github.com/ecnusse/Kea2 and install them into the current test project's .claude/skills/ directory as .claude/skills/kea2-test/ and .claude/skills/kea2-result-analysis/.
 ```
 
 Use a branch or release tag containing these skills; before they are merged into the main branch, explicitly request the `mcp_dev` branch. After installation, follow the client's instructions to refresh skills or start a new session. Skill installation and MCP connection setup are separate steps.

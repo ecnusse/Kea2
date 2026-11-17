@@ -156,10 +156,10 @@ python -m pip install "kea2-python[mcp]"
 
 两个 Skill 统一维护在仓库根目录的 [skills/](skills/) 下：`kea2-test` 负责交互式启动和跟踪单机/多机测试，`kea2-result-analysis` 负责结果分析与合并报告。
 
-在 Agent 客户端中发送下面这句话即可请求安装，无需手动复制文件：
+以 Claude Code 为例，在客户端中发送下面这句话即可安装到当前测试项目，无需手动复制文件。其他客户端请使用[安装手册](docs/result_analysis_skill_cn.md)中的项目级目录（例如 Codex 使用 `.codex/skills/`）：
 
 ```text
-请从 https://github.com/ecnusse/Kea2 下载 skills/kea2-test 和 skills/kea2-result-analysis 两个完整目录（包含 references），安装到当前 Agent 客户端的用户级技能目录。
+请从 https://github.com/ecnusse/Kea2 下载 skills/kea2-test 和 skills/kea2-result-analysis 两个完整目录（包含 references），安装到当前测试项目的 .claude/skills/ 目录下，分别保存为 .claude/skills/kea2-test/ 和 .claude/skills/kea2-result-analysis/。
 ```
 
 安装来源应选择包含这些 Skill 的分支或发布标签；合入主分支前，请在请求中明确指定 `mcp_dev` 分支。安装后按客户端提示刷新技能或开启新会话。Skill 安装与 MCP 连接配置分别进行。

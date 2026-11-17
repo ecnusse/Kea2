@@ -21,12 +21,13 @@ preserved for findings.
 Installing the wheel does not install the skills. Send this request to your agent client:
 
 ```text
-Download the complete skills/kea2-test and skills/kea2-result-analysis directories, including references, from https://github.com/ecnusse/Kea2 and install both into this agent client's user-level skills directory.
+Download the complete skills/kea2-test and skills/kea2-result-analysis directories, including references, from https://github.com/ecnusse/Kea2 and install them into the current test project's .claude/skills/ directory as .claude/skills/kea2-test/ and .claude/skills/kea2-result-analysis/.
 ```
 
 Before the skills are merged into the main branch, explicitly request the `mcp_dev` branch.
-You can also specify a release tag containing the skills. Replace “user-level” with “project-level”
-to install for the current project only. Follow the client's instructions to refresh skills or
+You can also specify a release tag containing the skills. This example installs at project scope
+for Claude Code. For another client, use its project-level directory from the table below, such as
+`.codex/skills/` for Codex. Follow the client's instructions to refresh skills or
 start a new session after installation.
 
 The table below documents installation locations and invocation; the agent normally performs
